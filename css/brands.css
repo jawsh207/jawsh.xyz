@@ -1,0 +1,196 @@
+/*
+* littlelink.io
+* Skeleton V2.0.4
+* Copyright 2014, Dave Gamache
+* www.getskeleton.com
+* Free to use under the MIT license.
+* http://www.opensource.org/licenses/mit-license.php
+* 12/29/2014
+*/
+
+/*
+* Built using on:
+* Skeleton V2.0.4
+* Copyright 2014, Dave Gamache
+* www.getskeleton.com
+* Free to use under the MIT license.
+* http://www.opensource.org/licenses/mit-license.php
+* 12/29/2014
+*/
+
+/* Table of contents
+––––––––––––––––––––––––––––––––––––––––––––––––––
+
+- Buttons
+- Brand Styles
+
+*/
+
+/* Buttons
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+.button,
+button {
+  display: inline-block;
+  text-decoration: none;
+  height: 48px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 18px;
+  width: 300px;
+  font-weight: 700;
+  line-height: 48px;
+  letter-spacing: 0.1px;
+  white-space: wrap;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button:hover,
+.button:focus {
+  color: #333;
+  border-color: #888;
+  outline: 0;
+}
+.button.button-primary {
+  color: #fff;
+  filter: brightness(90%);
+}
+.button.button-primary:hover,
+.button.button-primary:focus {
+  color: #fff;
+  filter: brightness(90%);
+}
+
+/* Brand Icons
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+.icon {
+  padding: 0px 8px 3.5px 0px;
+  vertical-align: middle;
+  width: 20px;
+  height: 20px;
+}
+
+/* Brand Styles
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+/* Default (this is great for your own brand color!) */
+.button.button-default {
+  color: #ffffff;
+  background-color: #3BCB56;
+}
+.button.button-default:hover,
+.button.button-default:focus {
+  filter: brightness(90%);
+}
+
+/* Buy Me a Coffee */
+.button.button-coffee {
+  color: #100a26;
+  background-color: #ffdd00;
+}
+.button.button-coffee:hover,
+.button.button-coffee:focus {
+  filter: brightness(90%);
+}
+
+/* Cash App */
+.button.button-cashapp {
+  color: #ffffff;
+  background-image: linear-gradient(to bottom, #00d64b, #00c244);
+}
+.button.button-cashapp:hover,
+.button.button-cashapp:focus {
+  filter: brightness(90%);
+}
+
+/* Facebook */
+.button.button-faceb {
+  color: #ffffff;
+  background-color: #1877f2;
+}
+.button.button-faceb:hover,
+.button.button-faceb:focus {
+  filter: brightness(90%);
+}
+
+/* Fediverse */
+.button.button-fediverse {
+  color: #ffffff;
+  background-color: #FF7700;
+}
+.button.button-fediverse:hover,
+.button.button-fediverse:focus {
+  filter: brightness(90%);
+}
+
+/* Reddit */
+.button.button-reddit {
+  color: #FFFFFF;
+  background-color: #FF5700;
+}
+.button.button-reddit:hover,
+.button.button-reddit:focus {
+  filter: brightness(90%);
+}
+
+/* Nostr */
+.button.button-nostr {
+  color: #ffffff;
+  background-color: #7F4FC4;
+}
+.button.button-nostr:hover,
+.button.button-nostr:focus {
+  filter: brightness(90%);
+}
+
+/* Telegram */
+.button.button-telegram {
+  color: #ffffff;
+  background-color: #3faee8;
+}
+.button.button-telegram:hover,
+.button.button-telegram:focus {
+  filter: brightness(90%);
+}
+
+/* Email */
+.button.button-email {
+  color: #ffffff;
+  background-color: #ED001C;
+}
+.button.button-email:hover,
+.button.button-email:focus {
+  filter: brightness(90%);
+}
+
+/* XMPP */
+.button.button-xmpp {
+  color: #ffffff;
+  background-color: #8fce00;
+}
+.button.button-default:hover,
+.button.button-default:focus {
+  filter: brightness(90%);
+}
+
+/* Lightning */
+.button.button-lightning {
+  color: #ffffff;
+  background-color: #F0EC0E;
+}
+.button.button-lightning:hover,
+.button.button-lightning:focus {
+  filter: brightness(90%);
+}
+
+/* Bitcoin */
+.button.button-bitcoin {
+  color: #ffffff;
+  background-color: #F7931A;
+}
+.button.button-bitcoin:hover,
+.button.button-bitcoin:focus {
+  filter: brightness(90%);
+}
+
