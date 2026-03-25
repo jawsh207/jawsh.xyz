@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!-- Page Information
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>JAWSH</title>
+  <meta name="description" content="A mostly pointless page!">
+  <meta name="author" content="J Mizzle">
+  <meta name="lightning" content="lnurlp:jawsh@getalby.com"/>
+  <meta property="og:image" content="https://jawsh.xyz/images/avatar@2x.png" />
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800&display=swap" rel="stylesheet">
+
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="css/normalize.css">
+
+    <!-- Themes:
+            Auto:   css/skeleton-auto.css
+            Light:  css/skeleton-light.css
+            Dark:   css/skeleton-dark.css
+     -->
+    <link rel="stylesheet" href="css/skeleton-auto.css">
+
+    <!-- Brand Styles -->
+    <link rel="stylesheet" href="css/brands.css">
+
+
+  <!-- Favicon default images/avatar.png
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="images/avatar.png">
+
+</head>
+
+<body>
+
+  <!-- Primary Page Layout
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <div class="container">
+    <div class="row">
+      <div class="column" style="margin-top: 10%">
+
+        <!-- 
+
+          ## Getting Started with LittleLink
+          
+
+          You can add your own brand or others brands you may need in the `css/brands.css` file. 
+
+          You can add custom icons to `images/icons/...`. It is recommended to use a 24x24 .SVG.
+
+          Edit the "Your Image Here" section to add your own personal branding, like a picture of yourself or your brand logo!
+
+          Edit the "Title" section to change the page heading. You can use something like your name, your social handle, or your brand name.
+
+          Edit the "Short Bio" section tell users about yourself or your brand.
+
+        -->
+
+        <!-- Your Image Here -->
+        <img src="images/avatar.png" class="avatar" srcset="images/avatar@2x.png 2x" alt="Logo">
+
+        <!-- Title -->
+        <h1>JAWSH<br><font size="2">Welcome, to a mostly pointless page.</font></h1>
+
+        <!-- Short Bio -->
+        <p><b>Contact</p>
+
+        <!--
+
+          ## Breaking down <a> attributes:
+          
+          1.) class="button button-default" | The first "button" here is telling this <a> tag that it should make this element a button and applies the default styling in `css/brands.css`.
+          The second portion, button-default, is declaring the specific brand style you would like to apply. Here we're applying the "default" style and color.
+          If you want to make this button to use the brand colors for Discord, just change "button-default" to "button-discord". Brands are found in `css/brands.css`. You can always edit & add your own there.
+
+          2.) Replace the # in href="#" with the desired target URL for the button.
+
+          3.) target="_blank" | This attribute opens links in a new tab. Remove this attribute to prevent links from opening in a new tab.
+
+          4.) rel="noopener" | This attribute instructs the browser to navigate to the target resource without granting the new browsing context access to the document that opened it.
+          This is especially useful when opening untrusted links. https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/noopener
+
+          ## Breaking down the <img> attributes:
+          
+          1.) class="icon" | This class is telling the <img> tag that it should use the styling for icons found in `css/brands.css`.
+
+          2.) src="icons/[icon_name].svg" | This defines the icon you would like to display from the icons/ folder. For example, you can change this to src="icons/discord.svg" to use the Discord icon.
+          Add your own 24x24 icons to the "icons" folder to reference them. We recommend providing a SVG.
+
+          3.) alt="Example Logo" | This alt attribute helps provides alternate text for an image, this can assist users who use screen readers. 
+
+        -->
+        
+        <!-- Nostr -->
+        <a class="button button-nostr" href="nostr:npub1jawsh2wrjk25urgx4qq65fam67nrrkdf4zjxrhcezv5v69g9gxwqyhnew7" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/nostr.svg" alt="Nostr Logo">Nostr</a>
+        <br>
+
+        <!-- Email -->
+        <a class="button button-email" href="mailto:jawsh@tuta.com" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/email.svg" alt="Email Icon">Email</a>
+        <br>
+        
+        <!-- Signal -->
+        <a class="button button-nostr" href="https://signal.me/#eu/jbB9LQj6zc6LifL0RxUQnnjIcUDD-Mq3Su1wLIdkINx_OzHSikdEkJvYb5DxXmBn" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/signal.svg" alt="Signal Icon">Signal</a>
+        <br>
+
+        <!-- Telegram -->
+        <a class="button button-telegram" href="https://t.me/jawsh207" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/telegram.svg" alt="Telegram Logo">Telegram</a>
+        <br>
+        
+        Donate
+        <br>
+        <br>
+        
+        <!-- Bitcoin -->
+        <a class="button button-bitcoin" href="bitcoin:bc1qw3a6c0857r0hpv4yhlqaf0hx5gmjr7xtmx9w5j" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/btc.svg" alt="Bitcoin Logo">Bitcoin</a>
+        <br>
+        
+        <!-- Lightning -->
+        <a class="button button-lightning" href="lightning:jawsh@minibits.cash" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/lightning.svg" alt="Lightning Logo">Lightning</a>
+        <br>
+
+        <!-- Cash App Dollar -->
+        <a class="button button-cashapp" href="https://cash.app/$jawsh207" target="_blank" rel="noopener">
+            <img class="icon" src="images/icons/cashapp_dollar.svg" alt="Cash App Logo">Cash App</a>
+        <br>
+     
+       
+        <br>
+        <!-- 
+            Footer:
+            This includes a link to privacy.html page which can be setup for your Privacy Policy.
+            This also includes a link to the LittleLink repository to make forking LittleLink easier.
+            You can edit or remove anything here to make your own footer.
+        -->
+        <p><font size="-3">This page is powered by <a href="https://littlelink.io" target="_blank" rel="noopener">LittleLink</a> </font></p>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- End Document
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+</body>
+
+</html>
