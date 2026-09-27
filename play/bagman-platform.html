@@ -3,20 +3,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
 <title>Bag-Man: Breakfast Platformer</title>
 <style>
 :root{color-scheme:dark;--bg:#171210;--ink:#f3e6cf;--gold:#e8b83a;--red:#d63a2a;--panel:#3a2c1e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 body{margin:0;height:100%;position:relative;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#hud{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;font:900 18px Impact,"Arial Black",sans-serif;letter-spacing:.04em;text-shadow:0 2px 0 #000;pointer-events:none}
+#hud{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;font:900 18px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.04em;text-shadow:0 2px 0 #000;pointer-events:none}
 #hp{color:var(--red);letter-spacing:.08em}
 #wt{display:flex;align-items:center;gap:6px}
 #wbar{display:block;width:80px;height:12px;border:2px solid #fff;border-radius:7px;overflow:hidden;background:#0008}
 #wf{display:block;height:100%;background:#3ac7f0}
 #pad,#act{position:absolute;bottom:16px;display:flex;gap:6px;align-items:flex-end}
 #pad{left:10px}#act{right:10px}
-#pad button,#act button{width:60px;height:60px;border-radius:50%;border:3px solid var(--ink);background:rgba(58,44,30,.8);color:#fff;font:900 12px Impact,"Arial Black",sans-serif;touch-action:none;padding:0}
+#pad button,#act button{width:60px;height:60px;border-radius:50%;border:3px solid var(--ink);background:rgba(58,44,30,.8);color:#fff;font:900 12px 'Bangers',Impact,"Arial Black",sans-serif;touch-action:none;padding:0}
 #pad{gap:8px}
 #pad button{width:84px;height:84px;font-size:36px}
 #act .j{width:84px;height:84px;font-size:17px}
@@ -27,18 +29,18 @@ body.m #hud,body.m #pad,body.m #act,body.m #pause{display:none}
 #ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:24px;text-align:center;background:rgba(15,10,8,.86);overflow-y:auto}
 .w{margin:auto;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:100%}
 #ov.hide{display:none}
-h1{margin:0;font:900 clamp(44px,13vw,88px)/.92 Impact,"Arial Black",sans-serif;color:var(--gold);text-shadow:4px 4px 0 #000;transform:rotate(-2deg)}
+h1{margin:0;font:900 clamp(44px,13vw,88px)/.92 'Bangers',Impact,"Arial Black",sans-serif;color:var(--gold);text-shadow:4px 4px 0 #000;transform:rotate(-2deg)}
 h1 small{display:block;font-size:.4em;color:var(--ink);margin-top:8px}
 #ov p{margin:0;max-width:32ch;line-height:1.4;font-size:16px}
-h2{margin:6px 0 0;font:900 16px Impact,"Arial Black",sans-serif;letter-spacing:.06em;color:var(--gold)}
+h2{margin:6px 0 0;font:900 16px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.06em;color:var(--gold)}
 h1.s{font-size:clamp(34px,10vw,54px);transform:none}
 .g{display:flex;gap:6px}
-.l{width:58px;height:58px;border:3px solid var(--ink);border-radius:8px;background:var(--panel);color:#fff;font:900 17px Impact,"Arial Black",sans-serif;padding:0;line-height:1.25}
+.l{width:58px;height:58px;border:3px solid var(--ink);border-radius:8px;background:var(--panel);color:#fff;font:900 17px 'Bangers',Impact,"Arial Black",sans-serif;padding:0;line-height:1.25}
 .l small{display:block;font:11px "Trebuchet MS",sans-serif;color:var(--gold)}
 .l:disabled{opacity:.4}
 table{border-collapse:collapse;font-size:15px}td{padding:2px 14px}
 .b.r{font-size:17px;background:var(--panel);padding:8px 22px}
-.b{font:900 26px Impact,"Arial Black",sans-serif;letter-spacing:.06em;padding:12px 40px;border:4px solid #000;border-radius:6px;background:var(--red);color:#fff;box-shadow:4px 4px 0 #000}
+.b{font:900 26px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.06em;padding:12px 40px;border:4px solid #000;border-radius:6px;background:var(--red);color:#fff;box-shadow:4px 4px 0 #000}
 button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 /* always landscape: on touch devices held in portrait, the whole game is turned sideways */
 @media (orientation:portrait) and (pointer:coarse){
@@ -53,7 +55,7 @@ button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 <div id="ov"></div>
 <script>
 const $=i=>document.getElementById(i),cv=$('c'),ctx=cv.getContext('2d');
-const FONT='Impact,"Arial Black",sans-serif',GY=400,MAXW=50;
+const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50;
 const ell=(x,y,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill()};
 let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6;
 const keys=new Set();
@@ -352,11 +354,9 @@ function comicPop(q){
   const R1=34,R2=22,n=10;ctx.fillStyle=q.c?'#e8382a':'#fff23a';ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.beginPath();
   for(let i=0;i<n*2;i++){const r=i%2?R2:R1,a2=Math.PI*i/n-Math.PI/2,x=Math.cos(a2)*r,y=Math.sin(a2)*r*.72;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
   ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.font="italic 900 19px "+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
-  ctx.lineWidth=5;ctx.strokeStyle='#000';ctx.strokeText(q.txt,1,1);
-  ctx.fillStyle=q.c?'#fff':'#8a3a00';ctx.fillText(q.txt,1,1);
-  ctx.lineWidth=5;ctx.strokeStyle='#000';ctx.strokeText(q.txt,0,0);
-  ctx.fillStyle='#fff';ctx.fillText(q.txt,0,0);
+  ctx.font="900 24px "+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.miterLimit=2;try{ctx.letterSpacing='1px'}catch(e){}
+  ctx.lineWidth=3;ctx.strokeStyle='#000';ctx.strokeText(q.txt,0,1);
+  ctx.fillStyle='#fff';ctx.fillText(q.txt,0,1);
   ctx.restore();
 }
 function eagle(g){
@@ -504,7 +504,7 @@ function draw(){
   if(!(P.inv>0&&(T*20|0)%2)){ctx.save();ctx.translate(P.x,P.y+25);ctx.scale(1.12,1.12);ctx.translate(-P.x,-P.y-25);bag();if(P.sw<=0)gun();ctx.restore();ball()}
   for(const g of eagles)eagle(g);
   for(const q of comix)comicPop(q);
-  ctx.textAlign='center';ctx.font='900 18px '+FONT;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.fillStyle='#7fffa0';for(const q of pops){ctx.globalAlpha=Math.min(1,q.l*2);ctx.strokeText(q.txt,q.x,q.y);ctx.fillText(q.txt,q.x,q.y)}ctx.globalAlpha=1;
+  ctx.textAlign='center';ctx.font='900 20px '+FONT;try{ctx.letterSpacing='.5px'}catch(e){}ctx.lineWidth=2.5;ctx.strokeStyle='#000';ctx.fillStyle='#7fffa0';for(const q of pops){ctx.globalAlpha=Math.min(1,q.l*2);ctx.strokeText(q.txt,q.x,q.y);ctx.fillText(q.txt,q.x,q.y)}ctx.globalAlpha=1;
   ctx.fillStyle='#7fd6ff';for(const b of shots){ctx.globalAlpha=.4+b.l;ctx.beginPath();ctx.arc(b.x,b.y,3,0,7);ctx.fill()}ctx.globalAlpha=1;
   for(const p of parts){ctx.globalAlpha=Math.min(1,p.l*2.5);ctx.fillStyle=p.c;p.sq?ctx.fillRect(p.x,p.y,p.s,p.s):(ctx.beginPath(),ctx.arc(p.x,p.y,p.s,0,7),ctx.fill())}ctx.globalAlpha=1;
   ctx.setTransform(X,0,0,X,0,0);

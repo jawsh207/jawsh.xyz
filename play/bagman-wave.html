@@ -130,7 +130,16 @@ function noiz(dur,freq,q,vol,at){try{const src=AC.createBufferSource();src.buffe
 function sCrunch(big){noiz(big?.32:.16,big?600:950,1.1,big?1:.85);tone(big?90:150,big?.3:.12,'square',big?.7:.45,big?30:55)}
 function sSplat(big){noiz(big?.4:.22,big?260:360,.7,big?1:.75);tone(big?150:220,big?.4:.22,'sine',big?.6:.4,big?60:80)}
 function sHurt(){tone(240,.22,'sawtooth',.45,85)}
-function sShoot(){noiz(.05,2400,2,.28)}
+function sShoot(){try{
+ const src=AC.createBufferSource();src.buffer=NB;src.loop=true;const off=R()*(NB.duration-.2);
+ const f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=2.5;
+ f.frequency.setValueAtTime(3000,AC.currentTime);f.frequency.exponentialRampToValueAtTime(500,AC.currentTime+.14);
+ const g=sG();g.gain.setValueAtTime(.3,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.15);
+ src.connect(f);f.connect(g);src.start(AC.currentTime,off);src.stop(AC.currentTime+.15);src.onended=()=>rip(src,f,g);
+ const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(750,AC.currentTime);o.frequency.exponentialRampToValueAtTime(170,AC.currentTime+.13);
+ const g2=sG();g2.gain.setValueAtTime(.001,AC.currentTime);g2.gain.linearRampToValueAtTime(.22,AC.currentTime+.015);g2.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.14);
+ o.connect(g2);o.start();o.stop(AC.currentTime+.15);o.onended=()=>rip(o,g2);
+}catch(e){}}
 function sPow(){tone(260,.5,'sawtooth',.5,1000);noiz(.5,1300,1,.4)}
 function ensureAudio(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();
  MG=AC.createGain();MG.gain.value=.55;MG.connect(AC.destination);
@@ -160,7 +169,10 @@ function gy(e,v){return 285+cl(v,0,1)*109-26*e.s}
 function mk(k,boss){const h=boss?40+wave*4:(k=='b'||wave>5?2:1);const e={k,boss,x:W+(boss?120:30),y:0,l:boss?.5:R(),s:boss?3.2:1,hp:h,mh:h,ph:R()*6,cd:1+R(),hx:470+R()*250,fl:0,armLt:1,armRt:1};e.y=gy(e,e.l);return e}
 function nextWave(){wave++;banner=2.4;if(wave%5==0){E.push(mk(wave/5%2?'t':'b',1));mcd=5;toSpawn=0}else toSpawn=4+wave*2}
 function reset(){P={x:110,y:200,hp:5,inv:0,fc:0,bx:80,by:236,walk:0,moving:false,slam:null,slamHit:false};E=[];PB=[];EB=[];PT=[];PP=[];PUD=[];SW=[];POW=null;powT=4;wave=0;score=0;spT=0;mcd=0;nextWave()}
-function go(){ensureAudio();reset();S='play';try{if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().then(()=>{try{screen.orientation.lock('landscape')}catch(e){}}).catch(()=>{})}catch(e){}}
+function goFullscreen(){const el=document.documentElement;
+ const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.msRequestFullscreen;
+ if(req){try{const p=req.call(el);if(p&&p.catch)p.catch(()=>{})}catch(e){}}}
+function go(){ensureAudio();reset();S='play';goFullscreen();try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 function pop(x,y,s){PT.push({x,y,s,l:.7,r:R()*.4-.2})}
 function burst(x,y,k,n){for(let i=0;i<n;i++)PP.push({x,y,vx:R()*300-150,vy:R()*-260,l:.6,c:k=='t'?'#a8641f':'#f6d84a'})}
 function hurt(){if(P.inv>0)return;P.hp--;P.inv=1.3;shake=.35;burst(P.x,P.y,'t',8);sHurt();
