@@ -5,7 +5,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
-<title>Bag-Man: Breakfast Platformer</title>
+<title>Bagman: Breakfast Platformer</title>
 <style>
 :root{color-scheme:dark;--bg:#171210;--ink:#f3e6cf;--gold:#e8b83a;--red:#d63a2a;--panel:#3a2c1e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
@@ -111,7 +111,7 @@ function bag(){
 
 function gun(){ctx.save();ctx.translate(P.x+P.face*12,P.y+3);ctx.scale(P.face,1);ctx.fillStyle='#3ac7f0';ctx.fillRect(4,-11,10,8);ctx.fillStyle='#e8781a';ctx.fillRect(0,-3,20,6);ctx.fillStyle='#333';ctx.fillRect(18,-2,6,4);ctx.restore()}
 function ball(){
-  if(P.sw<=0)return;const hx=P.x,hy=P.y-4,bx=P.bx,by=P.by;
+  if(P.sw<=0)return;const hx=P.x-P.sd*12,hy=P.y+6,bx=P.bx,by=P.by;
   ctx.strokeStyle='#9a9a9a';ctx.lineWidth=2.5;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(bx,by);ctx.stroke();ctx.setLineDash([]);
   ell(bx,by,11,11,'#1c1c20');ell(bx-3.5,by-3.5,3,2.4,'rgba(255,255,255,.55)');
 }
@@ -275,7 +275,7 @@ const save=()=>{try{localStorage.setItem('bagman-save',JSON.stringify(prog))}cat
 const panel=h=>{$('ov').className='';$('ov').innerHTML='<div class="w">'+h+'</div>'};
 const B=(a,t,v,c)=>`<button class="b ${c||''}" data-a="${a}"${v!=null?` data-v="${v}"`:''}>${t}</button>`;
 function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').textContent=m?'🔇':'🔊'}
-function mainMenu(){state='menu';musicStop();panel('<h1>BAG-MAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+'<p>SWING slams the ball and chain in front of you. SQUIRT fires the super soaker: refill it at wells, sinks and water dispensers. Butter puddles are slippery and butter spits: block it with the squirt gun. Jump on toast and butter to squash them. Flying toasters fight with forks and launch extra toast when they glow red. Double-tap left or right to run faster. Every 5 defeats, a bald eagle delivers pizza when you are hurt; beating a boss brings a full meal when you are hurt.<br>Keys: A/D move, W jump, J swing, K squirt, P pause.</p>')}
+function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+'<p>SWING slams the ball and chain in front of you. SQUIRT fires the super soaker: refill it at wells, sinks and water dispensers. Butter puddles are slippery and butter spits: block it with the squirt gun. Jump on toast and butter to squash them. Flying toasters fight with forks and launch extra toast when they glow red. Double-tap left or right to run faster. Every 5 defeats, a bald eagle delivers pizza when you are hurt; beating a boss brings a full meal when you are hurt.<br>Keys: A/D move, W jump, J swing, K squirt, P pause.</p>')}
 function levelsMenu(){
   state='menu';musicStop();let h='<h1 class="s">SELECT LEVEL</h1>';
   AREAS.forEach((a,i)=>{h+='<h2>'+(i+1)+'. '+a+'</h2><div class="g" style="flex-wrap:wrap;max-width:340px;justify-content:center">';
@@ -402,7 +402,7 @@ function update(dt){
   if(P.sw>0){P.sw-=dt;if(P.sw<=0)P.swc=.2;else{
     const el=P.el=.55-P.sw;let th=105,R=70;
     if(el<.22){const u=el/.22,q=1-(1-u)*(1-u);th=-160+100*q;R=22+48*q}else if(el<.38){const u=(el-.22)/.16;th=-60+165*u*u}
-    const r=th*Math.PI/180;P.bx=P.x+P.sd*R*Math.sin(r);P.by=P.y-4-R*Math.cos(r);
+    const r=th*Math.PI/180;P.bx=P.x-P.sd*12+P.sd*R*Math.sin(r);P.by=P.y+6-R*Math.cos(r);
     if(el>=.38&&!P.sl){P.sl=1;shake=10;sfx.slam();fx={x:P.bx,y:P.y+25,t:0};
       puddles=puddles.filter(q=>Math.abs(q.x-P.bx)>70||Math.abs(q.y-(P.y+25))>10);
       burst(P.bx,P.y+22,['#a89a80','#7a6f5c','#d8cdb4'],14,1);
