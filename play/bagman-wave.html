@@ -46,7 +46,7 @@ function knife(){X.save();X.translate(-20,4);X.rotate(-.5);box(-2,0,5,9,'#4a2a12
 function eye(x,y,c){X.fillStyle=c;X.beginPath();X.arc(x,y,4,0,7);X.fill();ol(1.5);X.fillStyle='#111';X.beginPath();X.arc(x,y,1.6,0,7);X.fill()}
 function brows(y,d){X.beginPath();X.moveTo(-14,y-d);X.lineTo(-3,y+1);X.moveTo(14,y-d);X.lineTo(3,y+1);ol(3)}
 
-function bp(){X.beginPath();X.moveTo(-17,20);X.lineTo(-17,-2);X.quadraticCurveTo(-18,-20,-8,-27);X.quadraticCurveTo(-3,-31,0,-20);X.quadraticCurveTo(3,-31,8,-27);X.quadraticCurveTo(18,-20,17,-2);X.lineTo(17,20);X.closePath()}
+function bp(){X.beginPath();X.moveTo(-18,21);X.lineTo(-18,-10);X.bezierCurveTo(-26,-29,-10,-31,0,-26);X.bezierCurveTo(10,-31,26,-29,18,-10);X.lineTo(18,21);X.closePath()}
 function toast(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*2;
 box(-12,18,7,8+w,'#3a1c08');box(5,18,7,8-w,'#3a1c08');
 bp();X.fillStyle='#6b3714';X.fill();ol(e.s>1?1.6:2.5);
