@@ -11,8 +11,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden}
 body{font-family:Bangers,Impact,'Arial Black',fantasy}
 #app{width:100vw;height:100vh;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;align-items:center;justify-content:center;position:relative}
 canvas{display:block}
-@media screen and (orientation:portrait){
-  #app{width:100vh;height:100vw;position:absolute;top:100%;left:0;transform-origin:left top;transform:rotate(-90deg)}
+@media (orientation:portrait) and (pointer:coarse){
+  #app{position:fixed;top:0;left:0;width:100dvh;height:100dvw;transform:rotate(90deg) translateY(-100%);transform-origin:0 0}
 }
 </style></head><body>
 <div id="app"><canvas id="c"></canvas></div>
@@ -248,9 +248,9 @@ if(S=='over'){X.fillStyle='rgba(10,5,20,.6)';X.fillRect(0,0,W,H);T('GAME OVER',W
  T('SCORE '+score+'   BEST '+best,W/2,205,38,'#ffd400');T('You reached wave '+wave,W/2,245,28,'#fff');if(t-overT>.8)T('TAP TO RETRY',W/2,320,40,'#fff')}}
 
 // ---- input
-const rotMQ=matchMedia('(orientation:portrait)');
+const rotMQ=matchMedia('(orientation:portrait) and (pointer:coarse)');
 function pt(e){let lx,ly;
- if(rotMQ.matches){lx=innerHeight-e.clientY;ly=e.clientX}else{lx=e.clientX;ly=e.clientY}
+ if(rotMQ.matches){lx=e.clientY;ly=innerWidth-e.clientX}else{lx=e.clientX;ly=e.clientY}
  const ox=(APP.clientWidth-C.clientWidth)/2,oy=(APP.clientHeight-C.clientHeight)/2;
  return[(lx-ox)/C.clientWidth*W,(ly-oy)/C.clientHeight*H]}
 document.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=pt(e);
