@@ -54,12 +54,12 @@ X.save();X.translate(0,1);X.scale(.8,.8);bp();X.fillStyle=e.fl>0?'#ffd9a0':'#c28
 X.fillStyle='rgba(30,12,2,.5)';[[-15,4,2.4],[-14,13,2],[-13,-3,1.8],[15,6,2.4],[14,14,2],[13,-3,1.8]].forEach(a=>{X.beginPath();X.arc(a[0],a[1],a[2],0,7);X.fill()});
 eye(-8,-7,'#e11');eye(8,-7,'#e11');brows(-7,6);
 function toastMouth(){X.beginPath();X.moveTo(-13,4);X.quadraticCurveTo(0,17,13,4);X.lineTo(13,10);X.quadraticCurveTo(0,23,-13,10);X.closePath()}
-toastMouth();X.fillStyle='#3a0505';X.fill();
+X.save();X.translate(0,-3);toastMouth();X.fillStyle='#3a0505';X.fill();
 X.save();toastMouth();X.clip();
 X.fillStyle='#fff';for(let i=0;i<6;i++){const tx=-11+i*4.4;X.beginPath();X.moveTo(tx,4);X.lineTo(tx+2.6,4);X.lineTo(tx+1.3,15);X.closePath();X.fill()}
 for(let i=0;i<5;i++){const tx=-8.8+i*4.4;X.beginPath();X.moveTo(tx,23);X.lineTo(tx+2.6,23);X.lineTo(tx+1.3,8);X.closePath();X.fill()}
 X.restore();
-X.beginPath();X.moveTo(-13,4);X.quadraticCurveTo(0,17,13,4);ol(1.5);
+X.beginPath();X.moveTo(-13,4);X.quadraticCurveTo(0,17,13,4);ol(1.5);X.restore();
 knife();X.restore()}
 function rr(x,y,w,h,rad){X.beginPath();X.moveTo(x+rad,y);X.arcTo(x+w,y,x+w,y+h,rad);X.arcTo(x+w,y+h,x,y+h,rad);X.arcTo(x,y+h,x,y,rad);X.arcTo(x,y,x+w,y,rad);X.closePath()}
 function butter(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*2,aw=Math.sin(t*7+e.ph)*.3;
@@ -90,19 +90,20 @@ X.fillStyle='#333';X.fillRect(19,-3,4,3);
 X.fillStyle='#e8b090';X.fillRect(-7,2,6,10);ol(2);
 X.beginPath();X.arc(-3,8,4,.2,Math.PI*1.3);X.lineWidth=2;X.strokeStyle='#111';X.stroke();
 X.restore()}
+const PS=1.2;
 function drawP(){const x=P.x,y=P.y;
-if(P.slam!=null){const px=P.slamX-12,py=P.slamY+12,pr=Math.min(1,P.slam/.32);
+if(P.slam!=null){const px=P.slamX-12*PS,py=P.slamY+12*PS,pr=Math.min(1,P.slam/.32);
  const ang=pr<1?(-2.1+2.7*(1-Math.pow(1-pr,3))):Math.PI/2,len=90;
  const bx=px+Math.cos(ang)*len,by=py+Math.sin(ang)*len;
  X.beginPath();X.moveTo(px,py);X.lineTo(bx,by);X.lineWidth=5;X.strokeStyle='#111';X.stroke();X.lineWidth=2.5;X.strokeStyle='#999';X.stroke();
  X.beginPath();X.arc(bx,by,10,0,7);X.fillStyle='#222';X.fill();ol(2.5);X.fillStyle='#777';X.beginPath();X.arc(bx-3,by-3,3,0,7);X.fill();
  if(pr>=1){X.strokeStyle='rgba(255,255,255,.8)';X.lineWidth=3;for(let i=0;i<4;i++){const a2=i/4*6.28;X.beginPath();X.moveTo(bx,by);X.lineTo(bx+Math.cos(a2)*16,by+Math.sin(a2)*16);X.stroke()}}
 }else{
-X.beginPath();X.moveTo(x-12,y+12);X.lineTo(P.bx,P.by);X.lineWidth=5;X.strokeStyle='#111';X.stroke();X.setLineDash([4,3]);X.lineWidth=2.5;X.strokeStyle='#999';X.stroke();X.setLineDash([]);
+X.beginPath();X.moveTo(x-12*PS,y+12*PS);X.lineTo(P.bx,P.by);X.lineWidth=5;X.strokeStyle='#111';X.stroke();X.setLineDash([4,3]);X.lineWidth=2.5;X.strokeStyle='#999';X.stroke();X.setLineDash([]);
 X.beginPath();X.arc(P.bx,P.by,10,0,7);X.fillStyle='#222';X.fill();ol(2.5);X.fillStyle='#777';X.beginPath();X.arc(P.bx-3,P.by-3,3,0,7);X.fill();}
 if(P.inv>0&&(P.inv*12|0)%2)return;
 const wf=Math.sin(P.walk)*5,bob=Math.abs(Math.sin(P.walk))*2;
-X.save();X.translate(x,y-bob);
+X.save();X.translate(x,y-bob);X.scale(PS,PS);
 box(-12,14,22,16,'#111');box(-13,29+wf,12,6,'#111');box(2,29-wf,12,6,'#111');
 for(let i=0;i<5;i++)X.fillStyle=i%2?'#111':'#fff',X.fillRect(-12,-8+i*4.4,24,4.4);X.strokeStyle='#111';X.lineWidth=2.5;X.strokeRect(-12,-8,24,22);
 sleeve(-20,-6,9,13);box(-19,5,6,10,'#e8b090');
@@ -193,13 +194,13 @@ let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),dy=(keys.Arrow
 if(joy){dx+=cl((joy.x-joy.ox)/45,-1,1);dy+=cl((joy.y-joy.oy)/45,-1,1)}
 const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}
 const mv=Math.hypot(dx,dy)>.05&&P.slam==null;P.moving=mv;P.walk+=dt*(mv?10:6);
-if(P.slam==null){P.x=cl(P.x+dx*250*dt,24,400);P.y=cl(P.y+dy*250*dt,250,359)}
+if(P.slam==null){P.x=cl(P.x+dx*250*dt,24,400);P.y=cl(P.y+dy*250*dt,250,352)}
 if(P.slam!=null){P.slam+=dt;
  if(P.slam>=.32&&!P.slamHit){P.slamHit=true;shake=.9;SW.push({x:P.slamX,y:P.slamY,r:14,l:.6});sPow();
   E.forEach(e=>{if(!e.boss)kill(e)});E=E.filter(e=>e.boss);pop(P.slamX,P.slamY-40,'SLAM!!')}
  if(P.slam>=.7)P.slam=null}
 P.bx+=(P.x-24-P.bx)*Math.min(1,dt*7);P.by+=(Math.min(P.y+30,388)-P.by)*Math.min(1,dt*7);P.inv-=dt;P.fc-=dt;
-if((keys[' ']||fid!=null)&&P.fc<=0){P.fc=.16;PB.push({x:P.x+38,y:P.y-5});sShoot()}
+if((keys[' ']||fid!=null)&&P.fc<=0){P.fc=.16;PB.push({x:P.x+38*PS,y:P.y-5*PS});sShoot()}
 PB.forEach(b=>b.x+=560*dt);PB=PB.filter(b=>b.x<W+10);
 if(banner<=0){
  if(toSpawn>0){spT-=dt;if(spT<=0){spT=Math.max(.45,1.2-wave*.05);toSpawn--;E.push(mk(R()<Math.min(.5,.1+wave*.05)?'b':'t'))}}

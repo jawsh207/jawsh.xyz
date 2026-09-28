@@ -11,8 +11,10 @@
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 body{margin:0;height:100%;position:relative;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#hud{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;font:900 18px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.04em;text-shadow:0 2px 0 #000;pointer-events:none}
+#hud{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;font:900 18px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.04em;text-shadow:0 2px 0 #000;pointer-events:none}
+#hl{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 #hp{color:var(--red);letter-spacing:.08em}
+#score{color:#ffd23a;font:400 21px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.07em;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
 #wt{display:flex;align-items:center;gap:6px}
 #wbar{display:block;width:80px;height:12px;border:2px solid #fff;border-radius:7px;overflow:hidden;background:#0008}
 #wf{display:block;height:100%;background:#3ac7f0}
@@ -23,8 +25,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #pad button{width:84px;height:84px;font-size:36px}
 #act .j{width:84px;height:84px;font-size:17px}
 button.on{background:var(--gold)!important;color:#000!important}
-#mute,#pause{position:absolute;top:40px;left:10px;z-index:5;width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:rgba(58,44,30,.8);font-size:16px;padding:0}
-#pause{left:52px}
+#btns{position:absolute;top:36px;right:12px;display:flex;gap:9px;z-index:5}
+#mute,#pause{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;border:3px solid #000;border-radius:50%;background:#ffd23a;box-shadow:3px 3px 0 #000;transform:rotate(-5deg)}
+#pause{background:#ff5a3a;transform:rotate(5deg)}
+#mute:active,#pause:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
 body.m #hud,body.m #pad,body.m #act,body.m #pause{display:none}
 #ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:24px;text-align:center;background:rgba(15,10,8,.86);overflow-y:auto}
 .w{margin:auto;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:100%}
@@ -48,16 +52,17 @@ button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 }
 </style></head><body oncontextmenu="return false">
 <canvas id="c"></canvas>
-<div id="hud"><span id="hp"></span><span id="sc"></span><span id="wt"><b id="wl"></b><i id="wbar"><u id="wf"></u></i></span></div>
+<div id="hud"><div id="hl"><span id="hp"></span><span id="score"></span></div><span id="sc"></span><span id="wt"><b id="wl"></b><i id="wbar"><u id="wf"></u></i></span></div>
 <div id="pad"><button data-k="VL">◀</button><button data-k="VR">▶</button></div>
 <div id="act"><button data-k="VW">SQUIRT</button><button data-k="VS">SWING</button><button data-k="VJ" class="j">JUMP</button></div>
-<button id="mute" tabindex="-1">🔊</button><button id="pause" tabindex="-1">⏸</button>
+<div id="btns"><button id="mute" tabindex="-1"></button><button id="pause" tabindex="-1"></button></div>
 <div id="ov"></div>
 <script>
 const $=i=>document.getElementById(i),cv=$('c'),ctx=cv.getContext('2d');
+const HEAD='<svg viewBox="0 0 22 26" width="17" height="20" style="vertical-align:-4px;margin-left:5px"><rect x="1.5" y="2" width="19" height="22" fill="#b98a52" stroke="#2a1a0a" stroke-width="1.8"/><rect x="1.5" y="2" width="19" height="5" fill="#c99a5e" stroke="#2a1a0a" stroke-width="1.2"/><ellipse cx="7" cy="14" rx="3" ry="2.3" fill="#fff"/><ellipse cx="15" cy="14" rx="3" ry="2.3" fill="#fff"/><circle cx="7.6" cy="14.2" r="1.3" fill="#111"/><circle cx="15.6" cy="14.2" r="1.3" fill="#111"/><path d="M3 10L9 12.5M19 10L13 12.5" stroke="#2a1a0a" stroke-width="1.8" fill="none"/></svg>';let lastHud='';
 const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50;
 const ell=(x,y,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill()};
-let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6;
+let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6,lives=3,cpX=0,cpOn=false,note=null;
 const keys=new Set();
 let prog={};try{prog=JSON.parse(localStorage.getItem('bagman-save'))||{}}catch(e){}
 
@@ -214,7 +219,7 @@ const sfx={
   slam:()=>{noise(.35,.7,1000,70,'lowpass');tone(95,.3,'sine',.8,35)},squirt:()=>noise(.08,.14,2600,1800),click:()=>tone(160,.04,'square',.1),
   splat:()=>tone(700,.05,'triangle',.1,350),hit:()=>{tone(170,.13,'sawtooth',.25,60);noise(.08,.3,2000,600)},
   killT:()=>{noise(.16,.4,2600,500);tone(220,.16,'square',.2,80)},killB:()=>{tone(320,.22,'sine',.35,110);noise(.2,.25,900,300,'lowpass')},
-  hurt:()=>{tone(420,.3,'sawtooth',.3,90);noise(.15,.3,1500,300)},plop:()=>tone(230,.1,'sine',.06,100),spit:()=>{tone(260,.14,'sawtooth',.15,120);noise(.1,.2,900,400,'lowpass')},stab:()=>tone(900,.08,'square',.12,500),screech:()=>{tone(1500,.3,'sawtooth',.1,800);tone(1200,.3,'square',.06,1700,.1)},eat:()=>[660,880,1100,1320].forEach((f,i)=>tone(f,.16,'triangle',.2,0,i*.07)),charge:()=>tone(180,1.8,'sawtooth',.1,900),eject:()=>{tone(120,.25,'sawtooth',.3,420);noise(.2,.3,1200,300)},bubble:()=>tone(380+Math.random()*420,.07,'sine',.12,1000),
+  hurt:()=>{tone(420,.3,'sawtooth',.3,90);noise(.15,.3,1500,300)},plop:()=>tone(230,.1,'sine',.06,100),spit:()=>{tone(260,.14,'sawtooth',.15,120);noise(.1,.2,900,400,'lowpass')},stab:()=>tone(900,.08,'square',.12,500),lose:()=>[392,330,262].forEach((f,i)=>tone(f,.25,'sawtooth',.22,0,i*.13)),check:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.25,0,i*.08)),screech:()=>{tone(1500,.3,'sawtooth',.1,800);tone(1200,.3,'square',.06,1700,.1)},eat:()=>[660,880,1100,1320].forEach((f,i)=>tone(f,.16,'triangle',.2,0,i*.07)),charge:()=>tone(180,1.8,'sawtooth',.1,900),eject:()=>{tone(120,.25,'sawtooth',.3,420);noise(.2,.3,1200,300)},bubble:()=>tone(380+Math.random()*420,.07,'sine',.12,1000),
   clear:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.28,'square',.22,0,i*.11)),over:()=>[392,330,262,196].forEach((f,i)=>tone(f,.32,'sawtooth',.25,0,i*.2))
 };
 /* music: an original 4-bar chiptune loop in A minor (Am, F, C, E) at 132 BPM */
@@ -252,13 +257,14 @@ function addE(t,x,s,big){
   E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?Math.min(s.y-105,-ty+VH*.5-8):s.y-f,hp:big?12+lvl*2:(t=='t'?3:t=='b'?4:4)+(lvl/8|0),sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:70+lvl*2,dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,hy:Math.min(Math.max(80,s.y-105),-ty+VH*.5-8)});
 }
 function newLevel(){
-  area=(lvl-1)/10|0;L=2000+lvl*160;fq=0;fd=6;S=[{x:0,w:L,y:GY}];let x=260,t=0;const tiers=[330,268,206];
+  area=(lvl-1)/10|0;L=3600+lvl*240;fq=0;fd=6;S=[{x:0,w:L,y:GY}];let x=260,t=0;const tiers=[330,268,206];
   while(x<L-500){const w=100+Math.random()*90;S.push({x,w,y:tiers[t]});t=Math.max(0,Math.min(2,t+(Math.random()*3|0)-1));x+=w+40+Math.random()*70}
-  exitX=L-120;wells=[];
-  const gap=Math.max(VW+100,760),span=L-1000,n=Math.min(2+(lvl>4?1:0),(span/gap|0)+1);
+  exitX=L-120;wells=[];cpX=Math.round(L/2);cpOn=false;note=null;
+  const gap=Math.max(VW+100,760),span=L-1000,n=Math.min(3+(lvl>9?1:0)+(lvl>19?1:0),(span/gap|0)+1);
   Array.from({length:n},()=>Math.random()*(span-(n-1)*gap)).sort((a,b)=>a-b).forEach((r,i)=>{const wx=500+r+i*gap,c=S.filter(s=>wx>s.x+20&&wx<s.x+s.w-20),s=c[Math.random()*c.length|0];wells.push({x:wx,y:s.y})});
+  if(wells.some(w=>Math.abs(w.x-cpX)<110))cpX+=170;
   E=[];
-  for(let i=0;i<5+lvl*2;i++){
+  for(let i=0;i<Math.round(8+lvl*2.6);i++){
     const c=Math.random()<.5?[S[0]]:S.slice(1).filter(s=>s.x>450),s=c[Math.random()*c.length|0]||S[0];
     const x=s===S[0]?450+Math.random()*(L-800):s.x+30+Math.random()*(s.w-60);
     const r=Math.random();let t=lvl>=3&&x>VW+120&&r<Math.min(.3,.05*lvl)?'f':r>1-Math.min(.5,.1+lvl*.035)?'b':'t';
@@ -274,8 +280,13 @@ const lab=n=>(((n-1)/LPA|0)+1)+'-'+((n-1)%LPA+1),stars=n=>'★'.repeat(n)+'☆'.
 const save=()=>{try{localStorage.setItem('bagman-save',JSON.stringify(prog))}catch(e){}};
 const panel=h=>{$('ov').className='';$('ov').innerHTML='<div class="w">'+h+'</div>'};
 const B=(a,t,v,c)=>`<button class="b ${c||''}" data-a="${a}"${v!=null?` data-v="${v}"`:''}>${t}</button>`;
-function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').textContent=m?'🔇':'🔊'}
-function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+'<p>SWING slams the ball and chain in front of you. SQUIRT fires the super soaker: refill it at wells, sinks and water dispensers. Butter puddles are slippery and butter spits: block it with the squirt gun. Jump on toast and butter to squash them. Flying toasters fight with forks and launch extra toast when they glow red. Double-tap left or right to run faster. Every 5 defeats, a bald eagle delivers pizza when you are hurt; beating a boss brings a full meal when you are hurt.<br>Keys: A/D move, W jump, J swing, K squirt, P pause.</p>')}
+const IC=b=>'<svg viewBox="0 0 24 24" width="22" height="22">'+b+'</svg>',SPK='<path d="M3 9h4l5-4v14l-5-4H3z" fill="#000"/>',
+  ICON={on:IC(SPK+'<path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>'),
+        off:IC(SPK+'<path d="M15 9l6 6M21 9l-6 6" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>'),
+        pause:IC('<rect x="5.5" y="4" width="4.8" height="16" rx="1" fill="#000"/><rect x="13.7" y="4" width="4.8" height="16" rx="1" fill="#000"/>')};
+$('mute').innerHTML=ICON.on;$('pause').innerHTML=ICON.pause;
+function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').innerHTML=m?ICON.off:ICON.on}
+function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+'<p>SWING slams the ball and chain in front of you. SQUIRT fires the super soaker: refill it at wells, sinks and water dispensers. Butter puddles are slippery and butter spits: block it with the squirt gun. Jump on toast and butter to squash them. Flying toasters fight with forks and launch extra toast when they glow red. Double-tap left or right to run faster. Every 5 defeats, a bald eagle delivers pizza when you are hurt; beating a boss brings a full meal when you are hurt.<br>A checkpoint flag waits at the middle of every level. You have 3 lives (shown as a Bagman head with the number left): lose all your hearts and you restart from the checkpoint.<br>Keys: A/D move, W jump, J swing, K squirt, P pause.</p>')}
 function levelsMenu(){
   state='menu';musicStop();let h='<h1 class="s">SELECT LEVEL</h1>';
   AREAS.forEach((a,i)=>{h+='<h2>'+(i+1)+'. '+a+'</h2><div class="g" style="flex-wrap:wrap;max-width:340px;justify-content:center">';
@@ -291,12 +302,12 @@ function scoreMenu(){
     h+='</table>'});
   panel(h+'<p>Total score <b>'+tot+'</b> &nbsp; Stars <b>'+st+'/'+NL*3+'</b><br>Stars come from hearts left at the exit.</p>'+B('menu','BACK',null,'r')+B('reset','RESET SAVE',null,'r'));
 }
-function start(n,keep){cur=lvl=n;score=0;LT=0;const hp=keep&&P?P.hp:5;P=mkP();P.hp=hp;newLevel();state='play';$('ov').className='hide';initAudio();musicStart()}
+function start(n,keep){cur=lvl=n;score=0;LT=0;const hp=keep&&P?P.hp:5;if(!keep)lives=3;P=mkP();P.hp=hp;newLevel();state='play';$('ov').className='hide';initAudio();musicStart()}
 function pause(){
   if(state!='play')return;state='pause';keys.clear();musicStop();
   panel('<h1>PAUSED</h1><p>Level '+lab(lvl)+', '+AREAS[area]+'</p>'+B('resume','RESUME')+B('restart','RESTART')+B('levels','LEVELS')+B('snd','SOUND: '+(muted?'OFF':'ON'),null,'r'));
 }
-function over(){state='over';musicStop();sfx.over();panel('<h1>YOU\'RE<br>TOAST</h1><p>Level '+lab(lvl)+', score '+score+'</p>'+B('retry','TRY AGAIN')+B('levels','LEVELS',null,'r'))}
+function over(){state='over';musicStop();sfx.over();panel('<h1>YOU\'RE<br>TOAST</h1><p>Out of lives on level '+lab(lvl)+'<br>Score '+score+'</p>'+B('retry','TRY AGAIN')+B('levels','LEVELS',null,'r'))}
 function clear(){
   state='clear';musicStop();sfx.clear();
   const tb=Math.max(0,Math.round(L/50-LT))*3,st=P.hp>=4?3:P.hp>=2?2:1;score+=P.hp*20+tb;
@@ -372,7 +383,14 @@ function eagle(g){
   ctx.restore();
   if(!g.done)food(g.t,g.x+g.dir*3,g.y+42,.75);
 }
-function hitP(dx){P.hp--;P.inv=1.2;sfx.hurt();P.kb=.25;P.vx=(Math.sign(dx)||1)*260;P.vy=-300;P.g=0;shake=8;if(P.hp<=0)over()}
+function hitP(dx){P.hp--;P.inv=1.2;sfx.hurt();P.kb=.25;P.vx=(Math.sign(dx)||1)*260;P.vy=-300;P.g=0;shake=8;if(P.hp<=0)die()}
+function die(){
+  lives--;if(lives<=0){over();return}
+  sfx.lose();const x=cpOn?cpX:80;
+  Object.assign(P,{x,y:GY-25,vx:0,vy:0,g:1,sf:S[0],inv:2.5,sw:0,swc:0,kb:0,hp:5,ammo:MAXW});
+  blobs=[];shots=[];cam=Math.max(-PL,Math.min(L-VW+PR,x-VW*.4));
+  note={txt:lives+(lives==1?' LIFE LEFT':' LIVES LEFT'),l:2};
+}
 function hurt(e,d,dir,kb){
   e.hp-=d;if(d>=1){e.hc=.3;sfx.hit()}e.fl=.1;e.kx=dir*kb;
   if(e.hp<=0&&!e.dead){e.dead=1;onKill(e);sfx[e.t=='b'?'killB':'killT']();
@@ -382,7 +400,9 @@ function hurt(e,d,dir,kb){
 
 function update(dt){
   if(state!='play')return;
-  banner-=dt;LT+=dt;const c=(...a)=>a.some(k=>keys.has(k));
+  banner-=dt;LT+=dt;if(note)note.l-=dt;
+  if(!cpOn&&P.x>=cpX){cpOn=true;sfx.check();pops.push({x:cpX,y:GY-125,txt:'CHECKPOINT!',l:1.8});burst(cpX,GY-70,['#7fffa0','#fff','#e8b83a'],14,0)}
+  const c=(...a)=>a.some(k=>keys.has(k));
   const ix=(c('KeyD','ArrowRight','VR')?1:0)-(c('KeyA','ArrowLeft','VL')?1:0);
   P.inv-=dt;P.kb-=dt;P.swc-=dt;P.wc-=dt;
   const onP=P.g&&puddles.some(p=>Math.abs(p.x-P.x)<p.w/2+4&&Math.abs(p.y-(P.y+25))<5);
@@ -495,11 +515,14 @@ function draw(){
     for(let x=s.x+34;x<s.x+s.w;x+=34)ctx.fillRect(x,s.y+4,2,12)}
   ctx.fillStyle='#e8b83a';ctx.fillRect(exitX-32,GY-104,64,104);ctx.fillStyle='#1f5a2e';ctx.fillRect(exitX-27,GY-99,54,99);ell(exitX+16,GY-48,3,3,'#e8b83a');
   ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText('EXIT',exitX,GY-112);
+  {const fw=Math.sin(T*5)*(cpOn?5:2);ctx.fillStyle='#9aa3a8';ctx.fillRect(cpX-2,GY-96,4,96);ell(cpX,GY-97,4,4,'#d5dde1');ell(cpX,GY-1,12,3,'#5e676c');
+   ctx.fillStyle=cpOn?'#2fbf5a':'#c8382a';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cpX+2,GY-92);ctx.quadraticCurveTo(cpX+22,GY-92+fw,cpX+44,GY-84+fw*1.4);ctx.quadraticCurveTo(cpX+22,GY-76+fw,cpX+2,GY-70);ctx.closePath();ctx.fill();ctx.stroke();
+   if(cpOn){ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText('✓',cpX+18,GY-78+fw*.6)}}
   for(const w of wells)[well,sink,dispenser][area](w);
   for(const p of puddles){ctx.globalAlpha=Math.min(.75,p.l/1.5*.75);ell(p.x,p.y-2,p.w/2,4,'#f0cc3c');ell(p.x-6,p.y-3,6,1.5,'#fff2a0')}ctx.globalAlpha=1;
   if(fx){ctx.globalAlpha=1-fx.t/.25;ctx.strokeStyle='#e8d8b0';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(fx.x,fx.y-2,20+90*fx.t/.25,4+8*fx.t/.25,0,0,7);ctx.stroke();ctx.globalAlpha=1}
   for(const it of items){const b=it.on?Math.sin(T*4+it.ph)*3:0;ell(it.x,it.sf.y-2,15,3,'rgba(0,0,0,.25)');ctx.globalAlpha=.3+.12*Math.sin(T*5);ell(it.x,it.y-18-b,30,26,'#fff2a0');ctx.globalAlpha=1;food(it.t,it.x,it.y-6-b,1)}
-  for(const e of E)({t:toast,b:butter,f:toaster})[e.t](e);
+  for(const e of E)if(e.x>cam-90&&e.x<cam+VW+90)({t:toast,b:butter,f:toaster})[e.t](e);
   for(const q of blobs){ell(q.x,q.y,q.r,q.r*.85,'#f0c93a');ell(q.x-q.r*.3,q.y-q.r*.3,q.r*.35,q.r*.25,'#fff2a0')}
   if(!(P.inv>0&&(T*20|0)%2)){ctx.save();ctx.translate(P.x,P.y+25);ctx.scale(1.12,1.12);ctx.translate(-P.x,-P.y-25);bag();if(P.sw<=0)gun();ctx.restore();ball()}
   for(const g of eagles)eagle(g);
@@ -511,9 +534,10 @@ function draw(){
   if(state=='play'&&banner>0){ctx.globalAlpha=Math.min(1,banner*1.5);ctx.textAlign='center';ctx.font='900 48px '+FONT;ctx.lineWidth=6;ctx.strokeStyle='#000';ctx.fillStyle='#e8b83a';
     ctx.strokeText(lab(lvl)+'  '+AREAS[area],VW/2,VH*.3);ctx.fillText(lab(lvl)+'  '+AREAS[area],VW/2,VH*.3);
     if(lvl%LPA==0){ctx.font='900 20px '+FONT;ctx.fillStyle='#ff5a3a';ctx.strokeText('A BOSS GUARDS THE EXIT',VW/2,VH*.3+28);ctx.fillText('A BOSS GUARDS THE EXIT',VW/2,VH*.3+28)}ctx.globalAlpha=1}
+  if(state=='play'&&note&&note.l>0){ctx.globalAlpha=Math.min(1,note.l*1.5);ctx.textAlign='center';ctx.font='900 40px '+FONT;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.fillStyle='#ff5a3a';ctx.strokeText(note.txt,VW/2,VH*.32);ctx.fillText(note.txt,VW/2,VH*.32);ctx.globalAlpha=1}
   document.body.classList.toggle('m',!(state=='play'||state=='pause'));
-  $('hp').textContent='♥'.repeat(Math.max(0,P.hp))+'♡'.repeat(5-Math.max(0,P.hp));
-  $('sc').textContent='LV '+lab(lvl)+'   '+score+'   🍕'+kills%5+'/5';$('wf').style.width=P.ammo/MAXW*100+'%';
+  {const h=Math.max(0,P.hp),str='♥'.repeat(h)+'♡'.repeat(5-h)+' '+HEAD+'<span style="color:#fff;margin-left:3px">×'+Math.max(0,lives)+'</span>';if(str!==lastHud){$('hp').innerHTML=str;lastHud=str}}
+  $('sc').textContent='LV '+lab(lvl)+'   🍕'+kills%5+'/5';$('score').textContent='SCORE: '+score;$('wf').style.width=P.ammo/MAXW*100+'%';
   let n=null;for(const w of wells)if(!n||Math.abs(w.x-P.x)<Math.abs(n.x-P.x))n=w;
   $('wl').textContent=n?(Math.abs(n.x-P.x)<40?'💧':n.x<P.x?'◀ 💧':'💧 ▶'):'';
 }
