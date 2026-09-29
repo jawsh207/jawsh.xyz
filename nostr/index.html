@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#131318" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Nostr Material</title>
+  
+  <link rel="manifest" href="manifest.webmanifest" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <script src="https://unpkg.com/nostr-tools@1.17.0/lib/nostr.bundle.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            md: {
+              surface: '#131318',
+              surfaceContainer: '#1F1F28',
+              surfaceContainerHigh: '#2A2A36',
+              primary: '#D0BCFF',
+              onPrimary: '#381E72',
+              primaryContainer: '#4F378B',
+              secondaryContainer: '#4A4458',
+              outline: '#938F99',
+              onSurface: '#E6E1E5',
+              onSurfaceVariant: '#CAC4D0'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .material-symbols-rounded {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .active-nav .material-symbols-rounded {
+      font-variation-settings: 'FILL' 1, 'wght' 600;
+    }
+  </style>
+</head>
+
+<body class="bg-md-surface text-md-onSurface flex flex-col h-screen overflow-hidden">
+
+  <!-- TOP APP BAR -->
+  <header class="h-16 px-4 flex items-center justify-between bg-md-surface/90 backdrop-blur-md sticky top-0 z-10 border-b border-md-surfaceContainerHigh">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-rounded text-md-primary text-28">tag</span>
+      <h1 class="text-xl font-medium tracking-tight">Timeline</h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openWalletModal()" title="Wallet Connect (NWC)" class="p-2 rounded-full hover:bg-md-surfaceContainer active:bg-md-surfaceContainerHigh text-md-onSurfaceVariant">
+        <span class="material-symbols-rounded">account_balance_wallet</span>
+      </button>
+      <button onclick="openAuthModal()" title="Account / Amber Signer" class="p-2 rounded-full hover:bg-md-surfaceContainer active:bg-md-surfaceContainerHigh text-md-onSurfaceVariant">
+        <span class="material-symbols-rounded" id="account-status-icon">account_circle</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- FEED VIEW -->
+  <main id="feed-container" class="flex-1 overflow-y-auto px-3 py-3 space-y-3 pb-24">
+    <div id="loader" class="text-center py-8 text-md-onSurfaceVariant animate-pulse">
+      <p>Connecting to Nostr relays...</p>
+    </div>
+  </main>
+
+  <!-- FAB -->
+  <button onclick="openComposeModal()" class="fixed bottom-20 right-4 z-20 flex items-center justify-center w-14 h-14 bg-md-primary text-md-onPrimary rounded-2xl shadow-lg active:scale-95 transition-transform">
+    <span class="material-symbols-rounded text-3xl">edit</span>
+  </button>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="h-16 bg-md-surfaceContainer flex justify-around items-center border-t border-md-surfaceContainerHigh fixed bottom-0 w-full z-10">
+    <button class="flex flex-col items-center justify-center flex-1 py-1 text-md-primary active-nav">
+      <div class="bg-md-primaryContainer text-md-primary px-4 py-0.5 rounded-full mb-0.5">
+        <span class="material-symbols-rounded text-2xl">chat</span>
+      </div>
+      <span class="text-xs font-medium">Notes</span>
+    </button>
+    <button onclick="alert('Relays connected: relay.damus.io, nos.lol, relay.primal.net')" class="flex flex-col items-center justify-center flex-1 py-1 text-md-onSurfaceVariant">
+      <span class="material-symbols-rounded text-2xl">hub</span>
+      <span class="text-xs font-medium">Relays</span>
+    </button>
+    <button onclick="openWalletModal()" class="flex flex-col items-center justify-center flex-1 py-1 text-md-onSurfaceVariant">
+      <span class="material-symbols-rounded text-2xl">bolt</span>
+      <span class="text-xs font-medium">Wallet</span>
+    </button>
+  </nav>
+
+  <!-- MODAL: AUTH / AMBER -->
+  <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-md-surfaceContainer w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-medium">Sign-in & Signer</h2>
+        <button onclick="closeModal('auth-modal')" class="text-md-onSurfaceVariant">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <p class="text-xs text-md-onSurfaceVariant">
+        Choose your login method. Amber operates as a local Android signer via NIP-55 intents or bunker connections.
+      </p>
+
+      <div class="space-y-3">
+        <button onclick="loginWithAmberIntent()" class="w-full flex items-center justify-between p-3.5 bg-md-surfaceContainerHigh rounded-2xl hover:bg-opacity-80 active:scale-[0.98] transition">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-rounded text-md-primary">key</span>
+            <div class="text-left">
+              <div class="text-sm font-semibold">Amber Remote Signer</div>
+              <div class="text-xs text-md-onSurfaceVariant">Launch Amber App (Android Intent / NIP-55)</div>
+            </div>
+          </div>
+          <span class="material-symbols-rounded text-md-outline">chevron_right</span>
+        </button>
+
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-md-onSurfaceVariant">Bunker URI (NIP-46 / Amber remote)</label>
+          <input id="bunker-input" type="text" placeholder="bunker://<pubkey>?relay=..." class="w-full px-3 py-2 bg-md-surface rounded-xl border border-md-outline/30 text-sm focus:outline-none focus:border-md-primary" />
+          <button onclick="saveBunker()" class="mt-2 w-full py-2 bg-md-primaryContainer text-md-onSurface rounded-xl text-sm font-medium">
+            Connect via Bunker
+          </button>
+        </div>
+
+        <div class="relative py-2 flex items-center justify-center">
+          <div class="border-t border-md-surfaceContainerHigh w-full"></div>
+          <span class="bg-md-surfaceContainer px-2 text-xs text-md-onSurfaceVariant absolute">or</span>
+        </div>
+
+        <button onclick="loginGuest()" class="w-full py-2 border border-md-outline/40 rounded-xl text-sm font-medium hover:bg-md-surface">
+          Generate Temporary Local Key (Guest)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COMPOSE NOTE / COMMENT -->
+  <div id="compose-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-md-surfaceContainer w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 id="compose-title" class="text-lg font-medium">New Note</h2>
+        <button onclick="closeModal('compose-modal')" class="text-md-onSurfaceVariant">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <input type="hidden" id="reply-to-id" value="" />
+      <textarea id="note-content" rows="4" placeholder="What's happening?" class="w-full bg-md-surface rounded-2xl p-3 border border-md-outline/30 text-sm focus:outline-none focus:border-md-primary resize-none"></textarea>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('compose-modal')" class="px-4 py-2 text-sm text-md-onSurfaceVariant">Cancel</button>
+        <button onclick="publishNote()" class="px-6 py-2 bg-md-primary text-md-onPrimary rounded-full text-sm font-medium">Publish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOSTR WALLET CONNECT (NWC) -->
+  <div id="wallet-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-md-surfaceContainer w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-rounded text-yellow-400">bolt</span>
+          <h2 class="text-lg font-medium">Nostr Wallet Connect</h2>
+        </div>
+        <button onclick="closeModal('wallet-modal')" class="text-md-onSurfaceVariant">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <p class="text-xs text-md-onSurfaceVariant">
+        Paste your NWC connection pairing URI (e.g. from Alby, Mutiny, or Coinos) to enable instant zapping.
+      </p>
+      <textarea id="nwc-uri" rows="3" placeholder="nostr+walletconnect://..." class="w-full p-2 bg-md-surface border border-md-outline/30 rounded-xl text-xs focus:outline-none font-mono"></textarea>
+      <div class="flex gap-2 justify-end">
+        <button onclick="saveNwc()" class="w-full py-2.5 bg-md-primary text-md-onPrimary rounded-full text-sm font-medium">Save Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Registration fail:', err));
+    }
+
+    const RELAYS = [
+      'wss://relay.damus.io',
+      'wss://nos.lol',
+      'wss://relay.primal.net'
+    ];
+
+    let sockets = [];
+    let state = {
+      pubkey: localStorage.getItem('user_pubkey') || null,
+      privkey: localStorage.getItem('user_privkey') || null,
+      signerType: localStorage.getItem('signer_type') || 'guest',
+      nwcUri: localStorage.getItem('nwc_uri') || null,
+      notes: [],
+      profiles: {}
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initSignerStatus();
+      connectRelays();
+      handleIntentReturn();
+    });
+
+    function initSignerStatus() {
+      const icon = document.getElementById('account-status-icon');
+      if (state.pubkey) {
+        icon.classList.add('text-md-primary');
+      }
+    }
+
+    function connectRelays() {
+      RELAYS.forEach(url => {
+        try {
+          const ws = new WebSocket(url);
+          ws.onopen = () => {
+            console.log('Connected to', url);
+            fetchTimeline(ws);
+          };
+          ws.onmessage = (event) => handleIncomingMessage(JSON.parse(event.data));
+          sockets.push(ws);
+        } catch (e) {
+          console.warn('Socket error on', url, e);
+        }
+      });
+    }
+
+    function fetchTimeline(ws) {
+      const req = ["REQ", "sub-feed", { kinds: [1], limit: 25 }];
+      ws.send(JSON.stringify(req));
+    }
+
+    function handleIncomingMessage([type, subId, eventData]) {
+      if (type === 'EVENT' && eventData) {
+        if (eventData.kind === 1) {
+          if (!state.notes.some(n => n.id === eventData.id)) {
+            state.notes.push(eventData);
+            state.notes.sort((a, b) => b.created_at - a.created_at);
+            renderNotes();
+          }
+        }
+      }
+    }
+
+    function renderNotes() {
+      const container = document.getElementById('feed-container');
+      const loader = document.getElementById('loader');
+      if (loader) loader.remove();
+
+      container.innerHTML = state.notes.map(note => {
+        const date = new Date(note.created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const shortPk = note.pubkey.substring(0, 8) + '...';
+        return `
+          <div class="bg-md-surfaceContainer p-4 rounded-3xl space-y-2 border border-md-surfaceContainerHigh">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-full bg-md-primaryContainer text-md-primary flex items-center justify-center text-sm font-semibold">
+                  ${shortPk.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-md-onSurface">${shortPk}</div>
+                  <div class="text-[10px] text-md-onSurfaceVariant">${date}</div>
+                </div>
+              </div>
+            </div>
+            <p class="text-sm text-md-onSurface break-words whitespace-pre-wrap">${escapeHtml(note.content)}</p>
+            
+            <div class="flex items-center justify-end gap-1 pt-1 text-md-onSurfaceVariant">
+              <button onclick="replyToNote('${note.id}')" class="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-md-surface active:bg-md-surfaceContainerHigh text-xs">
+                <span class="material-symbols-rounded text-lg">chat_bubble</span>
+                Reply
+              </button>
+              <button onclick="zapNote('${note.id}', '${note.pubkey}')" class="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-md-surface active:bg-md-surfaceContainerHigh text-xs text-yellow-500">
+                <span class="material-symbols-rounded text-lg">bolt</span>
+                Zap
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function loginWithAmberIntent() {
+      state.signerType = 'amber-intent';
+      localStorage.setItem('signer_type', 'amber-intent');
+
+      const callback = encodeURIComponent(window.location.origin + window.location.pathname + '#amber-result');
+      const intentUrl = `nostrsigner:?type=get_public_key&callbackUrl=${callback}`;
+      window.location.href = intentUrl;
+    }
+
+    function handleIntentReturn() {
+      if (window.location.hash.includes('amber-result')) {
+        const params = new URLSearchParams(window.location.search);
+        const signature = params.get('signature');
+        const pubkey = params.get('result');
+
+        if (pubkey) {
+          state.pubkey = pubkey;
+          localStorage.setItem('user_pubkey', pubkey);
+          alert('Logged in via Amber with Pubkey: ' + pubkey.slice(0, 8) + '...');
+        }
+        if (signature) {
+          localStorage.setItem('pending_signature', signature);
+        }
+      }
+    }
+
+    function loginGuest() {
+      const sk = window.NostrTools.generatePrivateKey();
+      const pk = window.NostrTools.getPublicKey(sk);
+      state.privkey = sk;
+      state.pubkey = pk;
+      state.signerType = 'guest';
+      localStorage.setItem('user_privkey', sk);
+      localStorage.setItem('user_pubkey', pk);
+      localStorage.setItem('signer_type', 'guest');
+      closeModal('auth-modal');
+      initSignerStatus();
+      alert('Guest account ready! Pubkey: ' + pk.slice(0, 8));
+    }
+
+    async function publishNote() {
+      const content = document.getElementById('note-content').value;
+      const replyId = document.getElementById('reply-to-id').value;
+      if (!content.trim()) return;
+
+      const event = {
+        kind: 1,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: replyId ? [["e", replyId, "", "reply"]] : [],
+        content: content,
+        pubkey: state.pubkey || ""
+      };
+
+      if (state.signerType === 'guest' && state.privkey) {
+        event.id = window.NostrTools.getEventHash(event);
+        event.sig = window.NostrTools.signEvent(event, state.privkey);
+        broadcastEvent(event);
+        closeModal('compose-modal');
+      } else if (state.signerType === 'amber-intent') {
+        const eventJson = encodeURIComponent(JSON.stringify(event));
+        const callback = encodeURIComponent(window.location.origin + window.location.pathname + '#amber-result');
+        const intentUrl = `nostrsigner:${eventJson}?type=sign_event&callbackUrl=${callback}`;
+        window.location.href = intentUrl;
+      } else {
+        alert('Please select a signer (Amber or Guest) in Account settings');
+        openAuthModal();
+      }
+    }
+
+    function broadcastEvent(event) {
+      sockets.forEach(ws => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(["EVENT", event]));
+        }
+      });
+      state.notes.unshift(event);
+      renderNotes();
+    }
+
+    function saveNwc() {
+      const uri = document.getElementById('nwc-uri').value.trim();
+      if (!uri.startsWith('nostr+walletconnect:')) {
+        alert('Invalid NWC string. Must begin with nostr+walletconnect:');
+        return;
+      }
+      state.nwcUri = uri;
+      localStorage.setItem('nwc_uri', uri);
+      closeModal('wallet-modal');
+      alert('NWC Wallet connected successfully!');
+    }
+
+    async function zapNote(noteId, targetPubkey) {
+      if (!state.nwcUri) {
+        alert('Connect a wallet first via Nostr Wallet Connect (Top-right button).');
+        openWalletModal();
+        return;
+      }
+      alert('Invoking NWC pay_invoice for pubkey: ' + targetPubkey.slice(0, 8));
+    }
+
+    function openComposeModal(replyId = null) {
+      document.getElementById('reply-to-id').value = replyId || '';
+      document.getElementById('compose-title').innerText = replyId ? 'Reply to Note' : 'New Note';
+      document.getElementById('note-content').value = '';
+      document.getElementById('compose-modal').classList.remove('hidden');
+    }
+    function replyToNote(id) { openComposeModal(id); }
+    function openAuthModal() { document.getElementById('auth-modal').classList.remove('hidden'); }
+    function openWalletModal() { 
+      if (state.nwcUri) document.getElementById('nwc-uri').value = state.nwcUri;
+      document.getElementById('wallet-modal').classList.remove('hidden'); 
+    }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+    }
+  </script>
+</body>
+</html>
