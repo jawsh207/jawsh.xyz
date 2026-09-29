@@ -88,20 +88,25 @@ button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 <div id="btns"><button id="mute" tabindex="-1"></button><button id="pause" tabindex="-1"></button></div>
 <div id="ov"></div>
 <script>
+// Tiny DOM shorthand, plus the canvas and its 2D drawing context used by everything below.
 const $=i=>document.getElementById(i),cv=$('c'),ctx=cv.getContext('2d');
 const HEAD='<svg viewBox="0 0 22 26" width="17" height="20" style="vertical-align:-4px;margin-left:5px"><rect x="1.5" y="2" width="19" height="22" fill="#b98a52" stroke="#2a1a0a" stroke-width="1.8"/><rect x="1.5" y="2" width="19" height="5" fill="#c99a5e" stroke="#2a1a0a" stroke-width="1.2"/><ellipse cx="7" cy="14" rx="3" ry="2.3" fill="#fff"/><ellipse cx="15" cy="14" rx="3" ry="2.3" fill="#fff"/><circle cx="7.6" cy="14.2" r="1.3" fill="#111"/><circle cx="15.6" cy="14.2" r="1.3" fill="#111"/><path d="M3 10L9 12.5M19 10L13 12.5" stroke="#2a1a0a" stroke-width="1.8" fill="none"/></svg>';let lastHud='';
 const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50,SKYY=60;
+// Draws a filled ellipse (used everywhere for shadows, eyes, food, etc).
 const ell=(x,y,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill()};
 let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6,lives=3,cpX=0,cpOn=false,note=null,zones=[];
 const keys=new Set();
 let prog={};try{prog=JSON.parse(localStorage.getItem('bagman-save'))||{}}catch(e){}
 
+// Draws the small wobbling knife held by toast and butter (s = facing side, ph = animation phase).
 function knife(s,ph,c){
   ctx.save();ctx.translate(s*13,-1);ctx.strokeStyle=c;ctx.lineWidth=3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(s*5,-4);ctx.stroke();
   ctx.translate(s*5,-4);ctx.rotate(s*(.25+Math.sin(ph*1.3)*.3));ctx.fillStyle='#4a3a30';ctx.fillRect(-1.5,-7,3,9);
   ctx.fillStyle='#d7dde2';ctx.beginPath();ctx.moveTo(-2,-7);ctx.lineTo(2,-7);ctx.lineTo(2.5,-27);ctx.lineTo(-2,-25);ctx.fill();ctx.restore();
 }
+// Draws a pair of angled, angry eyebrows at height y.
 function brows(y,c){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-9,y-4);ctx.lineTo(-2,y);ctx.moveTo(9,y-4);ctx.lineTo(2,y);ctx.stroke()}
+// Draws one toast enemy: legs, crust body, crumb texture, angry face, and its knife (regular or boss size).
 function toast(e){
   const s=e.r/17;ctx.save();ctx.translate(e.x,e.y);ctx.scale(s,s);
   ell(0,21,15,4.5,'rgba(0,0,0,.35)');const st=Math.sin(e.ph)*3;
@@ -115,6 +120,7 @@ function toast(e){
   ctx.fillStyle='#f5ecd0';for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*3.2-1.4,4.2);ctx.lineTo(i*3.2+1.4,4.2);ctx.lineTo(i*3.2,7.4);ctx.fill()}
   knife(e.side,e.ph,'#4a2a14');ctx.restore();
 }
+// Draws one butter enemy, including the melting drips and its mouth glowing before it spits.
 function butter(e){
   ctx.save();ctx.translate(e.x,e.y);ctx.scale(e.r/15,e.r/15*(1+Math.sin(e.ph*2)*.05));
   ell(0,21,14,4.5,'rgba(0,0,0,.35)');
@@ -128,6 +134,7 @@ function butter(e){
   else{ctx.strokeStyle='#5a4308';ctx.beginPath();ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,2,5,6);ctx.stroke()}
   ctx.restore();
 }
+// Draws the player character, Bagman: legs, striped shirt/arms, and the rectangular paper-bag head.
 function bag(){
   const x=P.x,y=P.y,b=Math.sin(P.walk*10)*1.5;
   ell(x,y+25,15,5,'rgba(0,0,0,.35)');
@@ -144,12 +151,15 @@ function bag(){
 }
 
 
+// Draws the super-soaker water gun held in Bagman's front hand.
 function gun(){ctx.save();ctx.translate(P.x+P.face*12,P.y+3);ctx.scale(P.face,1);ctx.fillStyle='#3ac7f0';ctx.fillRect(4,-11,10,8);ctx.fillStyle='#e8781a';ctx.fillRect(0,-3,20,6);ctx.fillStyle='#333';ctx.fillRect(18,-2,6,4);ctx.restore()}
+// Draws the ball-and-chain, but only while a swing attack is in progress (P.sw > 0).
 function ball(){
   if(P.sw<=0)return;const hx=P.x-P.sd*12,hy=P.y+6,bx=P.bx,by=P.by;
   ctx.strokeStyle='#9a9a9a';ctx.lineWidth=2.5;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(bx,by);ctx.stroke();ctx.setLineDash([]);
   ell(bx,by,11,11,'#1c1c20');ell(bx-3.5,by-3.5,3,2.4,'rgba(255,255,255,.55)');
 }
+// Draws one step of a climb tower (or its top attack platform), styled to match the current area.
 function climbPlat(s){
   const x=s.x,y=s.y,w=s.w;
   if(area==0){
@@ -167,6 +177,7 @@ function climbPlat(s){
     for(let bx=x+6;bx<x+w-6;bx+=40){ctx.beginPath();ctx.moveTo(bx,y+10);ctx.lineTo(bx+10,y+10);ctx.lineTo(bx,y+20);ctx.closePath();ctx.fill()}
   }
 }
+// Draws a stone well: the Alley's water-refill station.
 function well(w){
   ctx.save();ctx.translate(w.x,w.y);
   for(const x of[-21,16]){ctx.fillStyle='#6a4420';ctx.fillRect(x,-86,5,60);ctx.fillStyle='#8a5a2c';ctx.fillRect(x,-86,1.6,60)}
@@ -187,6 +198,7 @@ function well(w){
   ctx.restore();
 }
 
+// Draws the flying toaster enemy: wings, body, fork, and its short-circuit sparking state.
 function toaster(e){
   const s=e.side||1,bob=Math.sin(e.ph*2)*2,fl=Math.sin(e.ph*3),f=e.fl>0;
   ell(e.x,e.sf.y-2,24,5,'rgba(0,0,0,.25)');
@@ -211,6 +223,7 @@ function toaster(e){
   ell(12,12,3.5,3.5,'#f7f7f0');
   ctx.restore();
 }
+// Draws a kitchen sink: the Kitchen's water-refill station.
 function sink(w){
   ctx.save();ctx.translate(w.x,w.y);
   ctx.fillStyle='#d9d3c0';ctx.fillRect(-26,-36,52,36);ctx.strokeStyle='#8f8977';ctx.lineWidth=2;ctx.strokeRect(-26,-36,52,36);ctx.strokeRect(-23,-32,21,29);ctx.strokeRect(2,-32,21,29);
@@ -222,6 +235,7 @@ function sink(w){
   ctx.strokeStyle='rgba(127,214,255,.85)';ctx.lineWidth=2.5;ctx.setLineDash([4,3]);ctx.lineDashOffset=-T*40;ctx.beginPath();ctx.moveTo(6,-57);ctx.lineTo(6,-41);ctx.stroke();ctx.setLineDash([]);
   ctx.restore();
 }
+// Draws a water cooler: the Pantry's water-refill station.
 function dispenser(w){
   ctx.save();ctx.translate(w.x,w.y);
   ctx.fillStyle='#e6e9ec';ctx.fillRect(-17,-62,34,62);ctx.strokeStyle='#9aa3a8';ctx.lineWidth=2;ctx.strokeRect(-17,-62,34,62);
@@ -234,9 +248,11 @@ function dispenser(w){
   for(let k=0;k<3;k++){ctx.globalAlpha=.7;ell(-6+k*6,-70-((T*18+k*11)%24),1.8,1.8,'#fff')}ctx.globalAlpha=1;
   ctx.restore();
 }
+// Recomputes canvas size/scale for the current screen and rebuilds the brick/tile background pattern.
 function resize(){const cw=cv.clientWidth,ch=cv.clientHeight;DPR=Math.min(devicePixelRatio||1,2);cv.width=cw*DPR;cv.height=ch*DPR;K=Math.min(cw/560,ch/440);VW=cw/K;VH=ch/K;ty=VH-460;PL=200/K;PR=240/K}
 addEventListener('resize',resize);
 const GC=[['#3a3630','#57524a','#2a2723'],['#b9b29c','#dcd5c0','#8f8977'],['#4a3320','#6b4a2c','#33200f']];
+// Pre-renders the three areas' background wall/floor textures as repeating tile patterns.
 const pats=[0,1,2].map(a=>{const c=document.createElement('canvas');c.width=64;c.height=60;const b=c.getContext('2d');
  if(a==0){b.fillStyle='#2a1a16';b.fillRect(0,0,64,60);for(let r=0;r<4;r++)for(let i=-1;i<2;i++){b.fillStyle=`hsl(8,${30+r*3}%,${20+((i*7+r*5+8)%4)*2.5}%)`;b.fillRect(i*32+(r%2)*16+1,r*15+1,30,13)}}
  else if(a==1){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#2b6068':'#357078';b.fillRect(x*32,y*30,32,30);b.strokeStyle='#1d4a52';b.lineWidth=2;b.strokeRect(x*32,y*30,32,30)}}
@@ -245,17 +261,20 @@ const pats=[0,1,2].map(a=>{const c=document.createElement('canvas');c.width=64;c
 
 /* ---------- audio: everything is synthesized live in code (original, no samples) ---------- */
 let AC,mg,sfxG,musG,nb,muted=false,mTimer=null,mStep=0,mNext=0;const SD=60/132/2;
+// Sets up the Web Audio graph (music/sfx gain nodes, noise buffer). Runs once, on the first tap.
 function initAudio(){
   if(AC)return;
   try{AC=new(window.AudioContext||window.webkitAudioContext)();mg=AC.createGain();mg.gain.value=muted?0:.6;mg.connect(AC.destination);
     sfxG=AC.createGain();sfxG.gain.value=.7;sfxG.connect(mg);musG=AC.createGain();musG.gain.value=.16;musG.connect(mg);
     nb=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}catch(e){AC=null}
 }
+// Plays one synthesized tone: f=start frequency, d=duration, f2=optional pitch slide target.
 function tone(f,d,ty='square',v=.2,f2=0,t0=0,dst=sfxG){
   if(!AC)return;const t=AC.currentTime+t0,o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);
   if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
   o.connect(g);g.connect(dst);o.start(t);o.stop(t+d+.02);
 }
+// Plays filtered white noise (used for whooshes, splats, static) through a sweeping filter.
 function noise(d,v,fq,f2=0,ty='bandpass',t0=0,dst=sfxG){
   if(!AC)return;const t=AC.currentTime+t0,s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=nb;f.type=ty;f.frequency.setValueAtTime(fq,t);
   if(f2)f.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
@@ -271,6 +290,7 @@ const sfx={
 };
 /* music: an original 4-bar chiptune loop in A minor (Am, F, C, E) at 132 BPM */
 const BASS=[110,87.31,130.81,82.41],MEL=[[0,null,3,5,7,null,5,3],[-4,null,0,3,8,null,3,0],[3,null,7,10,15,null,10,7],[7,null,11,14,12,11,7,null]];
+// Schedules one 16th-note step of the background music loop (bass note + optional melody note).
 function playStep(s,t){
   const r=t-AC.currentTime,bar=s>>3,i=s&7,m=MEL[bar][i];
   tone(BASS[bar]*[1,1,2,1,1,2,1,2][i],SD*.9,'triangle',.9,0,r,musG);
@@ -279,7 +299,9 @@ function playStep(s,t){
   if(i==2||i==6)noise(.09,.35,1800,0,'bandpass',r,musG);
   noise(.03,.12,7000,0,'highpass',r,musG);
 }
+// Starts the background music loop (a self-scheduling setInterval that stays a bit ahead of playback).
 function musicStart(){if(!AC||mTimer)return;mStep=0;mNext=AC.currentTime+.1;mTimer=setInterval(()=>{while(mNext<AC.currentTime+.35){playStep(mStep,mNext);mNext+=SD;mStep=(mStep+1)&31}},80)}
+// Stops the background music loop.
 function musicStop(){clearInterval(mTimer);mTimer=null}
 ['pointerdown','keydown'].forEach(ev=>addEventListener(ev,()=>{initAudio();if(AC&&AC.state=='suspended')AC.resume()},true));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();if(AC)document.hidden?AC.suspend():AC.resume()});
@@ -288,6 +310,7 @@ $('pause').addEventListener('click',e=>{pause();e.target.blur()});
 
 /* ---------- input ---------- */
 const DIRK={KeyD:1,ArrowRight:1,VR:1,KeyA:-1,ArrowLeft:-1,VL:-1},lastTap={};
+// Detects a double-tap on a direction key/button within 300ms to trigger the run-speed boost.
 function tapDir(k){const d=DIRK[k];if(!d)return;const n=Date.now();if(lastTap[d]&&n-lastTap[d]<300&&P)P.run=d;lastTap[d]=n}
 addEventListener('keydown',e=>{if(!e.repeat)tapDir(e.code);if(e.code=='Escape'||e.code=='KeyP'){state=='play'?pause():state=='pause'&&A.resume()}keys.add(e.code);if(e.code=='Space'||e.code.startsWith('Arrow'))e.preventDefault()});
 addEventListener('keyup',e=>keys.delete(e.code));
@@ -298,16 +321,20 @@ document.querySelectorAll('#pad button,#act button').forEach(b=>{
 });
 
 /* ---------- level ---------- */
+// Creates a fresh player-state object (position, health, ammo, timers) for a new run.
 const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:0,wc:0,coy:0,jh:0,kb:0,walk:0,bx:0,by:0,sd:1});
+// Spawns one enemy: t = 't'/'b'/'f' (toast/butter/flying toaster), s = its home platform, zone = patrol area for flyers.
 function addE(t,x,s,big,zone){
   const r=big?34:t=='t'?16:t=='b'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
   E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?SKYY:s.y-f,hp:big?12+lvl*2:(t=='t'?3:t=='b'?4:4)+(lvl/8|0),sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:70+lvl*2,dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,esc:0,blk:0,zone:zone||null,soak:0,sc:0,scT:0,vy:0});
 }
+// Builds a themed climb tower (stepping platforms) plus the flat attack platform at its top, for one zone.
 function addClimb(zone){
   const ys=[330,255,180,140];let x=zone.x0-20;
   ys.forEach((y,i)=>{x+=(i%2?46:-10);S.push({x,w:60,y,kind:'step'})});
   S.push({x:zone.x0-10,w:(zone.x1-zone.x0)+20,y:SKYY,kind:'sky'});
 }
+// Generates a new level: platform layout, exit/checkpoint, water stations, enemies, and toaster climb zones.
 function newLevel(){
   area=(lvl-1)/10|0;L=3600+lvl*240;fq=0;fd=6;S=[{x:0,w:L,y:GY}];let x=260,t=0;const tiers=[330,268,206];
   while(x<L-500){const w=100+Math.random()*90;S.push({x,w,y:tiers[t]});t=Math.max(0,Math.min(2,t+(Math.random()*3|0)-1));x+=w+40+Math.random()*70}
@@ -336,17 +363,25 @@ function newLevel(){
 }
 /* ---------- menus, progress, pause ---------- */
 const AREAS=['The Alley','The Kitchen','The Pantry'],NL=30,LPA=10;
+// Formats a level number as "area-level" (e.g. 12 -> "2-2"); stars() renders a 0-3 star rating as text.
 const lab=n=>(((n-1)/LPA|0)+1)+'-'+((n-1)%LPA+1),stars=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+// Writes saved progress (best score/stars per level) to the browser's localStorage.
 const save=()=>{try{localStorage.setItem('bagman-save',JSON.stringify(prog))}catch(e){}};
+// Replaces the overlay's contents with the given menu HTML.
 const panel=h=>{$('ov').className='';$('ov').innerHTML='<div class="w">'+h+'</div>'};
+// Builds one menu button's HTML: a=action name, t=label text, v=optional value, c=extra CSS class.
 const B=(a,t,v,c)=>`<button class="b ${c||''}" data-a="${a}"${v!=null?` data-v="${v}"`:''}>${t}</button>`;
+// Builds the small SVG icons used by the mute/pause buttons.
 const IC=b=>'<svg viewBox="0 0 24 24" width="22" height="22">'+b+'</svg>',SPK='<path d="M3 9h4l5-4v14l-5-4H3z" fill="#000"/>',
   ICON={on:IC(SPK+'<path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>'),
         off:IC(SPK+'<path d="M15 9l6 6M21 9l-6 6" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>'),
         pause:IC('<rect x="5.5" y="4" width="4.8" height="16" rx="1" fill="#000"/><rect x="13.7" y="4" width="4.8" height="16" rx="1" fill="#000"/>')};
 $('mute').innerHTML=ICON.on;$('pause').innerHTML=ICON.pause;
+// Toggles audio mute on/off and updates the speaker icon.
 function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').innerHTML=m?ICON.off:ICON.on}
+// Shows the title screen (Play / Scoreboard) with the how-to-play text.
 function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+'<p>SWING slams the ball and chain in front of you. SQUIRT fires the super soaker: refill it at wells, sinks and water dispensers. Butter puddles are slippery and butter spits: block it with the squirt gun. Jump on toast and butter to squash them. Flying toasters patrol high up and launch extra toast when they glow red; climb up to reach them, and empty a full water tank into one to short it out. Double-tap left or right to run faster. Every 5 defeats, a bald eagle delivers pizza when you are hurt; beating a boss brings a full meal when you are hurt.<br>A checkpoint flag waits at the middle of every level. You have 3 lives (shown as a Bagman head with the number left): lose all your hearts and you restart from the checkpoint.<br>Keys: A/D move, W jump, J swing, K squirt, P pause.</p>')}
+// Shows the level-select screen: 3 areas x 10 levels, locked until the previous level is cleared.
 function levelsMenu(){
   state='menu';musicStop();let h='<h1 class="s">SELECT LEVEL</h1>';
   AREAS.forEach((a,i)=>{h+='<h2>'+(i+1)+'. '+a+'</h2><div class="g" style="flex-wrap:wrap;max-width:340px;justify-content:center">';
@@ -355,6 +390,7 @@ function levelsMenu(){
     h+='</div>'});
   panel(h+B('menu','BACK',null,'r'));
 }
+// Shows the scoreboard: best score and stars per level, plus totals and a reset-save option.
 function scoreMenu(){
   state='menu';let tot=0,st=0,h='<h1 class="s">SCOREBOARD</h1>';
   AREAS.forEach((a,i)=>{h+='<h2>'+a+'</h2><table>';
@@ -362,27 +398,33 @@ function scoreMenu(){
     h+='</table>'});
   panel(h+'<p>Total score <b>'+tot+'</b> &nbsp; Stars <b>'+st+'/'+NL*3+'</b><br>Stars come from hearts left at the exit.</p>'+B('menu','BACK',null,'r')+B('reset','RESET SAVE',null,'r'));
 }
+// Begins playing level n. keep=true carries over current health/lives (used for "NEXT LEVEL"); otherwise it's a fresh run with full health and 3 lives.
 function start(n,keep){cur=lvl=n;score=0;LT=0;const hp=keep&&P?P.hp:5;if(!keep)lives=3;P=mkP();P.hp=hp;newLevel();state='play';$('ov').className='hide';initAudio();musicStart()}
+// Shows the pause menu (Resume / Restart / Levels / Sound).
 function pause(){
   if(state!='play')return;state='pause';keys.clear();musicStop();
   panel('<h1>PAUSED</h1><p>Level '+lab(lvl)+', '+AREAS[area]+'</p>'+B('resume','RESUME')+B('restart','RESTART')+B('levels','LEVELS')+B('snd','SOUND: '+(muted?'OFF':'ON'),null,'r'));
 }
+// Shows the game-over screen. Sends the player back to the area's first level unless they've already beaten that area's boss before.
 function over(){
   state='over';musicStop();sfx.over();
   const areaStart=area*10+1,bossLvl=area*10+10,areaDone=!!prog[bossLvl],backTo=areaDone?cur:areaStart;
   panel('<h1>YOU\'RE<br>TOAST</h1><p>Out of lives on level '+lab(lvl)+'<br>Score '+score+(areaDone?'':'<br>Area not finished — back to '+lab(areaStart))+'</p>'+B('start','TRY AGAIN',backTo)+B('levels','LEVELS',null,'r'))
 }
+// Shows the level-cleared screen: tallies score/stars, saves best results, and unlocks the next level/area.
 function clear(){
   state='clear';musicStop();sfx.clear();
   const tb=Math.max(0,Math.round(L/50-LT))*3,st=P.hp>=4?3:P.hp>=2?2:1;score+=P.hp*20+tb;
   const o=prog[lvl],nb=!o||score>o.s;prog[lvl]={s:nb?score:o.s,st:Math.max(st,o?o.st:0)};save();const last=lvl>=NL;
   panel('<h1>'+(last?'BREAKFAST<br>BEATEN!':lab(lvl)+'<br>CLEARED')+'</h1><p>Score <b>'+score+'</b>'+(nb?', new best!':'')+'<br>'+stars(st)+' &nbsp; Time '+LT.toFixed(1)+'s'+(lvl%LPA==0&&!last?'<br>Area cleared! The next area is unlocked.':'')+'</p>'+(last?'':B('next','NEXT LEVEL'))+B('retry','REPLAY',null,'r')+B('levels','LEVELS',null,'r'));
 }
+// Maps every menu button's data-action name to the function it should call.
 const A={levels:levelsMenu,score:scoreMenu,menu:mainMenu,start:v=>start(+v),next:()=>start(cur+1,true),retry:()=>start(cur),restart:()=>start(cur),
   resume(){state='play';$('ov').className='hide';musicStart()},
   snd(v,b){setMuted(!muted);b.textContent='SOUND: '+(muted?'OFF':'ON')},
   reset(v,b){if(b.dataset.c){prog={};save();scoreMenu()}else{b.dataset.c=1;b.textContent='TAP AGAIN TO CONFIRM'}}};
 let fsTried=0;
+// On the very first tap, best-effort requests fullscreen and a landscape orientation lock.
 function goFS(){
   if(fsTried)return;fsTried=1;
   try{const d=document.documentElement,r=(d.requestFullscreen||d.webkitRequestFullscreen).call(d),lock=()=>screen.orientation.lock('landscape').catch(()=>{});
@@ -392,18 +434,24 @@ function goFS(){
 $('ov').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.dataset.a){goFS();initAudio();A[b.dataset.a](b.dataset.v,b)}});
 
 /* ---------- combat ---------- */
+// Spawns a small particle burst (hit effects, footprints, splashes) at (x,y) using colors cs.
 function burst(x,y,cs,n,sq){for(let i=0;i<n;i++){const a=Math.random()*6.3,v=60+Math.random()*180;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,l:.6+Math.random()*.4,c:cs[i%cs.length],s:2+Math.random()*3,sq})}}
+// Finds whichever platform sits directly beneath world point (x,y); used to track "which floor is this enemy on".
 function under(x,y){let b=S[0];for(const p of S)if(x>=p.x&&x<=p.x+p.w&&p.y>=y&&p.y<b.y)b=p;return b}
+// A charged-up toaster ejects two regular toast, which fall to ground level and start patrolling.
 function eject(e){
   for(const k of[-1,1]){addE('t',Math.max(12,Math.min(L-12,e.x+k*14)),S[0],false);const n=E[E.length-1];n.y=e.y+8;n.fall=1;n.vy=-260;n.kx=k*260;n.dir=k}
   burst(e.x,e.y+10,['#ff8a3a','#ffd24a','#c88a4a'],14,1);sfx.eject();shake=Math.max(shake,5);
 }
 /* ---------- bald eagle food deliveries ---------- */
+// Runs whenever an enemy dies: updates the kill counter and may trigger a bald-eagle food delivery.
 function onKill(e){kills++;if(P.hp>=5)return;if(e.big)sendEagle(2);else if(kills%5==0)sendEagle(e.t=='f'?1:0)}
+// Spawns a bald eagle flying in from one side to drop food (t: 0=slice, 1=whole pizza, 2=full meal).
 function sendEagle(t){
   const side=Math.random()<.5?-1:1;
   eagles.push({x:cam+(side<0?-80:VW+80),y:Math.max(-ty+45,P.y-110),dir:-side,t,vy:0,done:0,life:14,ph:Math.random()*6});sfx.screech();
 }
+// Draws one food pickup: a pizza slice, a whole pizza, or a full meal (burger/fries/drink).
 function food(t,x,y,k){
   ctx.save();ctx.translate(x,y);ctx.scale(k,k);
   if(t==0){
@@ -423,6 +471,7 @@ function food(t,x,y,k){
   }
   ctx.restore();
 }
+// Draws a comic-book style callout (KRUNCH!/SPLAT!/SHORT CIRCUIT!) that pops in, holds, and fades.
 function comicPop(q){
   const u=1-q.l/.7,pop=u<.25?u/.25:1,fade=u>.6?1-(u-.6)/.4:1,sc=(.5+.5*Math.min(1,pop*1.4))*fade,a=fade;
   ctx.save();ctx.globalAlpha=a;ctx.translate(q.x,q.y-u*22);ctx.rotate(q.rot);ctx.scale(sc,sc);
@@ -434,6 +483,7 @@ function comicPop(q){
   ctx.fillStyle='#fff';ctx.fillText(q.txt,0,1);
   ctx.restore();
 }
+// Draws and flies one bald eagle delivery across the screen, dropping its food partway through.
 function eagle(g){
   const f=Math.sin(T*11+g.ph);
   ctx.save();ctx.translate(g.x,g.y);ctx.scale(g.dir*1.3,1.3);
@@ -447,7 +497,9 @@ function eagle(g){
   ctx.restore();
   if(!g.done)food(g.t,g.x+g.dir*3,g.y+42,.75);
 }
+// Starts a toaster's short-circuit sequence: sparking in place before it falls (see explode()).
 function shortCircuit(e){if(e.sc)return;e.sc=1;e.scT=.5;e.tt=0;e.wu=0;sfx.short()}
+// A short-circuited toaster's landing explosion: removes it, damages nearby enemies, shows the callout.
 function explode(e){
   if(e.dead)return;e.dead=1;e.hp=0;score+=50;shake=Math.max(shake,14);sfx.boom();
   burst(e.x,e.y-8,['#ff5a3a','#ffd24a','#c9d1d5','#4a525a'],26,1);
@@ -456,7 +508,9 @@ function explode(e){
   for(const o of E)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<R+(o.r||16))hurt(o,999,Math.sign(o.x-e.x)||1,220);
   onKill(e);
 }
+// Damages the player by one heart and applies knockback/invulnerability (dx = direction of the hit).
 function hitP(dx){P.hp--;P.inv=1.2;sfx.hurt();P.kb=.25;P.vx=(Math.sign(dx)||1)*260;P.vy=-300;P.g=0;shake=8;if(P.hp<=0)die()}
+// Handles losing a life: respawns at the checkpoint (or level start) with full health, or ends the run if out of lives.
 function die(){
   lives--;if(lives<=0){over();return}
   sfx.lose();const x=cpOn?cpX:80;
@@ -464,6 +518,7 @@ function die(){
   blobs=[];shots=[];cam=Math.max(-PL,Math.min(L-VW+PR,x-VW*.4));
   note={txt:lives+(lives==1?' LIFE LEFT':' LIVES LEFT'),l:2};
 }
+// Damages an enemy by d, applies knockback/hit-flash, and handles its death/score/callout if it dies.
 function hurt(e,d,dir,kb){
   e.hp-=d;if(d>=1){e.hc=.3;sfx.hit()}e.fl=.1;e.kx=dir*kb;
   if(e.hp<=0&&!e.dead){e.dead=1;onKill(e);sfx[e.t=='b'?'killB':'killT']();
@@ -471,6 +526,7 @@ function hurt(e,d,dir,kb){
     burst(e.x,e.y,e.t=='t'?['#7a431f','#c88a4a','#3b1e0d']:e.t=='b'?['#f5d04a','#ffe88a','#d9a92a']:['#c9d1d5','#5e676c','#ff5a3a'],e.big?30:12,e.t!='b')}
 }
 
+// The main per-frame simulation step: input, physics, combat, enemy AI, pickups, everything that changes state.
 function update(dt){
   if(state!='play')return;
   banner-=dt;LT+=dt;if(note)note.l-=dt;
@@ -589,6 +645,7 @@ function update(dt){
 }
 
 /* ---------- drawing ---------- */
+// The main per-frame render step: background, world, characters, effects, and HUD overlays.
 function draw(){
   const X=DPR*K;ctx.setTransform(X,0,0,X,0,0);
   ctx.save();ctx.translate(-(cam*.5%64),0);ctx.fillStyle=pats[area];ctx.fillRect(0,0,VW+64,VH);ctx.restore();
@@ -633,6 +690,7 @@ function draw(){
 }
 
 let last=0;
+// The requestAnimationFrame driver: computes delta-time, then calls update() and draw() each frame.
 function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;T=t/1000;update(dt);draw();requestAnimationFrame(loop)}
 resize();P=mkP();newLevel();banner=0;
 mainMenu();

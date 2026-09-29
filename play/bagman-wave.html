@@ -25,12 +25,23 @@ canvas{display:block}
 </style></head><body>
 <div id="app"><canvas id="c"></canvas></div>
 <script>
+// Canvas + shorthand helpers. The game is drawn at a fixed 800x400 'world size' (W,H) and
+// scaled to fit the real screen (see fit() below), so all game logic below works in these
+// fixed world coordinates no matter what device it's running on.
+// R = random 0..1 shorthand. cl = clamp a value between a and b.
 const C=document.getElementById('c'),X=C.getContext('2d'),W=800,H=400,R=Math.random,cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Core game state. S = current screen ('title' | 'play' | 'over'). t = elapsed game time
+// (used to drive all animation). shake = screen-shake strength. keys = which keyboard keys
+// are currently held. joy/fid = the active touch-joystick and fire-button pointer IDs.
 let K=1,S='title',t=0,best=0,shake=0,overT=0,keys={},joy=null,fid=null,paused=false;
+// P=player. E=enemies. PB=player bullets. EB=enemy bullets. PT=floating hit-text popups
+// (e.g. 'CRUNCH!'). PP=particle burst pieces. PUD=butter puddles left on the ground.
+// SW=shockwave rings (from the ball & chain slam). POW=the current power-up pickup, if any.
 let P,E,PB,EB,PT,PP,PUD,SW,POW,powT,wave,score,toSpawn,spT,banner,mcd;
 try{best=+localStorage.getItem('bm')||0}catch(e){}
 try{document.fonts.load('30px Bangers')}catch(e){}
 const APP=document.getElementById('app');
+// Scales the canvas to fill the available screen space while keeping its 800x400 aspect ratio.
 function fit(){const sc=Math.min(APP.clientWidth/W,APP.clientHeight/H),d=Math.min(devicePixelRatio||1,2);
 C.style.width=W*sc+'px';C.style.height=H*sc+'px';C.width=Math.round(W*sc*d);C.height=Math.round(H*sc*d);K=C.width/W}
 addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,50));fit();
@@ -45,22 +56,31 @@ const gr=g.createLinearGradient(0,0,0,267);gr.addColorStop(0,'rgba(10,0,20,.65)'
 g.fillStyle='rgba(0,0,0,.28)';for(let y=4;y<H;y+=8)for(let x=4;x<1000;x+=8){const r=y<130?2.4*(1-y/130):y>267?2.2*(y-267)/133:0;if(r>.3){g.beginPath();g.arc(x,y,r,0,7);g.fill()}}
 })();
 
-// ---- text + shapes
+// ---- Small reusable drawing helpers used throughout every character/HUD drawing function ----
+// T = draw comic-style outlined text (with an optional drop-shadow color 'o').
 function T(s,x,y,z,f,a,o){X.font=z+'px Bangers,Impact,fantasy';X.textAlign=a||'center';X.lineJoin='round';X.lineWidth=z/5;X.strokeStyle='#111';
 if(o){X.fillStyle=o;X.strokeText(s,x+z/22,y+z/16);X.fillText(s,x+z/22,y+z/16)}X.strokeText(s,x,y);X.fillStyle=f;X.fillText(s,x,y)}
+// ol = stroke the current path with a thick black comic-book outline.
 function ol(w){X.lineWidth=w||2.5;X.strokeStyle='#111';X.lineJoin='round';X.stroke()}
+// box = a filled rectangle with a black outline (used for limbs, HUD bars, etc).
 function box(x,y,w,h,f){X.fillStyle=f;X.fillRect(x,y,w,h);X.lineWidth=2;X.strokeStyle='#111';X.strokeRect(x,y,w,h)}
+// Draws the toast enemy's held knife.
 function knife(){X.save();X.translate(-20,4);X.rotate(-.5);box(-2,0,5,9,'#4a2a12');X.fillStyle='#d8dde6';X.beginPath();X.moveTo(-3,0);X.lineTo(-3,-24);X.lineTo(4,-30);X.lineTo(4,0);X.closePath();X.fill();ol(2);X.restore()}
+// A simple cartoon eye: a colored circle with a black pupil.
 function eye(x,y,c){X.fillStyle=c;X.beginPath();X.arc(x,y,4,0,7);X.fill();ol(1.5);X.fillStyle='#111';X.beginPath();X.arc(x,y,1.6,0,7);X.fill()}
+// Angry V-shaped eyebrows, mirrored left/right.
 function brows(y,d){X.beginPath();X.moveTo(-14,y-d);X.lineTo(-3,y+1);X.moveTo(14,y-d);X.lineTo(3,y+1);ol(3)}
 
+// bp = the toast enemy's body silhouette (the bread-slice outline).
 function bp(){X.beginPath();X.moveTo(-18,21);X.lineTo(-18,-10);X.bezierCurveTo(-26,-29,-10,-31,0,-26);X.bezierCurveTo(10,-31,26,-29,18,-10);X.lineTo(18,21);X.closePath()}
+// Draws one toast enemy 'e' (its body, crust dimples, face, legs and knife).
 function toast(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*2;
 box(-12,18,7,8+w,'#3a1c08');box(5,18,7,8-w,'#3a1c08');
 bp();X.fillStyle='#6b3714';X.fill();ol(e.s>1?1.6:2.5);
 X.save();X.translate(0,1);X.scale(.8,.8);bp();X.fillStyle=e.fl>0?'#ffd9a0':'#c2812f';X.fill();X.restore();
 X.fillStyle='rgba(30,12,2,.5)';[[-15,4,2.4],[-14,13,2],[-13,-3,1.8],[15,6,2.4],[14,14,2],[13,-3,1.8]].forEach(a=>{X.beginPath();X.arc(a[0],a[1],a[2],0,7);X.fill()});
 eye(-8,-7,'#e11');eye(8,-7,'#e11');brows(-7,6);
+// The toast's mouth shape, reused both to fill it and to clip the teeth to it.
 function toastMouth(){X.beginPath();X.moveTo(-13,4);X.quadraticCurveTo(0,17,13,4);X.lineTo(13,10);X.quadraticCurveTo(0,23,-13,10);X.closePath()}
 X.save();X.translate(0,-3);toastMouth();X.fillStyle='#3a0505';X.fill();
 X.save();toastMouth();X.clip();
@@ -69,7 +89,10 @@ for(let i=0;i<5;i++){const tx=-8.8+i*4.4;X.beginPath();X.moveTo(tx,23);X.lineTo(
 X.restore();
 X.beginPath();X.moveTo(-13,4);X.quadraticCurveTo(0,17,13,4);ol(1.5);X.restore();
 knife();X.restore()}
+// rr = a rounded-rectangle path (used for the butter enemy's block body).
 function rr(x,y,w,h,rad){X.beginPath();X.moveTo(x+rad,y);X.arcTo(x+w,y,x+w,y+h,rad);X.arcTo(x+w,y+h,x,y+h,rad);X.arcTo(x,y+h,x,y,rad);X.arcTo(x,y,x+w,y,rad);X.closePath()}
+// Draws one butter enemy 'e' (its melting block body, arms/legs, and face).
+// Its hands (armLt/armRt, 0..1) shrink away when it fires and slowly regrow.
 function butter(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*2,aw=Math.sin(t*7+e.ph)*.3;
 box(-9,20,6,8+w,'#caa010');box(3,20,6,8-w,'#caa010');
 rr(-13,-22,26,44,4);
@@ -79,6 +102,7 @@ X.fillStyle='#d9a91c';X.beginPath();X.arc(6,-16,2.5,0,7);X.arc(8,4,2,0,7);X.arc(
 X.save();X.translate(-13,-6);X.rotate(.5+aw);box(-4,0,8,15,'#f6d84a');if(e.armLt>0){X.beginPath();X.arc(0,16,5*e.armLt,0,7);X.fillStyle='#f6d84a';X.fill();if(e.armLt>.25)ol(1.8)}X.restore();
 X.save();X.translate(13,-6);X.rotate(-.5-aw);box(-4,0,8,15,'#f6d84a');if(e.armRt>0){X.beginPath();X.arc(0,16,5*e.armRt,0,7);X.fillStyle='#f6d84a';X.fill();if(e.armRt>.25)ol(1.8)}X.restore();
 eye(-6,-9,'#fff');eye(6,-9,'#fff');X.save();X.translate(0,-2);brows(-9,5);X.restore();
+// The butter's mouth shape, reused to fill it and to clip its teeth to it.
 function butterMouth(){X.beginPath();X.moveTo(-8,2);X.quadraticCurveTo(0,10,8,2);X.lineTo(8,5);X.quadraticCurveTo(0,13,-8,5);X.closePath()}
 butterMouth();X.fillStyle='#200';X.fill();
 X.save();butterMouth();X.clip();
@@ -88,9 +112,11 @@ X.restore();
 X.beginPath();X.moveTo(-8,2);X.quadraticCurveTo(0,10,8,2);ol(1.5);
 X.restore()}
 
+// Draws a striped shirt-sleeve patch, clipped to a small rectangle.
 function sleeve(sx,sy,sw,sh){X.save();X.beginPath();X.rect(sx,sy,sw,sh);X.clip();
 for(let ry=Math.floor((sy+8)/4.4)*4.4-8;ry<sy+sh;ry+=4.4){const row=Math.round((ry+8)/4.4);X.fillStyle=row%2?'#111':'#fff';X.fillRect(sx,ry,sw,4.4)}
 X.restore();X.strokeStyle='#111';X.lineWidth=2;X.strokeRect(sx,sy,sw,sh)}
+// BagMan's water gun, drawn in his hand.
 function gun(){X.save();X.translate(21,-3);
 X.fillStyle='#4fc3f7';X.globalAlpha=.85;X.beginPath();X.ellipse(1,-9,7,5.5,-.15,0,7);X.fill();ol(1.5);X.globalAlpha=1;
 X.fillStyle='#ff6a2b';X.beginPath();X.moveTo(-5,-3);X.lineTo(15,-5);X.lineTo(20,-2);X.lineTo(15,1);X.lineTo(-5,5);X.closePath();X.fill();ol(2);
@@ -98,7 +124,9 @@ X.fillStyle='#333';X.fillRect(19,-3,4,3);
 X.fillStyle='#e8b090';X.fillRect(-7,2,6,10);ol(2);
 X.beginPath();X.arc(-3,8,4,.2,Math.PI*1.3);X.lineWidth=2;X.strokeStyle='#111';X.stroke();
 X.restore()}
-const PS=1.08;
+const PS=1.08; // overall player draw scale
+// Draws BagMan himself: the ball & chain (only visible during the slam power-attack),
+// his walking animation, clothes, gun, and paper-bag head.
 function drawP(){const x=P.x,y=P.y;
 if(P.slam!=null){const px=P.slamX-12*PS,py=P.slamY+12*PS,pr=Math.min(1,P.slam/.32);
  const ang=pr<1?(-2.1+2.7*(1-Math.pow(1-pr,3))):Math.PI/2,len=90;
@@ -120,23 +148,40 @@ X.strokeStyle='#8a5f30';X.lineWidth=1.3;X.beginPath();X.moveTo(-15,-9);X.lineTo(
 eye(-6,-21,'#fff');eye(6,-21,'#fff');X.save();X.translate(0,-14);brows(-9,5);X.restore();
 X.restore()}
 
-// ---- audio (all sounds are synthesized in the browser at runtime - original, royalty-free)
+// ---- Audio engine ----
+// Every sound in this game (music + effects) is synthesized live with the Web Audio API -
+// there are no sound files. AC=the audio context. MG=master volume gain. SH=the distortion
+// curve used by the music. NB=one shared pre-made noise buffer, reused by every 'noiz()'
+// sound so we're not generating a new buffer from scratch dozens of times a second.
 let AC=null,MG=null,SH=null,NB=null,musT=null,muted=false;
+// Mutes/unmutes everything by pulling the master volume to 0.
 function toggleMute(){muted=!muted;if(MG)MG.gain.value=muted?0:.55}
+// A fresh gain node routed into the master volume - every sound gets its own so
+// they can each fade in/out independently.
 function sG(){const g=AC.createGain();g.connect(MG);return g}
+// Disconnects a set of finished audio nodes. Without this, nodes can silently pile up
+// over a long play session (this caused real bugs earlier - see conversation history)
+// until the audio glitches out and dies, so every sound cleans up after itself via this.
 function rip(...ns){for(const n of ns)try{n.disconnect()}catch(e){}}
+// Plays a single synthesized tone, optionally sliding from 'freq' down/up to 'slide'.
 function tone(freq,dur,type,vol,slide){try{const o=AC.createOscillator(),g=sG();o.type=type||'square';
  o.frequency.setValueAtTime(freq,AC.currentTime);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(20,slide),AC.currentTime+dur);
  g.gain.setValueAtTime(vol,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+dur);
  o.connect(g);o.onended=()=>rip(o,g);o.start();o.stop(AC.currentTime+dur+.02)}catch(e){}}
+// Plays a burst of filtered noise (used for crunches, splats, hi-hats, the water-gun squirt).
 function noiz(dur,freq,q,vol,at){try{const src=AC.createBufferSource();src.buffer=NB;src.loop=true;
  const off=R()*(NB.duration-dur-.01);
  const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=freq;f.Q.value=q;const g=sG();
  const t0=at||AC.currentTime;g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
  src.connect(f);f.connect(g);src.onended=()=>rip(src,f,g);src.start(t0,off);src.stop(t0+dur)}catch(e){}}
+// Sound effects for specific game events (each just combines tone()/noiz() calls):
+// toast enemy defeated ('big' = true for the boss version).
 function sCrunch(big){noiz(big?.32:.16,big?600:950,1.1,big?1:.85);tone(big?90:150,big?.3:.12,'square',big?.7:.45,big?30:55)}
+// butter enemy defeated.
 function sSplat(big){noiz(big?.4:.22,big?260:360,.7,big?1:.75);tone(big?150:220,big?.4:.22,'sine',big?.6:.4,big?60:80)}
+// BagMan takes damage.
 function sHurt(){tone(240,.22,'sawtooth',.45,85)}
+// BagMan's water gun firing.
 function sShoot(){try{
  const src=AC.createBufferSource();src.buffer=NB;src.loop=true;const off=R()*(NB.duration-.2);
  const f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=2.5;
@@ -147,12 +192,18 @@ function sShoot(){try{
  const g2=sG();g2.gain.setValueAtTime(.001,AC.currentTime);g2.gain.linearRampToValueAtTime(.22,AC.currentTime+.015);g2.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.14);
  o.connect(g2);o.start();o.stop(AC.currentTime+.15);o.onended=()=>rip(o,g2);
 }catch(e){}}
+// The ball & chain slam / shockwave power-attack.
 function sPow(){tone(260,.5,'sawtooth',.5,1000);noiz(.5,1300,1,.4)}
+// Must be called from a real user tap/click (browsers block audio otherwise). Sets up
+// the whole audio graph once, then starts the background music.
 function ensureAudio(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();
  MG=AC.createGain();MG.gain.value=.55;MG.connect(AC.destination);
  SH=AC.createWaveShaper();const n=44100,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=i*2/n-1;cv[i]=Math.tanh(x*4)}SH.curve=cv;SH.oversample='2x';SH.connect(MG);
  const nn=AC.sampleRate*1;NB=AC.createBuffer(1,nn,AC.sampleRate);const nd=NB.getChannelData(0);for(let i=0;i<nn;i++)nd[i]=R()*2-1;
  startMusic()}catch(e){}}
+// The background music: a looping riff + drum pattern, scheduled using the audio
+// clock itself (not setTimeout) so it can't drift or stall even if the game is
+// running slowly.
 function startMusic(){const bpm=176,step=60/bpm/2,riff=[55,55,65,73,82,82,73,65,55,55,65,73,98,87,73,65];
  let st=0,next=AC.currentTime+.05;
  function playStep(when){try{const f=riff[st%riff.length];
@@ -171,33 +222,51 @@ function startMusic(){const bpm=176,step=60/bpm/2,riff=[55,55,65,73,82,82,73,65,
   st++}catch(e){}}
  musT=setInterval(()=>{try{if(AC.state==='suspended')AC.resume().catch(()=>{});while(next<AC.currentTime+.15){playStep(next);next+=step}}catch(e){}},45)}
 
-// ---- game logic
+// ---- Core game logic ----
+// gy = converts a 0..1 'lane' position into an actual ground y-coordinate for an enemy,
+// keeping everyone confined to the walkable ground strip at the bottom of the screen.
 function gy(e,v){return 285+cl(v,0,1)*109-26*e.s}
+// Creates a new enemy of kind 'k' ('t'=toast, 'b'=butter), optionally a boss.
 function mk(k,boss){const h=boss?40+wave*4:(k=='b'||wave>5?2:1);const e={k,boss,x:W+(boss?120:30),y:0,l:boss?.5:R(),s:boss?3.2:1,hp:h,mh:h,ph:R()*6,cd:1+R(),hx:470+R()*250,fl:0,armLt:1,armRt:1};e.y=gy(e,e.l);return e}
+// Advances to the next wave, deciding how many enemies to spawn (or a boss, every 5th wave).
 function nextWave(){wave++;banner=2.4;if(wave%5==0){E.push(mk(wave/5%2?'t':'b',1));mcd=5;toSpawn=0}else toSpawn=4+wave*2}
+// Resets all game state for a fresh run.
 function reset(){paused=false;P={x:110,y:200,hp:5,inv:0,fc:0,bx:80,by:236,walk:0,moving:false,slam:null,slamHit:false};E=[];PB=[];EB=[];PT=[];PP=[];PUD=[];SW=[];POW=null;powT=4;wave=0;score=0;spT=0;mcd=0;nextWave()}
+// Best-effort request to enter fullscreen (works across browser prefixes; silently
+// does nothing if the browser/embedding context doesn't allow it).
 function goFullscreen(){const el=document.documentElement;
  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.msRequestFullscreen;
  if(req){try{const p=req.call(el);if(p&&p.catch)p.catch(()=>{})}catch(e){}}}
 try{if('serviceWorker' in navigator){const swCode="self.addEventListener('fetch',e=>{});self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));";
  const swUrl=URL.createObjectURL(new Blob([swCode],{type:'text/javascript'}));
  navigator.serviceWorker.register(swUrl).catch(()=>{});}}catch(e){}
+// Called on the player's first tap: unlocks audio, resets state, and starts play.
 function go(){ensureAudio();reset();S='play';goFullscreen();try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
+// Spawns a floating comic-burst text popup (e.g. 'CRUNCH!', 'SLAM!!').
 function pop(x,y,s){PT.push({x,y,s,l:.7,r:R()*.4-.2})}
+// Spawns a small particle explosion of a given color/count.
 function burst(x,y,k,n){for(let i=0;i<n;i++)PP.push({x,y,vx:R()*300-150,vy:R()*-260,l:.6,c:k=='t'?'#a8641f':'#f6d84a'})}
+// Applies damage to the player (with a brief invincibility window afterward).
 function hurt(){if(P.inv>0)return;P.hp--;P.inv=1.3;shake=.35;burst(P.x,P.y,'t',8);sHurt();
 if(P.hp<=0){S='over';overT=t;if(score>best){best=score;try{localStorage.setItem('bm',best)}catch(e){}}}}
+// Handles an enemy dying: score, particles, sound, and (for butter) puddles left behind.
 function kill(e){score+=e.boss?500:e.k=='b'?20:10;burst(e.x,e.y,e.k,e.boss?40:10);pop(e.x,e.y-20*e.s,e.boss?'K.O.!!':e.k=='t'?'CRUNCH!':'SPLAT!');
 if(e.k=='t')sCrunch(e.boss);else sSplat(e.boss);
 if(e.k=='b'){const n=e.boss?9:4;for(let i=0;i<n;i++)PUD.push({x:e.x+R()*26*e.s-13*e.s,y:e.y+18*e.s+R()*8,r:(6+R()*7)*e.s,l:3+R()})}
 if(e.boss){P.hp=Math.min(5,P.hp+2);shake=.6}}
+// A butter enemy fires its ball-shaped hand as a projectile; that hand then
+// regrows over time (see armLt/armRt in mk()/butter()).
 function shootArm(e){const canL=e.armLt>=1,canR=e.armRt>=1;if(!canL&&!canR)return;
 const side=canL&&canR?(R()<.5?1:-1):(canL?1:-1),a=side==1?.5:-.5;
 const wx=e.x+((side==1?-13:13)+16*Math.sin(a))*e.s,wy=e.y+(-6+16*Math.cos(a))*e.s;
 const ang=Math.atan2(P.y-wy,P.x-wx);EB.push({x:wx,y:wy,vx:Math.cos(ang)*170,vy:Math.sin(ang)*170,k:'g'});
 if(side==1)e.armLt=0;else e.armRt=0}
+// Fires one or more projectiles from enemy 'e' toward the player (used by toast
+// enemies and boss attacks).
 function shoot(e,n,sp,v,k){const a=Math.atan2(P.y-e.y,P.x-e.x);for(let i=0;i<n;i++){const q=a+(n>1?(i/(n-1)-.5)*2*sp:0);EB.push({x:e.x-e.s*18,y:e.y,vx:Math.cos(q)*v,vy:Math.sin(q)*v,k})}}
 
+// ---- Main per-frame update: moves everything, checks collisions, spawns waves/power-ups.
+// Runs once per animation frame with 'dt' = seconds since the last frame.
 function up(dt){t+=dt;if(banner>0)banner-=dt;shake=Math.max(0,shake-dt);
 let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
 if(joy){dx+=cl((joy.x-joy.ox)/45,-1,1);dy+=cl((joy.y-joy.oy)/45,-1,1)}
@@ -236,6 +305,7 @@ EB=EB.filter(b=>!b.d&&b.x>-30&&b.x<W+30&&b.y>-30&&b.y<H+30);
 PP.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=500*dt;p.l-=dt});PP=PP.filter(p=>p.l>0&&p.x>-40&&p.x<W+40);
 PT.forEach(p=>{p.y-=25*dt;p.l-=dt});PT=PT.filter(p=>p.l>0);PUD.forEach(p=>p.l-=dt);PUD=PUD.filter(p=>p.l>0&&p.x>-40&&p.x<W+40)}
 
+// ---- Main per-frame render: draws the background, every game object, and the HUD/menus.
 function draw(){
 X.setTransform(K,0,0,K,0,0);X.clearRect(0,0,W,H);X.save();
 if(shake>0)X.translate((R()-.5)*shake*16,(R()-.5)*shake*16);
@@ -282,8 +352,12 @@ if(S=='title'){X.fillStyle='rgba(10,5,20,.55)';X.fillRect(0,0,W,H);drawP();
 if(S=='over'){X.fillStyle='rgba(10,5,20,.6)';X.fillRect(0,0,W,H);T('GAME OVER',W/2,150,90,'#ff3b2f','center','#fff');
  T('SCORE '+score+'   BEST '+best,W/2,205,38,'#ffd400');T('You reached wave '+wave,W/2,245,28,'#fff');if(t-overT>.8)T('TAP TO RETRY',W/2,320,40,'#fff')}}
 
-// ---- input
+// ---- Touch/mouse input ----
+// rotMQ tracks whether the CSS auto-landscape-rotation is currently active, so we know
+// which way to translate a raw screen tap into the game's own (un-rotated) coordinates.
 const rotMQ=matchMedia('(orientation:portrait) and (pointer:coarse)');
+// Converts a raw pointer/touch event into game-world (x,y) coordinates, accounting for
+// the canvas's current scale and (if active) the portrait->landscape CSS rotation.
 function pt(e){let lx,ly;
  if(rotMQ.matches){lx=e.clientY;ly=innerWidth-e.clientX}else{lx=e.clientX;ly=e.clientY}
  const ox=(APP.clientWidth-C.clientWidth)/2,oy=(APP.clientHeight-C.clientHeight)/2;
@@ -308,6 +382,7 @@ addEventListener('keyup',e=>{keys[e.key.length>1?e.key:e.key.toLowerCase()]=0});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
 let last=0;reset();S='title';
+// The main game loop, driven by the browser's animation frame timer.
 function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
  if(S=='play'&&!paused)up(dt);else if(S!='play')t+=dt;
  draw();requestAnimationFrame(loop)}
