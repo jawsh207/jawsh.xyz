@@ -36,6 +36,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
 <title>Bagman: Breakfast Platformer</title>
+<!-- Google AdSense (publisher ca-pub-3721061134092374). This only loads/works once the file is hosted
+     on your own domain — Claude's own preview blocks scripts from this host by design. -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3721061134092374" crossorigin="anonymous"></script>
 <style>
 :root{color-scheme:dark;--bg:#171210;--ink:#f3e6cf;--gold:#e8b83a;--red:#d63a2a;--panel:#3a2c1e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
@@ -91,10 +94,10 @@ button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 // Tiny DOM shorthand, plus the canvas and its 2D drawing context used by everything below.
 const $=i=>document.getElementById(i),cv=$('c'),ctx=cv.getContext('2d');
 const HEAD='<svg viewBox="0 0 22 26" width="17" height="20" style="vertical-align:-4px;margin-left:5px"><rect x="1.5" y="2" width="19" height="22" fill="#b98a52" stroke="#2a1a0a" stroke-width="1.8"/><rect x="1.5" y="2" width="19" height="5" fill="#c99a5e" stroke="#2a1a0a" stroke-width="1.2"/><ellipse cx="7" cy="14" rx="3" ry="2.3" fill="#fff"/><ellipse cx="15" cy="14" rx="3" ry="2.3" fill="#fff"/><circle cx="7.6" cy="14.2" r="1.3" fill="#111"/><circle cx="15.6" cy="14.2" r="1.3" fill="#111"/><path d="M3 10L9 12.5M19 10L13 12.5" stroke="#2a1a0a" stroke-width="1.8" fill="none"/></svg>';let lastHud='';
-const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50,SKYY=60;
+const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50;
 // Draws a filled ellipse (used everywhere for shadows, eyes, food, etc).
 const ell=(x,y,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill()};
-let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6,lives=3,cpX=0,cpOn=false,note=null,zones=[];
+let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6,lives=3,cpX=0,cpOn=false,note=null,zones=[],TOASTY=60,PLATY=106,adUsed=false;
 const keys=new Set();
 let prog={};try{prog=JSON.parse(localStorage.getItem('bagman-save'))||{}}catch(e){}
 
@@ -326,40 +329,61 @@ const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:
 // Spawns one enemy: t = 't'/'b'/'f' (toast/butter/flying toaster), s = its home platform, zone = patrol area for flyers.
 function addE(t,x,s,big,zone){
   const r=big?34:t=='t'?16:t=='b'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
-  E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?SKYY:s.y-f,hp:big?12+lvl*2:(t=='t'?3:t=='b'?4:4)+(lvl/8|0),sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:70+lvl*2,dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,esc:0,blk:0,zone:zone||null,soak:0,sc:0,scT:0,vy:0});
+  E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?TOASTY:s.y-f,hp:big?12+lvl*2:(t=='t'?3:t=='b'?4:4)+(lvl/8|0),sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:70+lvl*2,dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,esc:0,blk:0,zone:zone||null,soak:0,sc:0,scT:0,vy:0});
 }
 // Builds a themed climb tower (stepping platforms) plus the flat attack platform at its top, for one zone.
 function addClimb(zone){
   const ys=[330,255,180,140];let x=zone.x0-20;
   ys.forEach((y,i)=>{x+=(i%2?46:-10);S.push({x,w:60,y,kind:'step'})});
-  S.push({x:zone.x0-10,w:(zone.x1-zone.x0)+20,y:SKYY,kind:'sky'});
+  S.push({x:zone.x0-10,w:(zone.x1-zone.x0)+20,y:PLATY,kind:'sky'});
 }
 // Generates a new level: platform layout, exit/checkpoint, water stations, enemies, and toaster climb zones.
 function newLevel(){
-  area=(lvl-1)/10|0;L=3600+lvl*240;fq=0;fd=6;S=[{x:0,w:L,y:GY}];let x=260,t=0;const tiers=[330,268,206];
+  area=(lvl-1)/10|0;L=3600+lvl*240;fq=0;fd=6;
+  TOASTY=Math.max(40,-ty+34);PLATY=TOASTY+46; // toaster hugs the true top of the visible screen; its attack platform sits clearly below it, never at the same height
+  S=[{x:0,w:L,y:GY}];let x=260,t=0;const tiers=[330,268,206];
   while(x<L-500){const w=100+Math.random()*90;S.push({x,w,y:tiers[t]});t=Math.max(0,Math.min(2,t+(Math.random()*3|0)-1));x+=w+40+Math.random()*70}
-  exitX=L-120;wells=[];cpX=Math.round(L/2);cpOn=false;note=null;
-  const gap=Math.max(VW+100,760),span=L-1000,n=Math.min(3+(lvl>9?1:0)+(lvl>19?1:0),(span/gap|0)+1);
-  Array.from({length:n},()=>Math.random()*(span-(n-1)*gap)).sort((a,b)=>a-b).forEach((r,i)=>{const wx=500+r+i*gap,c=S.filter(s=>wx>s.x+20&&wx<s.x+s.w-20),s=c[Math.random()*c.length|0];wells.push({x:wx,y:s.y})});
-  if(wells.some(w=>Math.abs(w.x-cpX)<110))cpX+=170;
-  E=[];
-  for(let i=0;i<Math.round(8+lvl*2.6);i++){
-    const c=Math.random()<.5?[S[0]]:S.slice(1).filter(s=>s.x>450),s=c[Math.random()*c.length|0]||S[0];
-    const x=s===S[0]?450+Math.random()*(L-800):s.x+30+Math.random()*(s.w-60);
-    const r=Math.random();let t=r>1-Math.min(.5,.1+lvl*.035)?'b':'t';
-    addE(t,x,s,false);
-  }
-  if(lvl%10==0)[['t'],['b'],['t','b']][area].forEach((t,j)=>addE(t,L-450-j*220,S[0],true));
+  exitX=L-120;cpX=Math.round(L/2);cpOn=false;note=null;
   zones=[];
   if(lvl>=3){
     const zw=460,zgap=Math.max(2000,L/3.2|0);
     for(let zx=900;zx<L-700;zx+=zgap)zones.push({x0:zx,x1:Math.min(L-300,zx+zw)});
     if(!zones.length)zones.push({x0:Math.max(400,(L/2|0)-230),x1:Math.min(L-300,(L/2|0)+230)});
     zones.forEach(addClimb);
+  }
+  deoverlap(); // remove any platform that ended up touching/overlapping another before anything is placed on them
+  wells=[];
+  const gap=Math.max(VW+100,760),span=L-1000,n=Math.min(3+(lvl>9?1:0)+(lvl>19?1:0),(span/gap|0)+1);
+  Array.from({length:n},()=>Math.random()*(span-(n-1)*gap)).sort((a,b)=>a-b).forEach((r,i)=>{const wx=500+r+i*gap,c=S.filter(s=>!s.kind&&wx>s.x+20&&wx<s.x+s.w-20),s=c[Math.random()*c.length|0];if(s)wells.push({x:wx,y:s.y})});
+  if(wells.some(w=>Math.abs(w.x-cpX)<110))cpX+=170;
+  E=[];
+  for(let i=0;i<Math.round(8+lvl*2.6);i++){
+    const c=Math.random()<.5?[S[0]]:S.filter(s=>s.y<GY&&!s.kind&&s.x>450),s=c[Math.random()*c.length|0]||S[0];
+    const x=s===S[0]?450+Math.random()*(L-800):s.x+30+Math.random()*(s.w-60);
+    const r=Math.random();let t=r>1-Math.min(.5,.1+lvl*.035)?'b':'t';
+    addE(t,x,s,false);
+  }
+  if(lvl%10==0)[['t'],['b'],['t','b']][area].forEach((t,j)=>addE(t,L-450-j*220,S[0],true));
+  if(lvl>=3){
     let slots=2;
     zones.forEach(z=>{if(slots>0){addE('f',z.x0+40+Math.random()*(z.x1-z.x0-80),S[0],false,z);slots--}else fq++});
   }
   puddles=[];shots=[];parts=[];blobs=[];eagles=[];items=[];pops=[];comix=[];kills=0;cam=-PL;banner=2;Object.assign(P,{x:80,y:GY-25,vx:0,vy:0,g:1,inv:0,sw:0,sf:S[0]});
+}
+// Removes any platform whose footprint touches or overlaps another (favors keeping climb-tower/attack platforms over plain filler platforms).
+function deoverlap(){
+  const thick=16,rects=S.map(s=>({s,x0:s.x,x1:s.x+s.w,y0:s.y,y1:s.y+thick}));
+  const rank=s=>s.y>=GY?2:s.kind?1:0; // ground always wins, climb/sky beats plain tiers
+  const drop=new Set();
+  for(let i=1;i<S.length;i++)for(let j=i+1;j<S.length;j++){
+    if(drop.has(S[i])||drop.has(S[j]))continue;
+    const a=rects[i],b=rects[j];
+    if(a.x0<b.x1&&a.x1>b.x0&&a.y0<b.y1&&a.y1>b.y0){ // AABB overlap
+      const loser = rank(S[i])<=rank(S[j]) ? S[i] : S[j];
+      drop.add(loser);
+    }
+  }
+  if(drop.size)S=S.filter(s=>!drop.has(s));
 }
 /* ---------- menus, progress, pause ---------- */
 const AREAS=['The Alley','The Kitchen','The Pantry'],NL=30,LPA=10;
@@ -407,10 +431,40 @@ function pause(){
 }
 // Shows the game-over screen. Sends the player back to the area's first level unless they've already beaten that area's boss before.
 function over(){
-  state='over';musicStop();sfx.over();
+  state='over';musicStop();sfx.over();adUsed=false;
   const areaStart=area*10+1,bossLvl=area*10+10,areaDone=!!prog[bossLvl],backTo=areaDone?cur:areaStart;
-  panel('<h1>YOU\'RE<br>TOAST</h1><p>Out of lives on level '+lab(lvl)+'<br>Score '+score+(areaDone?'':'<br>Area not finished — back to '+lab(areaStart))+'</p>'+B('start','TRY AGAIN',backTo)+B('levels','LEVELS',null,'r'))
+  panel('<h1>YOU\'RE<br>TOAST</h1><p>Out of lives on level '+lab(lvl)+'<br>Score '+score+(areaDone?'':'<br>Area not finished — back to '+lab(areaStart))+'</p>'+B('watchAd','\uD83D\uDCFA WATCH AD: +1 LIFE')+B('start','TRY AGAIN',backTo)+B('levels','LEVELS',null,'r'))
 }
+// PLACEHOLDER for a real rewarded-ad SDK. Swap this function's body for the real call (a native AdMob plugin
+// after wrapping this page with Capacitor/Cordova, or Google's H5 Games Ads for a pure web build): call
+// onComplete() only once the user actually finishes watching the ad, and add an onFail path for
+// skipped/closed/no-fill cases (this placeholder always "succeeds" after a short simulated countdown).
+// Regular AdSense has no built-in "rewarded ad" signal (that's only offered by H5 Games Ads or AdMob), so this
+// shows a real AdSense ad unit (publisher ca-pub-3721061134092374, ad unit 1618303538) and simply requires the
+// player to wait out a fixed viewing period before the reward unlocks — the game enforces the wait itself,
+// Google isn't confirming the ad was actually watched. If the ad can't load (blocked, account not approved yet,
+// or running inside Claude's own preview) the slot just sits empty and the countdown still runs normally.
+function showRewardedAd(onComplete){
+  const WAIT=15; // seconds the player must wait with the ad on screen before the reward unlocks
+  panel('<h1>AD BREAK</h1><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3721061134092374" data-ad-slot="1618303538"></ins><p>(Ad space \u2014 connect AdSense to show a real ad here)</p><p>Reward unlocks in <span id="adT">'+WAIT+'</span>\u2026</p>');
+  try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}
+  let t=WAIT;
+  const iv=setInterval(()=>{
+    t--;const el=$('adT');if(el)el.textContent=t;
+    if(t<=0){clearInterval(iv);onComplete()}
+  },1000);
+}
+// Actually grants the reward: one life, full health/ammo, and resumes play at the checkpoint (or level start).
+function grantExtraLife(){
+  lives=1;P.hp=5;P.ammo=MAXW;P.inv=2.5;
+  const x=cpOn?cpX:80;
+  Object.assign(P,{x,y:GY-25,vx:0,vy:0,g:1,sf:S[0]});
+  blobs=[];shots=[];
+  cam=Math.max(-PL,Math.min(L-VW+PR,x-VW*.4));
+  note={txt:'EXTRA LIFE!',l:2};sfx.check();
+  state='play';$('ov').className='hide';musicStart();
+}
+function offerAd(){if(adUsed)return;adUsed=true;showRewardedAd(grantExtraLife)}
 // Shows the level-cleared screen: tallies score/stars, saves best results, and unlocks the next level/area.
 function clear(){
   state='clear';musicStop();sfx.clear();
@@ -419,7 +473,7 @@ function clear(){
   panel('<h1>'+(last?'BREAKFAST<br>BEATEN!':lab(lvl)+'<br>CLEARED')+'</h1><p>Score <b>'+score+'</b>'+(nb?', new best!':'')+'<br>'+stars(st)+' &nbsp; Time '+LT.toFixed(1)+'s'+(lvl%LPA==0&&!last?'<br>Area cleared! The next area is unlocked.':'')+'</p>'+(last?'':B('next','NEXT LEVEL'))+B('retry','REPLAY',null,'r')+B('levels','LEVELS',null,'r'));
 }
 // Maps every menu button's data-action name to the function it should call.
-const A={levels:levelsMenu,score:scoreMenu,menu:mainMenu,start:v=>start(+v),next:()=>start(cur+1,true),retry:()=>start(cur),restart:()=>start(cur),
+const A={levels:levelsMenu,score:scoreMenu,menu:mainMenu,start:v=>start(+v),next:()=>start(cur+1,true),retry:()=>start(cur),restart:()=>start(cur),watchAd:offerAd,
   resume(){state='play';$('ov').className='hide';musicStart()},
   snd(v,b){setMuted(!muted);b.textContent='SOUND: '+(muted?'OFF':'ON')},
   reset(v,b){if(b.dataset.c){prog={};save();scoreMenu()}else{b.dataset.c=1;b.textContent='TAP AGAIN TO CONFIRM'}}};
@@ -598,7 +652,7 @@ function update(dt){
     if(fly){e.blk=wallHit?e.blk+dt:0;if(e.blk>.35){e.esc=1.1;e.blk=0}}
     e.x=nx;e.side=d;e.ph+=dt*e.sp/12;
     if(fly){
-      const tgt=(e.esc>0?SKYY-70:SKYY)+Math.sin(e.ph*.5)*8;e.y+=(tgt-e.y)*Math.min(1,dt*(e.esc>0?5:2.4));
+      const tgt=(e.esc>0?TOASTY-70:TOASTY)+Math.sin(e.ph*.5)*8;e.y+=(tgt-e.y)*Math.min(1,dt*(e.esc>0?5:2.4));
       if(near&&e.cd<=0&&e.tt<=0&&Math.abs(dx)<120&&Math.abs(P.y-e.y)<70){e.tt=.4;e.cd=1.3;sfx.stab()}
       e.tt-=dt;e.th=e.tt>0?Math.sin(Math.PI*(1-e.tt/.4)):0;
       e.eg-=dt;e.chg=e.eg<2?1-e.eg/2:0;if(e.chg&&!e.cs){e.cs=1;if(Math.abs(dx)<700)sfx.charge()}
