@@ -446,8 +446,17 @@ function over(){
 // or running inside Claude's own preview) the slot just sits empty and the countdown still runs normally.
 function showRewardedAd(onComplete){
   const WAIT=15; // seconds the player must wait with the ad on screen before the reward unlocks
-  panel('<h1>AD BREAK</h1><ins class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3721061134092374" data-ad-slot="1618303538"></ins><p>(Ad space \u2014 connect AdSense to show a real ad here)</p><p>Reward unlocks in <span id="adT">'+WAIT+'</span>\u2026</p>');
+  panel('<h1>AD BREAK</h1><ins id="adSlot" class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3721061134092374" data-ad-slot="1618303538"></ins><p id="adMsg">Loading ad\u2026</p><p>Reward unlocks in <span id="adT">'+WAIT+'</span>\u2026</p>');
   try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}
+  // AdSense marks the slot's data-ad-status as "filled" or "unfilled" a moment after the push above;
+  // only report a real problem once we actually know the outcome, instead of guessing.
+  setTimeout(()=>{
+    const slot=$('adSlot'),msg=$('adMsg');if(!slot||!msg)return;
+    const status=slot.getAttribute('data-ad-status');
+    if(status==='filled')msg.textContent='';
+    else if(status==='unfilled')msg.textContent='(No ad available right now)';
+    else msg.textContent='(Ad space \u2014 AdSense script not loaded here)';
+  },1500);
   let t=WAIT;
   const iv=setInterval(()=>{
     t--;const el=$('adT');if(el)el.textContent=t;
