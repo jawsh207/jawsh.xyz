@@ -13,15 +13,28 @@
 <meta name="apple-mobile-web-app-title" content="BagMan">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
 <style>
+/* Base page setup: safe-area padding (notches/home-indicator), full-height html/body, and a
+   locked-down body (no scrolling/selecting/pinching) so the game behaves like a native app. */
 :root{--bg:#120d0a;--ink:#f4e6c1;box-sizing:border-box;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#120d0a;--ink:#f4e6c1}}
 :root[data-theme="dark"]{--bg:#120d0a;--ink:#f4e6c1}
-html,body{height:100%;margin:0;background:var(--bg);overflow:hidden}
-body{font-family:Bangers,Impact,'Arial Black',fantasy}
-#app{width:100vw;height:100vh;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;align-items:center;justify-content:center;position:relative}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:Bangers,Impact,'Arial Black',fantasy}
+#app{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
 canvas{display:block}
+/* The landscape auto-rotation trick: on a touchscreen held in portrait, spin the ENTIRE body
+   90 degrees and swap its width/height, so the game always renders as landscape regardless of
+   how the phone is actually being held - no native orientation-lock permission needed for this
+   part. (vh/vw declared first as a fallback, then overridden by dvh/dvw where supported, since
+   those correctly account for mobile browser toolbars showing/hiding.) */
 @media (orientation:portrait) and (pointer:coarse){
-  #app{position:fixed;top:0;left:0;width:100dvh;height:100dvw;transform:rotate(90deg) translateY(-100%);transform-origin:0 0}
+  body{
+    position:fixed;top:0;left:0;
+    width:100vh;width:100dvh;
+    height:100vw;height:100dvw;
+    transform:rotate(90deg) translateY(-100%);
+    transform-origin:0 0;
+  }
 }
 </style>
 <!-- Standard Google AdSense -->
@@ -267,16 +280,30 @@ function mk(k,boss){const h=boss?40+wave*4:(k=='b'||wave>5?2:1);const e={k,boss,
 function nextWave(){wave++;banner=2.4;if(wave%5==0){E.push(mk(wave/5%2?'t':'b',1));mcd=5;toSpawn=0}else toSpawn=4+wave*2}
 // Resets all game state for a fresh run.
 function reset(){paused=false;usedContinue=false;adPlaying=false;hideAdSlot();P={x:110,y:200,hp:5,inv:0,fc:0,bx:80,by:236,walk:0,moving:false,slam:null,slamHit:false};E=[];PB=[];EB=[];PT=[];PP=[];PUD=[];SW=[];POW=null;powT=4;wave=0;score=0;spT=0;mcd=0;nextWave()}
-// Best-effort request to enter fullscreen (works across browser prefixes; silently
-// does nothing if the browser/embedding context doesn't allow it).
-function goFullscreen(){const el=document.documentElement;
- const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.msRequestFullscreen;
- if(req){try{const p=req.call(el);if(p&&p.catch)p.catch(()=>{})}catch(e){}}}
+// Best-effort request to enter fullscreen + lock landscape, triggered once from the player's
+// first tap (a real user gesture is required for both of these by browsers). Guarded by
+// fsTried so later taps (retrying after game over, etc.) don't keep re-requesting it - once
+// granted, fullscreen/orientation-lock naturally persist for the rest of the page session.
+// Orientation lock is attempted twice (once chained after fullscreen succeeds, once
+// unconditionally right away) since some browsers only allow the lock while fullscreen,
+// and others allow - or require - it outside of fullscreen entirely.
+let fsTried=0;
+function goFullscreen(){
+ if(fsTried)return;fsTried=1;
+ const lock=()=>{try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}};
+ try{
+  const d=document.documentElement,
+        req=d.requestFullscreen||d.webkitRequestFullscreen||d.webkitRequestFullScreen||d.msRequestFullscreen,
+        r=req&&req.call(d);
+  if(r&&r.then)r.then(lock).catch(()=>{});else lock();
+ }catch(e){}
+ lock();
+}
 try{if('serviceWorker' in navigator){const swCode="self.addEventListener('fetch',e=>{});self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));";
  const swUrl=URL.createObjectURL(new Blob([swCode],{type:'text/javascript'}));
  navigator.serviceWorker.register(swUrl).catch(()=>{});}}catch(e){}
 // Called on the player's first tap: unlocks audio, resets state, and starts play.
-function go(){ensureAudio();reset();S='play';goFullscreen();try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
+function go(){ensureAudio();reset();S='play';goFullscreen()}
 // Spawns a floating comic-burst text popup (e.g. 'CRUNCH!', 'SLAM!!').
 function pop(x,y,s){PT.push({x,y,s,l:.7,r:R()*.4-.2})}
 // Spawns a small particle explosion of a given color/count.
