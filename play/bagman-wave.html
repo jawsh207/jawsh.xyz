@@ -45,6 +45,13 @@ canvas{display:block}
      screen (see showRewardedAd() below). Positioned/sized in JS by positionAdSlot(), since its
      place on screen depends on the canvas's current scale. Starts hidden. -->
 <div id="adSlot" style="display:none;position:absolute;overflow:hidden;background:#000"></div>
+<!-- A real, invisible <button> covering the title screen, used ONLY to trigger fullscreen.
+     Some mobile browsers (notably some Android Chrome/WebView versions) are stricter about
+     what counts as a valid "user gesture" for requestFullscreen() - a genuine click on a real
+     button is the one trigger that reliably works everywhere, more so than a generic
+     pointerdown on a canvas/div. The actual game-start logic still runs through the normal
+     canvas tap handler below; this button's only job is the fullscreen request. -->
+<button id="startBtn" aria-label="Tap to start" style="position:absolute;inset:0;width:100%;height:100%;border:0;margin:0;padding:0;background:transparent;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent"></button>
 </div>
 <script>
 // Canvas + shorthand helpers. The game is drawn at a fixed 800x400 'world size' (W,H) and
@@ -303,7 +310,7 @@ try{if('serviceWorker' in navigator){const swCode="self.addEventListener('fetch'
  const swUrl=URL.createObjectURL(new Blob([swCode],{type:'text/javascript'}));
  navigator.serviceWorker.register(swUrl).catch(()=>{});}}catch(e){}
 // Called on the player's first tap: unlocks audio, resets state, and starts play.
-function go(){ensureAudio();reset();S='play';goFullscreen()}
+function go(){ensureAudio();reset();S='play'}
 // Spawns a floating comic-burst text popup (e.g. 'CRUNCH!', 'SLAM!!').
 function pop(x,y,s){PT.push({x,y,s,l:.7,r:R()*.4-.2})}
 // Spawns a small particle explosion of a given color/count.
@@ -481,6 +488,11 @@ function pt(e){let lx,ly;
  if(rotMQ.matches){lx=e.clientY;ly=innerWidth-e.clientX}else{lx=e.clientX;ly=e.clientY}
  const ox=(APP.clientWidth-C.clientWidth)/2,oy=(APP.clientHeight-C.clientHeight)/2;
  return[(lx-ox)/C.clientWidth*W,(ly-oy)/C.clientHeight*H]}
+// Real <button> click = the one fullscreen trigger that works reliably across mobile browsers
+// (see the comment on #startBtn in the HTML above). The rest of the title-tap/game-start logic
+// still goes through the normal pointerdown handler just below, same as every other tap.
+const startBtn=document.getElementById('startBtn');
+startBtn.addEventListener('click',()=>{goFullscreen();startBtn.style.display='none'});
 document.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=pt(e);
  if(S=='continue'){
   if(!adPlaying&&x>W/2-130&&x<W/2+130){
