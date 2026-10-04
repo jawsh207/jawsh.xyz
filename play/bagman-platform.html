@@ -53,14 +53,16 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #wf{display:block;height:100%;background:#3ac7f0}
 #pad,#act{position:absolute;bottom:16px;display:flex;gap:6px;align-items:flex-end}
 #pad{left:10px}#act{right:10px}
-#pad button,#act button{width:60px;height:60px;border-radius:50%;border:3px solid var(--ink);background:rgba(58,44,30,.8);color:#fff;font:900 12px 'Bangers',Impact,"Arial Black",sans-serif;touch-action:none;padding:0}
-#pad{gap:8px}
-#pad button{width:84px;height:84px;font-size:36px}
-#act .j{width:84px;height:84px;font-size:17px}
+#pad button,#act button{width:72px;height:72px;border-radius:50%;border:3px solid rgba(243,230,207,.6);background:rgba(58,44,30,.35);color:#fff;font:900 12px 'Bangers',Impact,"Arial Black",sans-serif;touch-action:none;padding:0}
+#pad{gap:10px}
+#pad button{width:104px;height:104px;font-size:44px}
+#act{gap:10px}
+#act button{width:76px;height:76px;font-size:14px}
+#act .j{width:104px;height:104px;font-size:19px}
 button.on{background:var(--gold)!important;color:#000!important}
 #btns{position:absolute;top:36px;right:12px;display:flex;gap:9px;z-index:5}
-#mute,#pause{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;border:3px solid #000;border-radius:50%;background:#ffd23a;box-shadow:3px 3px 0 #000;transform:rotate(-5deg)}
-#pause{background:#ff5a3a;transform:rotate(5deg)}
+#mute,#pause{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;border:3px solid rgba(0,0,0,.6);border-radius:50%;background:rgba(255,210,58,.55);box-shadow:3px 3px 0 rgba(0,0,0,.6);transform:rotate(-5deg)}
+#pause{background:rgba(255,90,58,.55);transform:rotate(5deg)}
 #mute:active,#pause:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
 body.m #hud,body.m #pad,body.m #act,body.m #pause{display:none}
 #ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:24px;text-align:center;background:rgba(15,10,8,.86);overflow-y:auto}
@@ -93,11 +95,11 @@ button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 <script>
 // Tiny DOM shorthand, plus the canvas and its 2D drawing context used by everything below.
 const $=i=>document.getElementById(i),cv=$('c'),ctx=cv.getContext('2d');
-const HEAD='<svg viewBox="0 0 22 26" width="17" height="20" style="vertical-align:-4px;margin-left:5px"><rect x="1.5" y="2" width="19" height="22" fill="#b98a52" stroke="#2a1a0a" stroke-width="1.8"/><rect x="1.5" y="2" width="19" height="5" fill="#c99a5e" stroke="#2a1a0a" stroke-width="1.2"/><ellipse cx="7" cy="14" rx="3" ry="2.3" fill="#fff"/><ellipse cx="15" cy="14" rx="3" ry="2.3" fill="#fff"/><circle cx="7.6" cy="14.2" r="1.3" fill="#111"/><circle cx="15.6" cy="14.2" r="1.3" fill="#111"/><path d="M3 10L9 12.5M19 10L13 12.5" stroke="#2a1a0a" stroke-width="1.8" fill="none"/></svg>';let lastHud='';
-const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50;
+const HEAD='<svg viewBox="0 0 22 26" width="17" height="20" style="vertical-align:-4px;margin-left:5px"><rect x="1.5" y="2" width="19" height="22" fill="#b98a52" stroke="#2a1a0a" stroke-width="1.8"/><rect x="1.5" y="2" width="19" height="5" fill="#c99a5e" stroke="#2a1a0a" stroke-width="1.2"/><ellipse cx="7" cy="14" rx="3" ry="2.3" fill="#fff"/><ellipse cx="15" cy="14" rx="3" ry="2.3" fill="#fff"/><circle cx="7.6" cy="14.2" r="1.3" fill="#111"/><circle cx="15.6" cy="14.2" r="1.3" fill="#111"/><path d="M3 10L9 12.5M19 10L13 12.5" stroke="#2a1a0a" stroke-width="1.8" fill="none"/></svg>';let lastHud='',lastSc='',lastScore='',lastWf=-1,lastWl='';const hudHp=$('hp'),hudSc=$('sc'),hudScore=$('score'),hudWf=$('wf'),hudWl=$('wl');
+const FONT="'Bangers',Impact,\"Arial Black\",sans-serif",GY=400,MAXW=50,SOAK_MAX=5; // a toaster short-circuits after 5 squirt hits
 // Draws a filled ellipse (used everywhere for shadows, eyes, food, etc).
 const ell=(x,y,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill()};
-let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6,lives=3,cpX=0,cpOn=false,note=null,zones=[],TOASTY=60,PLATY=106,adUsed=false;
+let VW,VH,K,DPR,ty,S,L,E,puddles,parts,shots,wells,P,lvl=1,score=0,state='title',cam=0,shake=0,T=0,banner=0,exitX=0,best=0,brick,fx=null,cur=1,area=0,LT=0,blobs=[],PL=0,PR=0,eagles=[],items=[],pops=[],comix=[],kills=0,fq=0,fd=6,lives=3,cpX=0,cpOn=false,note=null,zones=[],TOASTY=60,adUsed=false,coins=[],movers=[],bounces=[],hazards=[],yolks=[];
 const keys=new Set();
 let prog={};try{prog=JSON.parse(localStorage.getItem('bagman-save'))||{}}catch(e){}
 
@@ -111,7 +113,8 @@ function knife(s,ph,c){
 function brows(y,c){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-9,y-4);ctx.lineTo(-2,y);ctx.moveTo(9,y-4);ctx.lineTo(2,y);ctx.stroke()}
 // Draws one toast enemy: legs, crust body, crumb texture, angry face, and its knife (regular or boss size).
 function toast(e){
-  const s=e.r/17;ctx.save();ctx.translate(e.x,e.y);ctx.scale(s,s);
+  const dur=e.hazT=='burner'?.6:1.5,dp=Math.min(1,(e.dis||0)/dur),sink=dp*14,fade=1-dp*.7; // sinks/burns away
+  const s=(e.r/17)*(1-dp*.35);ctx.save();ctx.translate(e.x,e.y+sink);ctx.scale(s,s);ctx.globalAlpha=fade;
   ell(0,21,15,4.5,'rgba(0,0,0,.35)');const st=Math.sin(e.ph)*3;
   ctx.fillStyle='#2b1408';ctx.fillRect(-9,13,5,8+st);ctx.fillRect(4,13,5,8-st);
   ctx.rotate(Math.sin(e.ph)*.05);
@@ -121,11 +124,12 @@ function toast(e){
   ell(-5,-6,3.2,2.4,'#ff2a1a');ell(5,-6,3.2,2.4,'#ff2a1a');brows(-9,'#160805');
   ctx.fillStyle='#160805';ctx.beginPath();ctx.moveTo(-8,3);ctx.quadraticCurveTo(0,12,8,3);ctx.closePath();ctx.fill();
   ctx.fillStyle='#f5ecd0';for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*3.2-1.4,4.2);ctx.lineTo(i*3.2+1.4,4.2);ctx.lineTo(i*3.2,7.4);ctx.fill()}
-  knife(e.side,e.ph,'#4a2a14');ctx.restore();
+  knife(e.side,e.ph,'#4a2a14');ctx.globalAlpha=1;ctx.restore();
 }
 // Draws one butter enemy, including the melting drips and its mouth glowing before it spits.
 function butter(e){
-  ctx.save();ctx.translate(e.x,e.y);ctx.scale(e.r/15,e.r/15*(1+Math.sin(e.ph*2)*.05));
+  const dur=e.hazT=='burner'?.6:1.5,dp=Math.min(1,(e.dis||0)/dur),sink=dp*15,fade=1-dp*.7; // melts/boils away
+  ctx.save();ctx.translate(e.x,e.y+sink);ctx.scale((e.r/15)*(1+dp*.35),(e.r/15)*(1+Math.sin(e.ph*2)*.05)*(1-dp*.55));ctx.globalAlpha=fade;
   ell(0,21,14,4.5,'rgba(0,0,0,.35)');
   ctx.fillStyle=e.fl>0?'#fff':'#f0c93a';ctx.strokeStyle='#8a6a10';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(-11,-17,22,32,6);ctx.fill();ctx.stroke();
@@ -135,13 +139,18 @@ function butter(e){
   brows(-8,'#5a4308');ell(-12,4,3.2,6,'#f0c93a');ell(12,4,3.2,6,'#f0c93a');
   if(e.wu>0){const u=1-e.wu/.45;ell(e.side*2,6,3+u*3,2.5+u*3,'#7a4a08');ell(e.side*(6+u*5),5,2+u*5,2+u*4,'#ffe36a')}
   else{ctx.strokeStyle='#5a4308';ctx.beginPath();ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,2,5,6);ctx.stroke()}
-  ctx.restore();
+  ctx.globalAlpha=1;ctx.restore();
 }
 // Draws the player character, Bagman: legs, striped shirt/arms, and the rectangular paper-bag head.
 function bag(){
-  const x=P.x,y=P.y,b=Math.sin(P.walk*10)*1.5;
+  const x=P.x,y=P.y,wa=Math.sin(P.walk*10)*.35; // legs genuinely swing at the hip, not just pump up and down
   ell(x,y+25,15,5,'rgba(0,0,0,.35)');
-  ctx.fillStyle='#111';ctx.fillRect(x-8,y+8,6,14+b);ctx.fillRect(x+2,y+8,6,14-b);ctx.fillStyle='#000';ctx.fillRect(x-10,y+21+b,9,4);ctx.fillRect(x+1,y+21-b,9,4);
+  for(const[hipX,ang]of[[x-5,wa],[x+5,-wa]]){
+    ctx.save();ctx.translate(hipX,y+8);ctx.rotate(ang);
+    ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(-3,0,6,14,2);ctx.fill();
+    ctx.fillStyle='#000';ctx.beginPath();ctx.roundRect(-4.5,13,9,4,2);ctx.fill();
+    ctx.restore();
+  }
   ctx.fillStyle='#f2f2f2';ctx.fillRect(x-14,y-10,4,15);ctx.fillRect(x+10,y-10,4,15);ctx.fillStyle='#111';for(let i=0;i<3;i++){ctx.fillRect(x-14,y-9+i*5.5,4,2.6);ctx.fillRect(x+10,y-9+i*5.5,4,2.6)}ctx.fillStyle='#e8b090';ctx.fillRect(x-14,y+5,4,3);ctx.fillRect(x+10,y+5,4,3);
   ctx.fillStyle='#f2f2f2';ctx.fillRect(x-10,y-12,20,22);ctx.fillStyle='#111';for(let i=0;i<4;i++)ctx.fillRect(x-10,y-9+i*5.5,20,2.6);
   ctx.fillStyle='#b98a52';ctx.strokeStyle='#5a3a1a';ctx.lineWidth=1.5;
@@ -155,7 +164,16 @@ function bag(){
 
 
 // Draws the super-soaker water gun held in Bagman's front hand.
-function gun(){ctx.save();ctx.translate(P.x+P.face*12,P.y+3);ctx.scale(P.face,1);ctx.fillStyle='#3ac7f0';ctx.fillRect(4,-11,10,8);ctx.fillStyle='#e8781a';ctx.fillRect(0,-3,20,6);ctx.fillStyle='#333';ctx.fillRect(18,-2,6,4);ctx.restore()}
+function gun(){
+  ctx.save();ctx.translate(P.x+P.face*12,P.y+3);ctx.scale(P.face,1);
+  ctx.fillStyle='#c9660f';ctx.beginPath();ctx.moveTo(2,2);ctx.lineTo(-1,10);ctx.lineTo(2,9);ctx.lineTo(4,3);ctx.closePath();ctx.fill(); // angled grip
+  ctx.fillStyle='#e8781a';ctx.beginPath(); // tapered body instead of a flat rectangle
+  ctx.moveTo(0,1);ctx.lineTo(2,-4);ctx.lineTo(20,-5);ctx.lineTo(22,2);ctx.lineTo(20,4);ctx.lineTo(2,3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#333';ctx.beginPath();ctx.roundRect(18,-2.5,7,5,1.5);ctx.fill(); // nozzle
+  ctx.fillStyle='#3ac7f0';ctx.beginPath();ctx.roundRect(3,-11,11,8,2.5);ctx.fill(); // water tank, rounded
+  ctx.fillStyle='rgba(255,255,255,.5)';ell(6,-9,2,1.4,ctx.fillStyle); // tank highlight
+  ctx.restore();
+}
 // Draws the ball-and-chain, but only while a swing attack is in progress (P.sw > 0).
 function ball(){
   if(P.sw<=0)return;const hx=P.x-P.sd*12,hy=P.y+6,bx=P.bx,by=P.by;
@@ -163,24 +181,130 @@ function ball(){
   ell(bx,by,11,11,'#1c1c20');ell(bx-3.5,by-3.5,3,2.4,'rgba(255,255,255,.55)');
 }
 // Draws one step of a climb tower (or its top attack platform), styled to match the current area.
-function climbPlat(s){
-  const x=s.x,y=s.y,w=s.w;
-  if(area==0){
-    ctx.fillStyle='#33322f';ctx.fillRect(x,y,w,12);ctx.strokeStyle='#1c1c1a';ctx.lineWidth=1;
-    for(let gx=x+4;gx<x+w;gx+=8){ctx.beginPath();ctx.moveTo(gx,y);ctx.lineTo(gx,y+12);ctx.stroke()}
-    ctx.strokeStyle='#6b4a2a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+4,y+12);ctx.lineTo(x-6,y+30);ctx.moveTo(x+w-4,y+12);ctx.lineTo(x+w+6,y+30);ctx.stroke();
-    if(s.kind=='sky'){ctx.strokeStyle='#4a4844';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-14);ctx.moveTo(x+w,y);ctx.lineTo(x+w,y-14);ctx.moveTo(x,y-14);ctx.lineTo(x+w,y-14);ctx.stroke();
-      ctx.lineWidth=2;for(let gx=x+10;gx<x+w;gx+=20){ctx.beginPath();ctx.moveTo(gx,y);ctx.lineTo(gx,y-14);ctx.stroke()}}
-  }else if(area==1){
-    ctx.fillStyle='#b7bcc0';ctx.fillRect(x,y,w,14);ctx.strokeStyle='#7c8286';ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,14);
-    for(let cx=x+8;cx<x+w-6;cx+=18){ctx.fillStyle='#d6483a';ctx.fillRect(cx,y+3,12,6);ctx.fillStyle='#f0e6d0';ctx.fillRect(cx+2,y+5,8,2)}
-    if(s.kind=='sky'){ctx.fillStyle='#8f9498';ctx.fillRect(x,y-4,w,4)}
-  }else{
-    ctx.fillStyle='#8a6136';ctx.fillRect(x,y,w,10);ctx.fillStyle='#a97c46';ctx.fillRect(x,y,w,3);ctx.fillStyle='#5a3e20';
-    for(let bx=x+6;bx<x+w-6;bx+=40){ctx.beginPath();ctx.moveTo(bx,y+10);ctx.lineTo(bx+10,y+10);ctx.lineTo(bx,y+20);ctx.closePath();ctx.fill()}
-  }
+// Draws a sliding tray platform: a flat rail with wheels, riding its own back-and-forth or up-down motion.
+function moverPlat(m){
+  const gc2=GC[area];
+  ctx.fillStyle=gc2[1];ctx.strokeStyle='#2a2420';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(m.x,m.y,m.w,12,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle=gc2[2];ctx.fillRect(m.x+4,m.y+3,m.w-8,3);
+}
+// Draws a spring-loaded toaster-slot bounce pad, with a squash animation right after it's triggered.
+function bouncePad(b){
+  const sq=b.sq/.3,h=14-sq*8;
+  ell(b.x,b.y+2,28,5,'rgba(0,0,0,.3)');
+  ctx.fillStyle='#c9d1d5';ctx.strokeStyle='#4a525a';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(b.x-26,b.y-6,52,8,3);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#e0b530';ctx.lineWidth=3;ctx.beginPath();
+  for(let i=0;i<4;i++){const yy=b.y-8-i*(h/4);ctx.moveTo(b.x-14,yy);ctx.lineTo(b.x+14,yy-h/4)}
+  ctx.stroke();
+  ctx.fillStyle='#f5d04a';ctx.strokeStyle='#8a6a10';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(b.x-18,b.y-8-h,36,7,3);ctx.fill();ctx.stroke();
+}
+// Draws a glowing stove-burner hazard, pulsing with small rising heat particles.
+function burner(hz){
+  if(hz.type=='puddle'){wideButterPuddle(hz);return}
+  if(hz.type=='butter'){moltenButter(hz);return}
+  // a flat disc lying on the ground, not a circle seen from above — the coil rings use the same
+  // squashed vertical scale as the base itself, instead of true (unsquashed) circles
+  const g=.6+.4*Math.sin(T*6+hz.ph),ry=hz.r*.36;
+  ell(hz.x,hz.y+2,hz.r+4,5,'rgba(0,0,0,.3)');
+  ctx.fillStyle='#2a2a2a';ell(hz.x,hz.y,hz.r+5,ry+3,'#2a2a2a');
+  ctx.strokeStyle=`rgba(255,${90+g*80|0},40,${.7+g*.3})`;ctx.lineWidth=3;
+  ctx.beginPath();for(let i=0;i<3;i++)ctx.ellipse(hz.x,hz.y,hz.r-i*4.5,Math.max(1.5,ry-i*1.6),0,Math.PI*.1,Math.PI*1.8);ctx.stroke();
+  ctx.fillStyle=`rgba(255,160,60,${.15+g*.15})`;ell(hz.x,hz.y-1,hz.r*1.4,ry*.9,ctx.fillStyle);
+  for(let i=0;i<2;i++){const t2=(T*.7+i*.5+hz.ph)%1;ctx.globalAlpha=(1-t2)*.5;ell(hz.x+(i?6:-6),hz.y-10-t2*22,3-t2*2,5-t2*3,'#ffd9a0')}ctx.globalAlpha=1;
+}
+// Draws the wide molten-butter puddle a moving platform exists to carry you over — too wide to jump.
+function wideButterPuddle(hz){
+  const g=.5+.5*Math.sin(T*4+hz.ph),hw=hz.w/2;
+  ell(hz.x,hz.y+2,hw+6,13,'#c98a10');
+  ell(hz.x,hz.y,hw+2,11,'#f0c93a');
+  ctx.fillStyle=`rgba(255,235,150,${.4+g*.25})`;ell(hz.x,hz.y-1,hw*.8,6,ctx.fillStyle);
+  for(let i=0;i<6;i++){const t2=(T*.5+i*.31+hz.ph)%1,bx=hz.x-hw*.8+((i*73+hz.ph*40)%(hw*1.6));
+    ctx.globalAlpha=Math.sin(t2*Math.PI);ell(bx,hz.y-1-t2*3,2.4-t2*1.2,1.8-t2,'#fff2a0')}ctx.globalAlpha=1;
+  ctx.strokeStyle='rgba(120,80,10,.4)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(hz.x,hz.y,hw+2,11,0,0,7);ctx.stroke();
+}
+// Draws a bubbling pool of molten butter: the Pantry's ground hazard.
+function moltenButter(hz){
+  const g=.6+.4*Math.sin(T*5+hz.ph);
+  ell(hz.x,hz.y+1,hz.r+6,hz.r*.4+2,'#c98a10');
+  ell(hz.x,hz.y,hz.r+4,hz.r*.38+2,'#f0c93a');
+  ctx.fillStyle=`rgba(255,230,140,${.5+g*.3})`;ell(hz.x-hz.r*.3,hz.y-1,hz.r*.5,hz.r*.18,ctx.fillStyle);
+  for(let i=0;i<3;i++){const t2=(T*.6+i*.33+hz.ph)%1,bx=hz.x+Math.sin(i*7+hz.ph)*hz.r*.5;
+    ctx.globalAlpha=Math.sin(t2*Math.PI);ell(bx,hz.y-t2*4,2.5-t2*1.5,2-t2,'#fff2a0')}ctx.globalAlpha=1;
+}
+// Draws a small bobbing toast crumb collectible: a cluster of a few irregular crusty flecks.
+function crumb(co){
+  const b=Math.sin(T*3+co.ph)*3;ctx.save();ctx.translate(co.x,co.y+b);ctx.rotate(Math.sin(T*2+co.ph)*.4);
+  ctx.strokeStyle='rgba(40,20,5,.4)';ctx.lineWidth=1;
+  const bits=[[0,0,4.2],[-4.5,2,2.6],[3.8,2.4,2.2],[-1.5,-2.6,2.1]];
+  for(const[bx,by,br]of bits){ctx.fillStyle=co.c;ctx.beginPath();ctx.arc(bx,by,br,0,7);ctx.fill();ctx.stroke()}
+  ctx.fillStyle='rgba(255,230,170,.55)';ell(-1,-1,1.6,1.2,'rgba(255,230,170,.55)');
+  ctx.restore();
 }
 // Draws a stone well: the Alley's water-refill station.
+// Draws a bagel enemy: an angry ring of dough that tenses up, then spins into a dashing roll —
+// being round to begin with, it doesn't need to curl up the way the old croissant did.
+function bagel(e){
+  const s=e.r/15;ctx.save();ctx.translate(e.x,e.y);ctx.scale(s,s);
+  ell(0,20,14,4,'rgba(0,0,0,.3)');
+  const roll=e.roll,tense=e.wind>0;
+  const seeds=[[-7,-2],[7,-3],[-3,-9],[4,-8],[-9,4],[9,3],[0,-11]];
+  if(roll){
+    for(let i=0;i<3;i++){ctx.globalAlpha=.35-i*.1;ell(-e.side*(8+i*7),2,11,11,'#e0b050')}ctx.globalAlpha=1;
+    ctx.save();ctx.rotate(T*22*e.side);
+    ctx.fillStyle=e.fl>0?'#fff':'#c9983a';ctx.strokeStyle='#7a4e1a';ctx.lineWidth=2;ell(0,0,12,12,ctx.fillStyle);ctx.beginPath();ell(0,0,12,12,null,'#7a4e1a',2);
+    ell(0,0,5,5,'#5a3a16');
+    ctx.fillStyle='#fff2d0';for(const[sx,sy]of seeds)ell(sx,sy,1.5,1,'#fff2d0');
+    ctx.restore();
+    ell(-4,-5,2.2,1.8,'#ff2a1a');ell(4,-5,2.2,1.8,'#ff2a1a');
+  }else{
+    ctx.rotate(Math.sin(e.ph)*.04); // a little walking wobble, so it reads as moving, not hovering
+    const sq=tense?.85:1;ctx.scale(1,sq);
+    const st=Math.sin(e.ph)*2.5; // short scurrying legs, planted right where the shadow is — no float gap
+    ctx.fillStyle='#4a2e0a';ctx.fillRect(-7,10,4,9+st);ctx.fillRect(3,10,4,9-st);
+    ctx.fillStyle='#2b1a06'; // feet taper to a point in the direction it's walking, instead of a flat block
+    for(const[lx,ly]of[[-5,18+st*.4],[5,18-st*.4]]){ctx.beginPath();ctx.moveTo(lx-3,ly);ctx.lineTo(lx+3,ly);ctx.lineTo(lx+e.side*6,ly+3);ctx.closePath();ctx.fill()}
+    ctx.fillStyle=e.fl>0?'#fff':'#c9983a';ctx.strokeStyle='#7a4e1a';ctx.lineWidth=2;
+    ell(0,0,13,13,ctx.fillStyle);ctx.beginPath();ell(0,0,13,13,null,'#7a4e1a',2);
+    ctx.fillStyle='#5a3a16';ell(0,4,5.5,5.5,'#5a3a16');
+    ctx.fillStyle='rgba(240,208,144,.8)';ell(-6,-7,5,3,ctx.fillStyle);
+    ctx.fillStyle='#fff2d0';for(const[sx,sy]of seeds)ell(sx,sy,1.6,1,'#fff2d0');
+    ell(-4.5,-9,2.6,2.2,'#ff2a1a');ell(4.5,-9,2.6,2.2,'#ff2a1a');brows(-13,'#4a2e0a');
+  }
+  ctx.restore();
+}
+// Draws an egg enemy: a simple cracked-line shell with an angry face.
+// A true egg curve (narrow, rounded top; full, round bottom), not a hand-guessed bezier — computed from
+// r(φ)=R·cos(φ)·(1+k·sin(φ)), the standard smooth egg-profile formula, so it reads as an actual egg.
+const EGG_PTS=[[0,-19],[1.9,-18.4],[3.9,-16.8],[5.9,-14.2],[8,-10.8],[9.9,-6.7],[11.4,-2.3],[12.4,2.3],[12.6,6.7],[11.8,10.8],[10,14.2],[7.3,16.8],[3.8,18.4],[0,19]];
+function egg(e){
+  const dur=e.hazT=='burner'?.6:1.5,dp=Math.min(1,(e.dis||0)/dur),sink=dp*13,fade=1-dp*.7,squat=1-dp*.5; // cracks and fries away
+  const s=e.r/14,wob=Math.sin(e.ph)*.04;ctx.save();ctx.translate(e.x,e.y+sink);ctx.scale(s,s*squat);ctx.rotate(wob);ctx.globalAlpha=fade;
+  ell(0,22,13,4,'rgba(0,0,0,.3)');
+  ctx.fillStyle=e.fl>0?'#fff':'#f5f0e0';ctx.strokeStyle='#8a7a5a';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(...EGG_PTS[0]);
+  for(const p of EGG_PTS)ctx.lineTo(...p);
+  for(let i=EGG_PTS.length-2;i>=0;i--)ctx.lineTo(-EGG_PTS[i][0],EGG_PTS[i][1]);
+  ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(138,122,90,.6)';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(-5,-7);ctx.lineTo(-1,0);ctx.lineTo(-4,5);ctx.lineTo(2,11);ctx.stroke();
+  ell(-4,2,2.4,2,'#ff2a1a');ell(4,2,2.4,2,'#ff2a1a');brows(-4,'#5a4a30');
+  ctx.globalAlpha=1;ctx.restore();
+}
+// Draws a leftover yolk puddle from a cracked egg: stand in it and you get stuck, the ball swing destroys it.
+function yolk(y){
+  const burning=y.burn>0,charred=burning?1-Math.max(0,y.burn/1.1):0; // darkens and shrinks as it fries away
+  const r=y.r*(burning?1-charred*.4:1);
+  ell(y.x,y.y-1,r,r*.42,burning?`rgb(${232-charred*120|0},${170-charred*140|0},16)`:'#e8aa10');
+  ell(y.x,y.y-2,r*.62,r*.3,burning?`rgb(${247-charred*150|0},${200-charred*170|0},30)`:'#f7c81e');
+  ctx.fillStyle='rgba(255,240,170,.6)';ell(y.x-r*.2,y.y-3,r*.22,r*.1,ctx.fillStyle);
+  ctx.fillStyle='rgba(255,255,255,.5)';for(const o of[-r*.7,r*.7])ell(y.x+o,y.y,4,2,ctx.fillStyle);
+  if(burning)for(let i=0;i<2;i++){const t2=(T*.8+i*.5+y.x)%1;ctx.globalAlpha=(1-t2)*.4;ell(y.x+(i?r*.5:-r*.5),y.y-2-t2*16,2-t2,3-t2*2,'#8a7050')}ctx.globalAlpha=1;
+}
+// Draws the toaster's own patrol platform — a simple metal grate, the only thing up at that height.
+function skyPlat(s){
+  const x=s.x,y=s.y,w=s.w;
+  ctx.fillStyle='#5e676c';ctx.fillRect(x,y,w,10);ctx.fillStyle='#454d52';ctx.fillRect(x,y,w,3);
+  ctx.strokeStyle='#2e3438';ctx.lineWidth=1;for(let gx=x+10;gx<x+w;gx+=14){ctx.beginPath();ctx.moveTo(gx,y+3);ctx.lineTo(gx,y+10);ctx.stroke()}
+  ctx.fillStyle='#2e3438';ctx.fillRect(x,y+10,4,4);ctx.fillRect(x+w-4,y+10,4,4);
+}
 function well(w){
   ctx.save();ctx.translate(w.x,w.y);
   for(const x of[-21,16]){ctx.fillStyle='#6a4420';ctx.fillRect(x,-86,5,60);ctx.fillStyle='#8a5a2c';ctx.fillRect(x,-86,1.6,60)}
@@ -252,7 +376,7 @@ function dispenser(w){
   ctx.restore();
 }
 // Recomputes canvas size/scale for the current screen and rebuilds the brick/tile background pattern.
-function resize(){const cw=cv.clientWidth,ch=cv.clientHeight;DPR=Math.min(devicePixelRatio||1,2);cv.width=cw*DPR;cv.height=ch*DPR;K=Math.min(cw/560,ch/440);VW=cw/K;VH=ch/K;ty=VH-460;PL=200/K;PR=240/K}
+function resize(){const cw=cv.clientWidth,ch=cv.clientHeight;DPR=Math.min(devicePixelRatio||1,2);cv.width=cw*DPR;cv.height=ch*DPR;K=Math.min(cw/560,ch/440);VW=cw/K;VH=ch/K;ty=VH-460;PL=230/K;PR=270/K}
 addEventListener('resize',resize);
 const GC=[['#3a3630','#57524a','#2a2723'],['#b9b29c','#dcd5c0','#8f8977'],['#4a3320','#6b4a2c','#33200f']];
 // Pre-renders the three areas' background wall/floor textures as repeating tile patterns.
@@ -288,7 +412,7 @@ const sfx={
   slam:()=>{noise(.35,.7,1000,70,'lowpass');tone(95,.3,'sine',.8,35)},squirt:()=>noise(.08,.14,2600,1800),click:()=>tone(160,.04,'square',.1),
   splat:()=>tone(700,.05,'triangle',.1,350),hit:()=>{tone(170,.13,'sawtooth',.25,60);noise(.08,.3,2000,600)},
   killT:()=>{noise(.16,.4,2600,500);tone(220,.16,'square',.2,80)},killB:()=>{tone(320,.22,'sine',.35,110);noise(.2,.25,900,300,'lowpass')},
-  hurt:()=>{tone(420,.3,'sawtooth',.3,90);noise(.15,.3,1500,300)},plop:()=>tone(230,.1,'sine',.06,100),spit:()=>{tone(260,.14,'sawtooth',.15,120);noise(.1,.2,900,400,'lowpass')},stab:()=>tone(900,.08,'square',.12,500),zap:()=>tone(1800,.04,'square',.08,2600),short:()=>{tone(1400,.1,'square',.15,3000);tone(200,.15,'sawtooth',.1,50,.05)},boom:()=>{noise(.4,.5,300,60,'lowpass');tone(80,.35,'sine',.9,30)},lose:()=>[392,330,262].forEach((f,i)=>tone(f,.25,'sawtooth',.22,0,i*.13)),check:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.25,0,i*.08)),screech:()=>{tone(1500,.3,'sawtooth',.1,800);tone(1200,.3,'square',.06,1700,.1)},eat:()=>[660,880,1100,1320].forEach((f,i)=>tone(f,.16,'triangle',.2,0,i*.07)),charge:()=>tone(180,1.8,'sawtooth',.1,900),eject:()=>{tone(120,.25,'sawtooth',.3,420);noise(.2,.3,1200,300)},bubble:()=>tone(380+Math.random()*420,.07,'sine',.12,1000),
+  hurt:()=>{tone(420,.3,'sawtooth',.3,90);noise(.15,.3,1500,300)},plop:()=>tone(230,.1,'sine',.06,100),coin:()=>{tone(1100,.05,'square',.18,1500);tone(1500,.09,'square',.14,2000,.05)},boing:()=>tone(160,.35,'sine',.3,720),roll:()=>noise(.12,.3,500,1400,'lowpass'),crack:()=>{tone(300,.07,'square',.15,120);noise(.08,.25,2200,700)},sizzle:()=>{noise(.3,.3,3500,1200,'bandpass');tone(500,.12,'sawtooth',.12,900)},spit:()=>{tone(260,.14,'sawtooth',.15,120);noise(.1,.2,900,400,'lowpass')},stab:()=>tone(900,.08,'square',.12,500),zap:()=>tone(1800,.04,'square',.08,2600),short:()=>{tone(1400,.1,'square',.15,3000);tone(200,.15,'sawtooth',.1,50,.05)},boom:()=>{noise(.4,.5,300,60,'lowpass');tone(80,.35,'sine',.9,30)},lose:()=>[392,330,262].forEach((f,i)=>tone(f,.25,'sawtooth',.22,0,i*.13)),check:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.25,0,i*.08)),screech:()=>{tone(1500,.3,'sawtooth',.1,800);tone(1200,.3,'square',.06,1700,.1)},eat:()=>[660,880,1100,1320].forEach((f,i)=>tone(f,.16,'triangle',.2,0,i*.07)),charge:()=>tone(180,1.8,'sawtooth',.1,900),eject:()=>{tone(120,.25,'sawtooth',.3,420);noise(.2,.3,1200,300)},bubble:()=>tone(380+Math.random()*420,.07,'sine',.12,1000),
   clear:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.28,'square',.22,0,i*.11)),over:()=>[392,330,262,196].forEach((f,i)=>tone(f,.32,'sawtooth',.25,0,i*.2))
 };
 /* music: an original 4-bar chiptune loop in A minor (Am, F, C, E) at 132 BPM */
@@ -325,50 +449,127 @@ document.querySelectorAll('#pad button,#act button').forEach(b=>{
 
 /* ---------- level ---------- */
 // Creates a fresh player-state object (position, health, ammo, timers) for a new run.
-const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:0,wc:0,coy:0,jh:0,kb:0,walk:0,bx:0,by:0,sd:1});
+const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:0,wc:0,coy:0,jh:0,kb:0,walk:0,bx:0,by:0,sd:1,bounceT:0});
 // Spawns one enemy: t = 't'/'b'/'f' (toast/butter/flying toaster), s = its home platform, zone = patrol area for flyers.
 function addE(t,x,s,big,zone){
-  const r=big?34:t=='t'?16:t=='b'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
-  E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?TOASTY:s.y-f,hp:big?12+lvl*2:(t=='t'?3:t=='b'?4:4)+(lvl/8|0),sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:70+lvl*2,dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,esc:0,blk:0,zone:zone||null,soak:0,sc:0,scT:0,vy:0});
+  const r=big?34:t=='t'?16:t=='b'?14:t=='c'?15:t=='g'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
+  E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?TOASTY:s.y-f,
+    hp:t=='g'?1:big?12+lvl*2:(t=='t'?3:t=='b'?4:t=='c'?3:4)+(lvl/8|0),
+    sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:t=='c'?36+lvl*2:t=='g'?34+lvl*2:70+lvl*2,
+    dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,esc:0,blk:0,zone:zone||null,soak:0,sc:0,scT:0,vy:0,roll:0,wind:0,rollT:0,rdir:1,dis:0,hazT:null});
 }
 // Builds a themed climb tower (stepping platforms) plus the flat attack platform at its top, for one zone.
-function addClimb(zone){
-  const ys=[330,255,180,140];let x=zone.x0-20;
-  ys.forEach((y,i)=>{x+=(i%2?46:-10);S.push({x,w:60,y,kind:'step'})});
-  S.push({x:zone.x0-10,w:(zone.x1-zone.x0)+20,y:PLATY,kind:'sky'});
-}
 // Generates a new level: platform layout, exit/checkpoint, water stations, enemies, and toaster climb zones.
 function newLevel(){
   area=(lvl-1)/10|0;L=3600+lvl*240;fq=0;fd=6;
-  TOASTY=Math.max(40,-ty+34);PLATY=TOASTY+46; // toaster hugs the true top of the visible screen; its attack platform sits clearly below it, never at the same height
+  TOASTY=Math.max(40,-ty+34); // the toaster patrols hugging the true top of the visible screen
   S=[{x:0,w:L,y:GY}];let x=260,t=0;const tiers=[330,268,206];
-  while(x<L-500){const w=100+Math.random()*90;S.push({x,w,y:tiers[t]});t=Math.max(0,Math.min(2,t+(Math.random()*3|0)-1));x+=w+40+Math.random()*70}
+  while(x<L-500){const w=100+Math.random()*160;S.push({x,w,y:tiers[t]});t=Math.max(0,Math.min(2,t+(Math.random()*3|0)-1));x+=w+40+Math.random()*70}
   exitX=L-120;cpX=Math.round(L/2);cpOn=false;note=null;
+  PLATY=TOASTY+46; // the toaster's platform sits clearly below where it flies, never at the same height
   zones=[];
   if(lvl>=3){
     const zw=460,zgap=Math.max(2000,L/3.2|0);
     for(let zx=900;zx<L-700;zx+=zgap)zones.push({x0:zx,x1:Math.min(L-300,zx+zw)});
     if(!zones.length)zones.push({x0:Math.max(400,(L/2|0)-230),x1:Math.min(L-300,(L/2|0)+230)});
-    zones.forEach(addClimb);
+    // one flat platform per zone for the toaster to patrol — no steps up to it at all
+    for(const z of zones)S.push({x:z.x0-10,w:(z.x1-z.x0)+20,y:PLATY,kind:'sky'});
+    // clear out any ordinary platform that happened to land inside a zone, so the spring pad below
+    // is the only way to reach the toaster's platform — nothing to jump up through on the way
+    S=S.filter(s=>s.kind||s.y>=GY||!zones.some(z=>s.x<z.x1+20&&s.x+s.w>z.x0-20));
   }
   deoverlap(); // remove any platform that ended up touching/overlapping another before anything is placed on them
+  addMovers(); // sliding trays + their molten-butter puddles, and clearing any alternate route — must run
+               // before enemies are assigned to platforms, since this can remove platforms outright
   wells=[];
   const gap=Math.max(VW+100,760),span=L-1000,n=Math.min(3+(lvl>9?1:0)+(lvl>19?1:0),(span/gap|0)+1);
-  Array.from({length:n},()=>Math.random()*(span-(n-1)*gap)).sort((a,b)=>a-b).forEach((r,i)=>{const wx=500+r+i*gap,c=S.filter(s=>!s.kind&&wx>s.x+20&&wx<s.x+s.w-20),s=c[Math.random()*c.length|0];if(s)wells.push({x:wx,y:s.y})});
+  Array.from({length:n},()=>Math.random()*(span-(n-1)*gap)).sort((a,b)=>a-b).forEach((r,i)=>{const wx=500+r+i*gap;if(!propClear(wx,110))return;const c=S.filter(s=>!s.kind&&wx>s.x+35&&wx<s.x+s.w-35&&overheadClear(wx,s.y)),s=c[Math.random()*c.length|0];if(s)wells.push({x:wx,y:s.y})});
   if(wells.some(w=>Math.abs(w.x-cpX)<110))cpX+=170;
   E=[];
-  for(let i=0;i<Math.round(8+lvl*2.6);i++){
-    const c=Math.random()<.5?[S[0]]:S.filter(s=>s.y<GY&&!s.kind&&s.x>450),s=c[Math.random()*c.length|0]||S[0];
+  // a platform only ever holds as many enemies as actually fit on it with room to move and stay spaced
+  // apart — at most 3, less on a narrow one, scaled from its own (already-varying) width
+  const fitCap=s=>s===S[0]?Infinity:Math.max(0,Math.min(3,Math.floor((s.w-20)/60))); // a wider per-slot width now that platforms can reach 260px, so 3 never feels crowded
+  for(let i=0,spawnTries=0;i<Math.round(8+lvl*2.6)&&spawnTries<400;spawnTries++){
+    const tierCands=S.filter(st=>st.y<GY&&!st.kind&&st.x>450);
+    let s,tries=0; // retry a few times on a full platform, then fall back to the open ground
+    do{const pick=Math.random()<.5?S[0]:tierCands[Math.random()*tierCands.length|0];s=pick||S[0];tries++;}
+    while(s!==S[0]&&E.filter(e=>e.sf===s).length>=fitCap(s)&&tries<15);
+    if(s!==S[0]&&E.filter(e=>e.sf===s).length>=fitCap(s))s=S[0];
     const x=s===S[0]?450+Math.random()*(L-800):s.x+30+Math.random()*(s.w-60);
+    // never start an enemy already standing in (or right next to) a hazard — nobody should hear something
+    // die off-screen the instant a level begins
+    if(hazards.some(h=>Math.abs(h.x-x)<(h.w?h.w/2:h.r)+180))continue;
     const r=Math.random();let t=r>1-Math.min(.5,.1+lvl*.035)?'b':'t';
-    addE(t,x,s,false);
+    if(area==2&&Math.random()<.3)t='c';else if(area==1&&Math.random()<.3)t='g'; // bagels only in the Pantry, eggs only in the Kitchen
+    addE(t,x,s,false);i++;
   }
-  if(lvl%10==0)[['t'],['b'],['t','b']][area].forEach((t,j)=>addE(t,L-450-j*220,S[0],true));
+  if(lvl%10==0)[['t'],['b'],['t','b']][area].forEach((t,j)=>{
+    let bx=L-450-j*220,bt=0;
+    while(hazards.some(h=>Math.abs(h.x-bx)<(h.w?h.w/2:h.r)+180)&&bt++<20)bx-=90; // nudge clear of any hazard
+    addE(t,bx,S[0],true);
+  });
   if(lvl>=3){
     let slots=2;
     zones.forEach(z=>{if(slots>0){addE('f',z.x0+40+Math.random()*(z.x1-z.x0-80),S[0],false,z);slots--}else fq++});
   }
-  puddles=[];shots=[];parts=[];blobs=[];eagles=[];items=[];pops=[];comix=[];kills=0;cam=-PL;banner=2;Object.assign(P,{x:80,y:GY-25,vx:0,vy:0,g:1,inv:0,sw:0,sf:S[0]});
+  addExtras();
+  puddles=[];shots=[];parts=[];blobs=[];eagles=[];items=[];pops=[];comix=[];yolks=[];kills=0;cam=-PL;banner=2;Object.assign(P,{x:80,y:GY-25,vx:0,vy:0,g:1,inv:0,sw:0,sf:S[0]});
+}
+// Sliding tray platforms exist for exactly one reason: carrying the player over a stretch of ground-level
+// molten butter wide enough that it can't be jumped. Each one always sits on true ground, low enough to
+// reach with an ordinary jump from either side, and is the *only* platform anywhere near the puddle —
+// every other bit of terrain within jumping distance of it gets cleared away so there's no way around.
+// Runs before wells/enemies are placed, since it can remove platforms outright.
+function addMovers(){
+  movers=[];hazards=[];
+  const inZone=x=>zones.some(z=>x>z.x0-60&&x<z.x1+60);
+  const clearOf=(x,y,w,h)=>S.every(s=>!(x<s.x+s.w+10&&x+w>s.x-10&&y<s.y+h+10&&y+h>s.y-10));
+  const JUMP=220; // a generous upper bound on how far a full running jump can carry the player
+  const moverCount=Math.min(4,1+(lvl/4|0)),clearZones=[],moverSpans=[]; // tracks each mover's full travel footprint
+  for(let i=0,tries=0;i<moverCount&&tries<60;tries++){
+    const puddleX=300+Math.random()*(L-900),pw=340+Math.random()*90, // a measured max running jump covers ~215px; this stays far past it, so it's never jumpable
+      w=110,G=26+Math.random()*14, // the equal gap the platform parks at, short of the puddle, on each side
+      ax=pw/2+G+w/2, x0=puddleX-w/2, // anchor (left-edge) travel: derived so both parked ends sit G before/after the puddle
+      y0=GY-40-Math.random()*45; // always within easy, guaranteed jump range of the ground
+    if(inZone(puddleX-pw/2)||inZone(puddleX+pw/2)||Math.abs(puddleX-cpX)<180||hazards.some(h=>Math.abs(h.x-puddleX)<pw+120))continue;
+    if(!clearOf(x0-ax-10,y0-10,ax*2+w+20,26))continue;
+    // never let two moving platforms' travel paths overlap, even with their own puddles pulling them close
+    const spanLo=x0-ax-20,spanHi=x0+ax+w+20;
+    if(moverSpans.some(([a,b])=>spanLo<b&&spanHi>a))continue;
+    moverSpans.push([spanLo,spanHi]);
+    hazards.push({x:puddleX,y:GY,w:pw,ph:Math.random()*6,type:'puddle',cd:0});
+    movers.push({x:x0,y:y0,x0,y0,ax,ay:0,sp:.7+Math.random()*.3,ph:Math.random()*6,w,dx:0,dy:0,mv:true});
+    clearZones.push([puddleX-pw/2-JUMP,puddleX+pw/2+JUMP]);i++;
+  }
+  // strip any other platform within jumping distance of a puddle's edges, so the sliding tray is the only way across
+  if(clearZones.length)S=S.filter(s=>s.y>=GY||s.kind=='sky'||!clearZones.some(([a,b])=>s.x<b&&s.x+s.w>a));
+}
+// Scatters the common platformer extras: collectible crumbs, sliding tray platforms, toaster-spring
+// bounce pads, and stove-burner hazards. Each is placed with a simple rejection check against existing
+// platforms so they don't end up buried inside the terrain.
+function addExtras(){
+  coins=[];bounces=[]; // movers/puddle hazards were already built earlier by addMovers()
+  const inZone=x=>zones.some(z=>x>z.x0-60&&x<z.x1+60);
+  const hazType='burner'; // small standalone hazards are always burner coils; the only molten-butter danger is the wide, un-jumpable puddle paired with a moving platform
+  // toaster-spring bounce pads: one per zone, always sitting right on the ground directly below the
+  // toaster's own platform — the spring is the *only* way up there, so its launch speed is computed to
+  // guarantee it reaches that exact height, however high PLATY ends up being on this device
+  for(const z of zones){
+    let x=(z.x0+z.x1)/2;
+    if(!propClear(x,140)){const alt=[z.x0+70,z.x1-70].find(ax=>propClear(ax,140));if(alt!=null)x=alt}
+    const rise=GY-PLATY,vy=-Math.sqrt(2*1500*rise)*1.08; // 8% margin so it always clears
+    bounces.push({x,y:GY,sq:0,vy});
+  }
+  // other ground hazards not paired with a mover: a couple per level, more on later levels. Never dropped
+  // right next to an enemy that's already spawned there — nothing should die the instant a level starts.
+  const hazCount=1+(lvl/8|0);
+  for(let i=0,tries=0;i<hazCount&&tries<40;tries++){
+    const x=500+Math.random()*(L-1000),home=S.filter(s=>!s.kind&&x>s.x+26&&x<s.x+s.w-26&&overheadClear(x,s.y,60)).sort((a,b)=>b.y-a.y)[0];
+    if(!home||inZone(x)||Math.abs(x-cpX)<140||!propClear(x,120))continue;
+    if(E.some(e=>!e.zone&&Math.abs(e.x-x)<180))continue;
+    hazards.push({x,y:home.y,r:17,ph:Math.random()*6,type:hazType});i++;
+  }
+
 }
 // Removes any platform whose footprint touches or overlaps another (favors keeping climb-tower/attack platforms over plain filler platforms).
 function deoverlap(){
@@ -404,7 +605,16 @@ $('mute').innerHTML=ICON.on;$('pause').innerHTML=ICON.pause;
 // Toggles audio mute on/off and updates the speaker icon.
 function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').innerHTML=m?ICON.off:ICON.on}
 // Shows the title screen (Play / Scoreboard) with the how-to-play text.
-function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+'<p>SWING slams the ball and chain in front of you. SQUIRT fires the super soaker: refill it at wells, sinks and water dispensers. Butter puddles are slippery and butter spits: block it with the squirt gun. Jump on toast and butter to squash them. Flying toasters patrol high up and launch extra toast when they glow red; climb up to reach them, and empty a full water tank into one to short it out. Double-tap left or right to run faster. Every 5 defeats, a bald eagle delivers pizza when you are hurt; beating a boss brings a full meal when you are hurt.<br>A checkpoint flag waits at the middle of every level. You have 3 lives (shown as a Bagman head with the number left): lose all your hearts and you restart from the checkpoint.<br>Keys: A/D move, W jump, J swing, K squirt, P pause.</p>')}
+function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+B('help','HOW TO PLAY',null,'r')+'<p>Fight your way through the Alley, the Kitchen and the Pantry.</p>')}
+function helpMenu(){state='menu';musicStop();panel('<h1 class="s">HOW TO PLAY</h1><p>'+[
+  'A/D or the arrows move, W or the jump button jumps — double-tap a direction to run.',
+  'SWING slams the ball and chain in front of you. SQUIRT fires your water gun; refill at wells, sinks and dispensers.',
+  'Jump on toast or butter to squash them. 5 squirts short out a flying toaster — its platform is high up, with a ground spring the only way to reach it.',
+  'Burner coils kill toast, butter and eggs outright; the wide molten butter pools only toast and butter can enter — eggs turn away from those, bagels turn away from everything. None of this earns you points — but a well-placed toaster explosion still does.',
+  'Pantry bagels tense up and roll into a dashing spin at you. Kitchen eggs crack into a sticky yolk when killed — smash it with the ball and chain, or let a coil fry it away on its own.',
+  'Defeated toast drops crumbs for points. Every 5th kill while hurt brings a food delivery; a boss kill brings a full meal.',
+  'A checkpoint sits at each level\'s midpoint. 3 lives a run — lose all your hearts and you respawn there.'
+].join('</p><p>')+'</p>'+B('menu','BACK',null,'r'))}
 // Shows the level-select screen: 3 areas x 10 levels, locked until the previous level is cleared.
 function levelsMenu(){
   state='menu';musicStop();let h='<h1 class="s">SELECT LEVEL</h1>';
@@ -482,7 +692,7 @@ function clear(){
   panel('<h1>'+(last?'BREAKFAST<br>BEATEN!':lab(lvl)+'<br>CLEARED')+'</h1><p>Score <b>'+score+'</b>'+(nb?', new best!':'')+'<br>'+stars(st)+' &nbsp; Time '+LT.toFixed(1)+'s'+(lvl%LPA==0&&!last?'<br>Area cleared! The next area is unlocked.':'')+'</p>'+(last?'':B('next','NEXT LEVEL'))+B('retry','REPLAY',null,'r')+B('levels','LEVELS',null,'r'));
 }
 // Maps every menu button's data-action name to the function it should call.
-const A={levels:levelsMenu,score:scoreMenu,menu:mainMenu,start:v=>start(+v),next:()=>start(cur+1,true),retry:()=>start(cur),restart:()=>start(cur),watchAd:offerAd,
+const A={levels:levelsMenu,score:scoreMenu,menu:mainMenu,help:helpMenu,start:v=>start(+v),next:()=>start(cur+1,true),retry:()=>start(cur),restart:()=>start(cur),watchAd:offerAd,
   resume(){state='play';$('ov').className='hide';musicStart()},
   snd(v,b){setMuted(!muted);b.textContent='SOUND: '+(muted?'OFF':'ON')},
   reset(v,b){if(b.dataset.c){prog={};save();scoreMenu()}else{b.dataset.c=1;b.textContent='TAP AGAIN TO CONFIRM'}}};
@@ -500,6 +710,16 @@ $('ov').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.
 // Spawns a small particle burst (hit effects, footprints, splashes) at (x,y) using colors cs.
 function burst(x,y,cs,n,sq){for(let i=0;i<n;i++){const a=Math.random()*6.3,v=60+Math.random()*180;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,l:.6+Math.random()*.4,c:cs[i%cs.length],s:2+Math.random()*3,sq})}}
 // Finds whichever platform sits directly beneath world point (x,y); used to track "which floor is this enemy on".
+// Keeps wells/sinks/dispensers, bounce pads and hazards from ever landing on top of or too close to one
+// another. Each existing prop's own footprint (a wide puddle's half-width, say) is respected, not just its center point.
+// A standing object (well/sink/dispenser, a burner) has real height, so make sure no other platform
+// sits in the space directly above it before placing one there — nothing should visually poke through it.
+function overheadClear(x,y,h=115){return S.every(s=>s.y>=y||!(x+35>s.x&&x-35<s.x+s.w&&s.y>y-h))}
+function propClear(x,minDist){
+  return !wells.some(w=>Math.abs(w.x-x)<minDist)
+      && !hazards.some(h=>Math.abs(h.x-x)<(h.w?h.w/2:0)+minDist)
+      && !bounces.some(b=>Math.abs(b.x-x)<minDist);
+}
 function under(x,y){let b=S[0];for(const p of S)if(x>=p.x&&x<=p.x+p.w&&p.y>=y&&p.y<b.y)b=p;return b}
 // A charged-up toaster ejects two regular toast, which fall to ground level and start patrolling.
 function eject(e){
@@ -568,7 +788,7 @@ function explode(e){
   burst(e.x,e.y-8,['#ff5a3a','#ffd24a','#c9d1d5','#4a525a'],26,1);
   comix.push({x:e.x,y:e.y-34,txt:'SHORT CIRCUIT!',c:true,l:.9,rot:(Math.random()-.5)*.2});
   const R=120;
-  for(const o of E)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<R+(o.r||16))hurt(o,999,Math.sign(o.x-e.x)||1,220);
+  for(const o of E)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<R+(o.r||16))hurt(o,999,Math.sign(o.x-e.x)||1,220); // a well-timed explosion catching several enemies is a player-earned kill, not environmental
   onKill(e);
 }
 // Damages the player by one heart and applies knockback/invulnerability (dx = direction of the hit).
@@ -582,32 +802,58 @@ function die(){
   note={txt:lives+(lives==1?' LIFE LEFT':' LIVES LEFT'),l:2};
 }
 // Damages an enemy by d, applies knockback/hit-flash, and handles its death/score/callout if it dies.
-function hurt(e,d,dir,kb){
+function hurt(e,d,dir,kb,env){
   e.hp-=d;if(d>=1){e.hc=.3;sfx.hit()}e.fl=.1;e.kx=dir*kb;
-  if(e.hp<=0&&!e.dead){e.dead=1;onKill(e);sfx[e.t=='b'?'killB':'killT']();
-    if(e.t=='t'||e.t=='b')comix.push({x:e.x,y:e.y-e.r-10,txt:e.t=='t'?'KRUNCH!':'SPLAT!',c:e.t=='t',l:.7,rot:(Math.random()-.5)*.3});score+=e.big?100:e.t=='t'?10:e.t=='b'?15:30;shake=Math.max(shake,e.big?9:2);
-    burst(e.x,e.y,e.t=='t'?['#7a431f','#c88a4a','#3b1e0d']:e.t=='b'?['#f5d04a','#ffe88a','#d9a92a']:['#c9d1d5','#5e676c','#ff5a3a'],e.big?30:12,e.t!='b')}
+  if(e.hp<=0&&!e.dead){e.dead=1;
+    if(e.t=='g'){sfx.crack();yolks.push({x:e.x,y:e.sf?e.sf.y:GY,r:22,burn:e.hazT=='burner'?1.1:0})}
+    else sfx[e.t=='b'?'killB':'killT']();
+    {const splat=e.t=='b'||e.t=='g';comix.push({x:e.x,y:e.y-e.r-10,txt:splat?'SPLAT!':'KRUNCH!',c:!splat,l:.7,rot:(Math.random()-.5)*.3})} // bagels share toast's KRUNCH, eggs share butter's SPLAT
+    shake=Math.max(shake,e.big?9:2);
+    const pc={t:['#7a431f','#c88a4a','#3b1e0d'],b:['#f5d04a','#ffe88a','#d9a92a'],c:['#d9a24a','#f0c878','#8a5a1e'],g:['#fff','#f0e4c8','#f5c518']}[e.t]||['#c9d1d5','#5e676c','#ff5a3a'];
+    burst(e.x,e.y,pc,e.big?30:12,e.t!='b');
+    if(!env){ // the environment (molten butter, etc) killing something earns the player nothing
+      onKill(e);score+=e.big?100:e.t=='t'?10:e.t=='b'?15:e.t=='c'?12:e.t=='g'?10:30;
+      if(e.t=='t'){ // crumbs only ever come from defeated toast, dropped right where it fell
+        const n=e.big?3:1;
+        for(let i=0;i<n;i++)coins.push({x:e.x+(i-(n-1)/2)*16,y:e.y-6,ph:Math.random()*6,c:['#c9a36a','#a97c42','#8a5a2e','#e0c080'][Math.random()*4|0]});
+      }
+    }
+  }
 }
 
 // The main per-frame simulation step: input, physics, combat, enemy AI, pickups, everything that changes state.
 function update(dt){
   if(state!='play')return;
+  for(const m of movers){const nx=m.x0+Math.sin(T*m.sp+m.ph)*m.ax,ny=m.y0+Math.sin(T*m.sp+m.ph)*m.ay;m.dx=nx-m.x;m.dy=ny-m.y;m.x=nx;m.y=ny}
+  if(P.g&&P.sf&&P.sf.mv){P.x+=P.sf.dx;P.y+=P.sf.dy}
   banner-=dt;LT+=dt;if(note)note.l-=dt;
   if(!cpOn&&P.x>=cpX){cpOn=true;sfx.check();pops.push({x:cpX,y:GY-125,txt:'CHECKPOINT!',l:1.8});burst(cpX,GY-70,['#7fffa0','#fff','#e8b83a'],14,0)}
   const c=(...a)=>a.some(k=>keys.has(k));
   const ix=(c('KeyD','ArrowRight','VR')?1:0)-(c('KeyA','ArrowLeft','VL')?1:0);
-  P.inv-=dt;P.kb-=dt;P.swc-=dt;P.wc-=dt;
+  P.inv-=dt;P.kb-=dt;P.swc-=dt;P.wc-=dt;P.bounceT-=dt;
   const onP=P.g&&puddles.some(p=>Math.abs(p.x-P.x)<p.w/2+4&&Math.abs(p.y-(P.y+25))<5);
-  if(ix){P.face=ix;P.vx+=ix*(P.g?(onP?170:2400):1100)*dt}
-  else if(P.g){const f=(onP?60:2400)*dt;P.vx=Math.abs(P.vx)<f?0:P.vx-Math.sign(P.vx)*f}
-  if(P.run&&ix!=P.run)P.run=0;const m=(P.kb>0?320:170)*(P.sw>0?.45:1)*(P.run?1.35:1);P.vx=Math.max(-m,Math.min(m,P.vx));
+  const onYolk=P.g&&yolks.some(y=>Math.abs(y.x-P.x)<y.r&&Math.abs(y.y-(P.y+25))<6);
+  if(ix){P.face=ix;P.vx+=ix*(P.g?(onYolk?55:onP?170:2400):1100)*dt}
+  else if(P.g){const f=(onYolk?200:onP?60:2400)*dt;P.vx=Math.abs(P.vx)<f?0:P.vx-Math.sign(P.vx)*f}
+  if(P.run&&ix!=P.run)P.run=0;const m=(onYolk?36:(P.kb>0?320:170))*(P.sw>0?.45:1)*(P.run&&!onYolk?1.35:1);P.vx=Math.max(-m,Math.min(m,P.vx));
   const jp=c('KeyW','ArrowUp','Space','VJ');P.coy=P.g?.1:P.coy-dt;
   if(jp&&!P.jh&&P.coy>0){P.vy=-570;P.coy=0;P.g=0;sfx.jump()}
-  if(!jp&&P.vy<-220&&P.kb<=0)P.vy=-220;
+  if(!jp&&P.vy<-220&&P.kb<=0&&P.bounceT<=0)P.vy=-220; // a bounce-pad launch isn't a held jump, so it's never cut short
   P.jh=jp;
   P.vy=Math.min(900,P.vy+1500*dt);P.x=Math.max(14,Math.min(L-14,P.x+P.vx*dt));
   const pb=P.y+25;P.y+=P.vy*dt;P.g=0;
   if(P.vy>=0)for(const s of S)if(P.x+8>s.x&&P.x-8<s.x+s.w&&pb<=s.y+1&&P.y+25>=s.y){if(P.vy>430)sfx.land();P.y=s.y-25;P.vy=0;P.g=1;P.sf=s;break}
+  if(!P.g&&P.vy>=0)for(const m of movers)if(P.x+8>m.x&&P.x-8<m.x+m.w&&pb<=m.y+1&&P.y+25>=m.y){if(P.vy>430)sfx.land();P.y=m.y-25;P.vy=0;P.g=1;P.sf=m;break}
+  if(P.vy>=0)for(const b of bounces)if(P.x+10>b.x-26&&P.x-10<b.x+26&&pb<=b.y+1&&P.y+25>=b.y){P.y=b.y-25;P.vy=b.vy||-820;P.bounceT=Math.abs(P.vy)/1500+.15;P.g=0;P.coy=0;b.sq=.3;shake=Math.max(shake,5);sfx.boing();break}
+  for(const hz of hazards){
+    const inIt=hz.type=='puddle'?(Math.abs(P.x-hz.x)<hz.w/2+6&&Math.abs((P.y+22)-hz.y)<14):Math.hypot(P.x-hz.x,(P.y+10)-hz.y)<hz.r+15;
+    if(!inIt)continue;
+    if(hz.type=='puddle'){hz.cd=(hz.cd||0)-dt;if(hz.cd<=0){hz.cd=.4;P.inv=0;hitP(P.x-hz.x)}}
+    else if(P.inv<=0)hitP(P.x-hz.x);
+  }
+  for(const co of coins)if(!co.got&&Math.abs(P.x-co.x)<20&&Math.abs(P.y-co.y)<28){co.got=1;score+=5;sfx.coin();burst(co.x,co.y,[co.c,'#fff'],6,0)}
+  coins=coins.filter(co=>!co.got);
+  for(const b of bounces)b.sq=Math.max(0,b.sq-dt);
   if(P.g)P.walk+=dt*Math.abs(P.vx)/170;
   /* ball and chain: only swings on attack */
   if(c('KeyJ','KeyZ','VS')&&P.sw<=0&&P.swc<=0){P.sw=.55;P.sd=P.face;P.sl=0;sfx.whoosh()}
@@ -617,6 +863,7 @@ function update(dt){
     const r=th*Math.PI/180;P.bx=P.x-P.sd*12+P.sd*R*Math.sin(r);P.by=P.y+6-R*Math.cos(r);
     if(el>=.38&&!P.sl){P.sl=1;shake=10;sfx.slam();fx={x:P.bx,y:P.y+25,t:0};
       puddles=puddles.filter(q=>Math.abs(q.x-P.bx)>70||Math.abs(q.y-(P.y+25))>10);
+      yolks=yolks.filter(y=>Math.hypot(y.x-P.bx,y.y-(P.y+25))>y.r+34);
       burst(P.bx,P.y+22,['#a89a80','#7a6f5c','#d8cdb4'],14,1);
       for(const e of E)if(Math.abs(e.x-P.bx)<70+e.r&&Math.abs(e.y+e.foot-(P.y+25))<30)hurt(e,3,Math.sign(e.x-P.bx)||P.sd,340)}}}
   /* super soaker */
@@ -626,7 +873,7 @@ function update(dt){
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy+=260*dt;b.l-=dt;
     for(const e of E)if(!b.d&&!e.dead&&Math.abs(b.x-e.x)<e.r+3&&Math.abs(b.y-e.y)<e.r+(e.t=='f'?34:8)){
       b.d=1;burst(b.x,b.y,['#7fd6ff','#fff'],3,0);
-      if(e.t=='f'&&!e.sc){e.soak++;e.fl=.12;sfx.zap();if(e.soak>=MAXW)shortCircuit(e)}
+      if(e.t=='f'&&!e.sc){e.soak++;e.fl=.12;sfx.zap();if(e.soak>=SOAK_MAX)shortCircuit(e)}
       else{hurt(e,.5,Math.sign(b.vx),90);sfx.splat()}
     }
     for(const q of blobs)if(!b.d&&q.l>0&&Math.hypot(b.x-q.x,b.y-q.y)<q.r+7){b.d=1;q.l=0;burst(q.x,q.y,['#f5d04a','#7fd6ff'],6,0);sfx.splat()}
@@ -636,6 +883,9 @@ function update(dt){
   for(const w of wells)if(Math.abs(P.x-w.x)<34&&Math.abs(P.y+25-w.y)<14&&P.ammo<MAXW){P.ammo=Math.min(MAXW,P.ammo+45*dt);P.rt=(P.rt||0)-dt;if(P.rt<=0){P.rt=.1;sfx.bubble()}if(Math.random()<.5)parts.push({x:w.x+(Math.random()-.5)*14,y:w.y-30,vx:(Math.random()-.5)*30,vy:-60,l:.5,c:'#7fd6ff',s:2.5})}
   /* enemies: patrol their own platform, only react when the player is on it */
   for(const e of E){
+    // enemies well off-screen are fully frozen (no AI, no hazard interaction, no movement) until the
+    // camera gets close enough to see them — nothing should act, or die, before the player can see it
+    if(e.x<cam-450||e.x>cam+VW+450)continue;
     if(e.t=='f'&&e.sc){
       e.scT-=dt;e.chg=1;e.ph+=dt*6;
       if(e.scT<=0){e.vy+=1500*dt;e.y+=e.vy*dt;e.x+=e.kx*dt;e.kx*=Math.exp(-3*dt);if(e.y>=GY){e.y=GY;explode(e)}}
@@ -644,22 +894,50 @@ function update(dt){
     if(e.t=='f')e.sf=under(e.x,e.y+12);
     const s=e.sf,dx=P.x-e.x,fly=e.t=='f';const safe=fly&&P.g&&P.sf===S[0];let near=P.sf===s&&Math.abs(dx)<400&&!safe;
     if(fly){e.al=near?.6:(e.al||0)-dt;near=near||e.al>0}
-    const d=near?(fly&&Math.abs(dx)<12?e.dir:(Math.sign(dx)||e.dir)):e.dir;let mv=e.fall?0:1;
+    let d=near?(fly&&Math.abs(dx)<12?e.dir:(Math.sign(dx)||e.dir)):e.dir;let mv=e.fall?0:1;
     e.kx*=Math.exp(-7*dt);e.hc-=dt;e.fl-=dt;e.cd-=dt;
-    if(e.t=='b'){
+    if(e.t=='c'){ // bagel: tenses up, then rolls into a dashing spin in a straight line
+      if(!e.roll&&e.wind<=0&&near&&Math.abs(dx)<190&&e.cd<=0){e.wind=.22;e.cd=2.5;e.rdir=Math.sign(dx)||e.dir}
+      if(e.wind>0){mv=0;e.wind-=dt;if(e.wind<=0){e.roll=1;e.rollT=.55;sfx.roll()}}
+      if(e.roll){d=e.rdir;e.rollT-=dt;if(e.rollT<=0)e.roll=0}
+    }
+    if((e.t=='t'||e.t=='b')&&e.dis>0)mv=0; // frozen in place while melting/dissolving
+    const spMul=e.t=='c'&&e.roll?4:(near?1.8:1);
+    if(e.t=='b'&&e.dis<=0){
       if(near&&Math.abs(dx)<150)mv=0;
       if(near&&Math.abs(dx)<170&&e.cd<=0&&e.wu<=0){e.wu=.45;e.cd=2.4}
       if(e.wu>0){mv=0;e.wu-=dt;if(e.wu<=0){const tt=Math.max(.15,Math.abs(dx)/240);blobs.push({x:e.x+d*e.r,y:e.y-4,vx:d*240,vy:(P.y-e.y+4)/tt-110*tt,l:2,r:e.big?10:6});sfx.spit()}}
       if(mv){e.pt-=dt;if(e.pt<=0){e.pt=1;puddles.push({x:e.x,y:s.y,w:e.big?90:46,l:8});if(Math.abs(dx)<350)sfx.plop();if(puddles.length>40)puddles.shift()}}
     }
     if(fly&&e.esc>0)e.esc-=dt;
-    let nx=e.x+(d*e.sp*(near?1.8:1)*mv+e.kx)*dt;const lo=fly?(e.zone?e.zone.x0+e.r:90):s.x+e.r*.6,hi=fly?(e.zone?e.zone.x1-e.r:L-90):s.x+s.w-e.r*.6;
+    let nx=e.x+(d*e.sp*spMul*mv+e.kx)*dt;const lo=fly?(e.zone?e.zone.x0+e.r:90):s.x+e.r*.6,hi=fly?(e.zone?e.zone.x1-e.r:L-90):s.x+s.w-e.r*.6;
     if(nx<lo||nx>hi){const atLo=nx<lo;nx=atLo?lo:hi;if(!near)e.dir=atLo?1:-1}
     let wallHit=false;
     if(fly){const hit=x=>S.some(p=>p.y<GY&&x+e.r>p.x&&x-e.r<p.x+p.w&&e.y+16>p.y&&e.y-24<p.y+16);
       if(e.esc<=0&&hit(nx)&&!hit(e.x)){nx=e.x;e.kx=0;wallHit=true;if(!near)e.dir=-e.dir}}
     if(fly){e.blk=wallHit?e.blk+dt:0;if(e.blk>.35){e.esc=1.1;e.blk=0}}
+    // hazards (burner coils, molten butter): toast burns, butter melts, eggs fry — all three die from
+    // them, environmentally (no reward). A bagel has no vulnerability here and just turns at the edge.
+    const hazHw=h=>h.w?h.w/2:h.r;
+    if(!fly&&s===S[0]&&(e.t=='c'||e.t=='g')){
+      const hz=hazards.find(h=>nx+e.r>h.x-hazHw(h)&&nx-e.r<h.x+hazHw(h));
+      if(hz&&(e.t=='c'||hz.type!='burner')){ // bagel avoids everything; egg avoids molten butter, not coils
+        nx=nx>e.x?hz.x-hazHw(hz)-e.r:hz.x+hazHw(hz)+e.r;e.dir=-e.dir;
+      }
+    }
     e.x=nx;e.side=d;e.ph+=dt*e.sp/12;
+    if((e.t=='t'||e.t=='b'||e.t=='g')&&!fly&&s===S[0]){
+      const hz=hazards.find(h=>Math.abs(e.x-h.x)<hazHw(h)+e.r*.5);
+      const vulnerable=hz&&(e.t!='g'||hz.type=='burner'); // egg only vulnerable to a burner, not molten butter
+      if((vulnerable&&!e.dead)||e.dis>0){ // once it's started dying to a hazard there's no walking back out of it
+        if(hz&&!e.hazT){e.hazT=hz.type;if(hz.type=='burner')sfx.sizzle()} // lock in which kind of hazard triggered this, for the right effect
+        const fast=e.hazT=='burner',dur=fast?.6:1.5;
+        e.dis+=dt;e.fl=.1;
+        const fx=e.t=='t'?(fast?['#ff5a2a','#ffb02a','#fff2a0']:['#f0c93a','#fff2a0']):e.t=='b'?(fast?['#ffe88a','#fff','#c9eaff']:['#ffe88a','#fff2b0']):['#fff','#f5c518','#ffb02a'];
+        if(e.dis>.1&&(e.dis*8)%1<dt*8)burst(e.x,e.y,fx,fast?3:2,0);
+        if(e.dis>=dur&&!e.dead)hurt(e,999,e.side,0,true); // the hazard killed it, not the player — no reward
+      }
+    }
     if(fly){
       const tgt=(e.esc>0?TOASTY-70:TOASTY)+Math.sin(e.ph*.5)*8;e.y+=(tgt-e.y)*Math.min(1,dt*(e.esc>0?5:2.4));
       if(near&&e.cd<=0&&e.tt<=0&&Math.abs(dx)<120&&Math.abs(P.y-e.y)<70){e.tt=.4;e.cd=1.3;sfx.stab()}
@@ -673,6 +951,19 @@ function update(dt){
       hurt(e,e.big?4:99,Math.sign(e.x-P.x)||1,e.big?150:0);P.vy=c('KeyW','ArrowUp','Space','VJ')?-540:-380;P.g=0;P.inv=Math.max(P.inv,.3);shake=Math.max(shake,4);
     }else if(!e.dead&&!safe&&P.inv<=0&&Math.abs(P.x-e.x)<10+e.r*.8&&Math.abs(P.y-e.y)<30+e.r*.4)hitP(dx);
   }
+  // enemies can always walk past one another, but a gentle nudge keeps two on the same platform from
+  // ever rendering stacked exactly on top of each other — capped small, so it never acts like a wall
+  for(let i=0;i<E.length;i++){
+    const a=E[i];if(a.dead||a.t=='f'||a.x<cam-450||a.x>cam+VW+450)continue;
+    for(let j=i+1;j<E.length;j++){
+      const b=E[j];if(b.dead||b.t=='f'||b.sf!==a.sf||b.x<cam-450||b.x>cam+VW+450)continue;
+      const minD=(a.r+b.r)*.9,dx=b.x-a.x,ad=Math.abs(dx);
+      // partial correction, not a full one — moving BOTH enemies means the gap closes twice as fast as
+      // either one's own push, so correcting too much of the overlap turns this into a hard wall. Resolving
+      // only part of it, per side, leaves steady two-sided pressure still winning through over about a second.
+      if(ad<minD&&ad>.01){const push=Math.min(28*dt,(minD-ad)*.3)*(dx>=0?1:-1);a.x-=push;b.x+=push}
+    }
+  }
   E=E.filter(e=>e.hp>0);
   for(const b of blobs){
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy+=220*dt;b.l-=dt;
@@ -682,7 +973,11 @@ function update(dt){
   }
   blobs=blobs.filter(b=>b.l>0);
   /* never more than 2 flying toasters exist at once, so never more than 2 on screen; extras queue up and fly in later from off-screen */
-  if(fq>0&&E.filter(f=>f.t=='f').length<2&&zones.length){fd-=dt;if(fd<=0){const z=zones[Math.random()*zones.length|0];addE('f',z.x0+40+Math.random()*(z.x1-z.x0-80),S[0],false,z);fq--;fd=10}}
+  if(fq>0&&E.filter(f=>f.t=='f').length<2&&zones.length){fd-=dt;if(fd<=0){
+    const free=zones.filter(z=>!E.some(e=>e.t=='f'&&e.zone===z));
+    if(free.length){const z=free[Math.random()*free.length|0];addE('f',z.x0+40+Math.random()*(z.x1-z.x0-80),S[0],false,z);fq--;fd=10}
+    else fd=2; // every zone is already occupied right now; check again shortly
+  }}
   for(const g of eagles){
     g.x+=g.dir*250*dt;g.y+=g.vy*dt;g.life-=dt;
     if(!g.done){const tg=Math.max(P.sf.x+24,Math.min(P.sf.x+P.sf.w-24,P.x+P.face*70));
@@ -700,6 +995,8 @@ function update(dt){
   for(const q of pops){q.y-=30*dt;q.l-=dt}pops=pops.filter(q=>q.l>0);
   for(const q of comix)q.l-=dt;comix=comix.filter(q=>q.l>0);
   for(const p of puddles)p.l-=dt;puddles=puddles.filter(p=>p.l>0);
+  for(const y of yolks)if(y.burn>0){y.burn-=dt;if(Math.random()<dt*10)parts.push({x:y.x+(Math.random()-.5)*14,y:y.y-4,vx:(Math.random()-.5)*8,vy:-30-Math.random()*20,l:.5,c:'rgba(90,70,40,.5)',s:2.5})}
+  yolks=yolks.filter(y=>!y.burn||y.burn>0);
   for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.95;p.vy=p.vy*.95+200*dt;p.l-=dt}parts=parts.filter(p=>p.l>0);
   if(fx){fx.t+=dt;if(fx.t>.25)fx=null}
   shake=Math.max(0,shake-dt*30);
@@ -711,15 +1008,19 @@ function update(dt){
 // The main per-frame render step: background, world, characters, effects, and HUD overlays.
 function draw(){
   const X=DPR*K;ctx.setTransform(X,0,0,X,0,0);
-  ctx.save();ctx.translate(-(cam*.5%64),0);ctx.fillStyle=pats[area];ctx.fillRect(0,0,VW+64,VH);ctx.restore();
+  ctx.save();ctx.translate(-(((cam*.5)%64+64)%64),0);ctx.fillStyle=pats[area];ctx.fillRect(0,0,VW+64,VH);ctx.restore();
   ctx.translate(-cam+(Math.random()-.5)*shake,ty+(Math.random()-.5)*shake);
   ctx.fillStyle='rgba(230,205,110,.55)';ctx.font='900 18px '+FONT;ctx.textAlign='left';ctx.fillText(['THE BAG','FRESH TOAST','DRY GOODS'][area],60,GY-130);
   const gc=GC[area];ctx.fillStyle=gc[0];ctx.fillRect(cam-10,GY,VW+20,400);ctx.fillStyle=gc[1];ctx.fillRect(cam-10,GY,VW+20,6);ctx.fillStyle=gc[2];
   for(let x=Math.floor(cam/80)*80;x<cam+VW+80;x+=80)ctx.fillRect(x,GY+6,3,400);
   for(const s of S)if(s.y<GY&&s.x<cam+VW&&s.x+s.w>cam){
-    if(s.kind)climbPlat(s);
+    if(s.kind=='sky')skyPlat(s);
     else{ctx.fillStyle='#6b4526';ctx.fillRect(s.x,s.y,s.w,16);ctx.fillStyle='#93673a';ctx.fillRect(s.x,s.y,s.w,4);ctx.fillStyle='#4a2e18';
     for(let x=s.x+34;x<s.x+s.w;x+=34)ctx.fillRect(x,s.y+4,2,12)}}
+  for(const m of movers)if(m.x+m.w>cam&&m.x<cam+VW)moverPlat(m);
+  for(const b of bounces)if(b.x>cam-40&&b.x<cam+VW+40)bouncePad(b);
+  for(const hz of hazards){const m=(hz.w||34)/2+20;if(hz.x>cam-m&&hz.x<cam+VW+m)burner(hz);}
+  for(const co of coins)if(co.x>cam-20&&co.x<cam+VW+20)crumb(co);
   ctx.fillStyle='#e8b83a';ctx.fillRect(exitX-32,GY-104,64,104);ctx.fillStyle='#1f5a2e';ctx.fillRect(exitX-27,GY-99,54,99);ell(exitX+16,GY-48,3,3,'#e8b83a');
   ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText('EXIT',exitX,GY-112);
   {const fw=Math.sin(T*5)*(cpOn?5:2);ctx.fillStyle='#9aa3a8';ctx.fillRect(cpX-2,GY-96,4,96);ell(cpX,GY-97,4,4,'#d5dde1');ell(cpX,GY-1,12,3,'#5e676c');
@@ -729,9 +1030,16 @@ function draw(){
   for(const p of puddles){ctx.globalAlpha=Math.min(.75,p.l/1.5*.75);ell(p.x,p.y-2,p.w/2,4,'#f0cc3c');ell(p.x-6,p.y-3,6,1.5,'#fff2a0')}ctx.globalAlpha=1;
   if(fx){ctx.globalAlpha=1-fx.t/.25;ctx.strokeStyle='#e8d8b0';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(fx.x,fx.y-2,20+90*fx.t/.25,4+8*fx.t/.25,0,0,7);ctx.stroke();ctx.globalAlpha=1}
   for(const it of items){const b=it.on?Math.sin(T*4+it.ph)*3:0;ell(it.x,it.sf.y-2,15,3,'rgba(0,0,0,.25)');ctx.globalAlpha=.3+.12*Math.sin(T*5);ell(it.x,it.y-18-b,30,26,'#fff2a0');ctx.globalAlpha=1;food(it.t,it.x,it.y-6-b,1)}
+  for(const y of yolks)if(y.x>cam-30&&y.x<cam+VW+30)yolk(y);
   for(const e of E)if(e.x>cam-90&&e.x<cam+VW+90){
-    ({t:toast,b:butter,f:toaster})[e.t](e);
-    if(e.t=='f'&&e.soak>0&&!e.sc){const p=Math.min(1,e.soak/MAXW);ctx.save();ctx.strokeStyle='rgba(120,210,255,.35)';ctx.lineWidth=4;ctx.beginPath();ctx.arc(e.x,e.y-46,15,0,7);ctx.stroke();ctx.strokeStyle='#3ac7f0';ctx.beginPath();ctx.arc(e.x,e.y-46,15,-Math.PI/2,-Math.PI/2+Math.PI*2*p);ctx.stroke();ctx.restore()}
+    ({t:toast,b:butter,f:toaster,c:bagel,g:egg})[e.t](e);
+    if(e.t=='f'&&e.soak>0&&!e.sc){ // a straight meter below the toaster showing its short-circuit progress
+      const p=Math.min(1,e.soak/SOAK_MAX),barY=e.y+e.r+14,hw=16;
+      ctx.save();ctx.lineCap='round';
+      ctx.strokeStyle='rgba(20,20,20,.5)';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(e.x-hw,barY);ctx.lineTo(e.x+hw,barY);ctx.stroke();
+      ctx.strokeStyle='#3ac7f0';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(e.x-hw,barY);ctx.lineTo(e.x-hw+hw*2*p,barY);ctx.stroke();
+      ctx.restore();
+    }
   }
   for(const q of blobs){ell(q.x,q.y,q.r,q.r*.85,'#f0c93a');ell(q.x-q.r*.3,q.y-q.r*.3,q.r*.35,q.r*.25,'#fff2a0')}
   if(!(P.inv>0&&(T*20|0)%2)){ctx.save();ctx.translate(P.x,P.y+25);ctx.scale(1.12,1.12);ctx.translate(-P.x,-P.y-25);bag();if(P.sw<=0)gun();ctx.restore();ball()}
@@ -746,10 +1054,12 @@ function draw(){
     if(lvl%LPA==0){ctx.font='900 20px '+FONT;ctx.fillStyle='#ff5a3a';ctx.strokeText('A BOSS GUARDS THE EXIT',VW/2,VH*.3+28);ctx.fillText('A BOSS GUARDS THE EXIT',VW/2,VH*.3+28)}ctx.globalAlpha=1}
   if(state=='play'&&note&&note.l>0){ctx.globalAlpha=Math.min(1,note.l*1.5);ctx.textAlign='center';ctx.font='900 40px '+FONT;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.fillStyle='#ff5a3a';ctx.strokeText(note.txt,VW/2,VH*.32);ctx.fillText(note.txt,VW/2,VH*.32);ctx.globalAlpha=1}
   document.body.classList.toggle('m',!(state=='play'||state=='pause'));
-  {const h=Math.max(0,P.hp),str='♥'.repeat(h)+'♡'.repeat(5-h)+' '+HEAD+'<span style="color:#fff;margin-left:3px">×'+Math.max(0,lives)+'</span>';if(str!==lastHud){$('hp').innerHTML=str;lastHud=str}}
-  $('sc').textContent='LV '+lab(lvl)+'   🍕'+kills%5+'/5';$('score').textContent='SCORE: '+score;$('wf').style.width=P.ammo/MAXW*100+'%';
+  {const h=Math.max(0,P.hp),str='♥'.repeat(h)+'♡'.repeat(5-h)+' '+HEAD+'<span style="color:#fff;margin-left:3px">×'+Math.max(0,lives)+'</span>';if(str!==lastHud){hudHp.innerHTML=str;lastHud=str}}
+  {const str='LV '+lab(lvl)+'   🍕'+kills%5+'/5';if(str!==lastSc){hudSc.textContent=str;lastSc=str}}
+  {const str='SCORE: '+score;if(str!==lastScore){hudScore.textContent=str;lastScore=str}}
+  {const w=P.ammo/MAXW*100;if(w!==lastWf){hudWf.style.width=w+'%';lastWf=w}}
   let n=null;for(const w of wells)if(!n||Math.abs(w.x-P.x)<Math.abs(n.x-P.x))n=w;
-  $('wl').textContent=n?(Math.abs(n.x-P.x)<40?'💧':n.x<P.x?'◀ 💧':'💧 ▶'):'';
+  {const str=n?(Math.abs(n.x-P.x)<40?'💧':n.x<P.x?'◀ 💧':'💧 ▶'):'';if(str!==lastWl){hudWl.textContent=str;lastWl=str}}
 }
 
 let last=0;

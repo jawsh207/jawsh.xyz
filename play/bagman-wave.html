@@ -363,7 +363,20 @@ if(shake>0)X.translate((R()-.5)*shake*16,(R()-.5)*shake*16);
 X.drawImage(BG,-((t*40)%200),0);
 if(S=='title'){P={x:130,y:300,hp:5,inv:0,bx:96,by:330};}
 PUD.forEach(p=>{X.globalAlpha=Math.min(1,p.l/2.2)*.55;X.fillStyle='#f3d94a';X.beginPath();X.ellipse(p.x,p.y,p.r*1.5,p.r*.5,0,0,7);X.fill();X.strokeStyle='rgba(160,120,10,.5)';X.lineWidth=1;X.stroke();X.globalAlpha=1});
-if(POW){const by=Math.sin(POW.ph*4)*6;X.save();X.translate(POW.x,POW.y+by);X.globalAlpha=.5+Math.sin(POW.ph*6)*.2;X.beginPath();X.arc(0,0,17,0,7);X.fillStyle='#ffd400';X.fill();X.globalAlpha=1;
+// The power-up pickup gets extra visual emphasis (soft glow + spinning rays + an outward pulse
+// ring) specifically so it still reads clearly on screen even when a fight is busy/cluttered
+// with enemies, bullets and particles around it.
+if(POW){const by=Math.sin(POW.ph*4)*6;X.save();X.translate(POW.x,POW.y+by);
+// spinning light rays behind the icon
+X.save();X.rotate(POW.ph*1.5);X.globalAlpha=.35+Math.sin(POW.ph*5)*.15;X.strokeStyle='#ffe98a';X.lineWidth=2.5;
+for(let i=0;i<6;i++){const a=i/6*6.283;X.beginPath();X.moveTo(Math.cos(a)*14,Math.sin(a)*14);X.lineTo(Math.cos(a)*30,Math.sin(a)*30);X.stroke()}
+X.restore();X.globalAlpha=1;
+// an outward-expanding pulse ring, looping continuously, for extra motion-based visibility
+const pr=(POW.ph*1.1)%1;X.globalAlpha=(1-pr)*.55;X.strokeStyle='#ffd400';X.lineWidth=2.5;
+X.beginPath();X.arc(0,0,16+pr*20,0,7);X.stroke();X.globalAlpha=1;
+// soft glow behind the badge, via canvas shadow blur (cheap + looks properly soft, unlike a flat circle)
+X.shadowColor='#ffd400';X.shadowBlur=14+Math.sin(POW.ph*6)*6;
+X.globalAlpha=.5+Math.sin(POW.ph*6)*.2;X.beginPath();X.arc(0,0,17,0,7);X.fillStyle='#ffd400';X.fill();X.globalAlpha=1;X.shadowBlur=0;
 X.beginPath();X.arc(0,0,13,0,7);X.fillStyle='#2a2a2a';X.fill();ol(2);
 X.beginPath();X.moveTo(0,-9);X.lineTo(0,1);X.lineWidth=3;X.strokeStyle='#111';X.stroke();X.setLineDash([2,2]);X.lineWidth=1.5;X.strokeStyle='#999';X.stroke();X.setLineDash([]);
 X.beginPath();X.arc(0,6,5,0,7);X.fillStyle='#222';X.fill();ol(1.5);X.fillStyle='#777';X.beginPath();X.arc(-1.5,4.5,1.5,0,7);X.fill();X.restore()}

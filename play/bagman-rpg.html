@@ -47,11 +47,11 @@ body.touch .hint{display:none}
 #bottom{
   flex:1 1 auto;min-height:220px;position:relative;
   display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr auto;
-  grid-template-areas:"dpad ab" "sys sys";padding:4px 18px 14px;
+  grid-template-areas:"dpad ab" "sys sys";padding:4px 18px clamp(28px,6vh,56px);
 }
 #dpadWrap{grid-area:dpad;display:flex;align-items:center;justify-content:center}
 #abWrap{grid-area:ab;display:flex;align-items:center;justify-content:center}
-#sysWrap{grid-area:sys;display:flex;justify-content:center;gap:26px;padding-bottom:4px}
+#sysWrap{grid-area:sys;display:flex;justify-content:center;gap:26px;padding:2px 0 0}
 #dpad{--s:clamp(120px,34vw,158px);width:var(--s);height:var(--s);position:relative;touch-action:none;cursor:pointer}
 #dpad .arm{position:absolute;background:var(--pad);border-radius:8px}
 #dpad .h{left:4%;right:4%;top:34%;height:32%}
@@ -451,7 +451,7 @@ const WALLISH=new Set('#LGXBDW'.split(''));
 /* ================= STATE ================= */
 let S=null, game='title', cur=null, trans=null, dlg=null, banner=null, time=0, stopT=0, shakeT=0, shakeM=0, deadT=0, winT=0;
 let later=[];
-const P={pushT:0,pushLast:0,hintT:0,wcd:0,slip:0,slipVx:0,slipVy:0,slipT:0,dizzy:0,slipCD:0,stuck:0,stuckCD:0,x:0,y:0,face:0,kbx:0,kby:0,inv:0,walk:0,moving:false,atk:null,charge:0,ball:{x:0,y:0},bumpCD:0};
+const P={gunT:0,gunA:0,pushT:0,pushLast:0,hintT:0,wcd:0,slip:0,slipVx:0,slipVy:0,slipT:0,dizzy:0,slipCD:0,stuck:0,stuckCD:0,x:0,y:0,face:0,kbx:0,kby:0,inv:0,walk:0,moving:false,atk:null,charge:0,ball:{x:0,y:0},bumpCD:0};
 function WM(){return Math.min(20,(S&&S.wmax)||5);}
 const WRATE=[0.45,0.27,0.18,0.11];  // seconds between shots while B is held: ~2, 3, 5, 8 shots per second
 function addTank(){S.wmax=Math.min(20,WM()+3);S.water=S.wmax;}
@@ -466,8 +466,8 @@ let hasSave=!!loadSave();
 
 /* ================= AUDIO ================= */
 let AC=null, noiseBuf=null, sfxOn=true, musicOn=true, fsOn=true;
-try{const st=JSON.parse(localStorage.getItem('bagman-settings')||'{}');if(st.sfx===false)sfxOn=false;if(st.music===false)musicOn=false;if(st.fs===false)fsOn=false;}catch(e){}
-function saveSettings(){try{localStorage.setItem('bagman-settings',JSON.stringify({sfx:sfxOn,music:musicOn,fs:fsOn}));}catch(e){}}
+try{const st=JSON.parse(localStorage.getItem('bagman-settings')||'{}');if(st.sfx===false)sfxOn=false;if(st.music===false)musicOn=false;}catch(e){}
+function saveSettings(){try{localStorage.setItem('bagman-settings',JSON.stringify({sfx:sfxOn,music:musicOn}));}catch(e){}}
 function ac(){
   if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}
   if(AC&&AC.state==='suspended'){try{AC.resume();}catch(e){}}
@@ -714,7 +714,10 @@ function enterRoom(id,ex,ey){
   const d=ROOMS[id], prevArea=cur?cur.area:null, prevZone=cur?cur.d.zone:null;
   S.visited[id]=1;
   const bossAlive=!!(d.boss&&!S.flags[BOSS[d.boss].flag]);
-  const shut=bossAlive||!!(d.shut&&!S.flags['clear:'+id]);
+  // every dungeon room with enemies locks its doors on the first visit, until it's been cleared once
+  const lockable=d.area!=='city'&&d.area!=='store'&&!d.boss&&(d.en||[]).length>0;
+  const shut=bossAlive||!!((d.shut||lockable)&&!S.flags['clear:'+id]);
+  if(shut&&!bossAlive)after(0.35,()=>{if(cur&&cur.id===id&&cur.shut)fxText('DOORS LOCKED!',W/2,RH/2-50,22,'#ff8a5c','#ff2a1a');});
   cur={id,d,area:d.area,grid:buildGrid(id,shut),under:{},plates:[],enemies:[],proj:[],wshots:[],hazards:[],decals:[],drops:[],parts:[],fx:[],shut,intro:0,bg:null,bgDirty:true};
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(cur.grid[r][c]==='_')cur.plates.push([c,r]);
   P.x=ex;P.y=ey;P.ball.x=ex-10;P.ball.y=ey+2;P.atk=null;P.charge=0;P.kbx=P.kby=0;P.slip=0;P.dizzy=0;P.stuck=0;
@@ -1300,6 +1303,38 @@ function onJelly(){for(const d of cur.decals)if((d.kind==='jelly'||d.kind==='syr
 function handPos(px,py){
   switch(P.face){case 0:return {x:px-12.5,y:py-17};case 1:return {x:px+12.5,y:py-17};case 2:return {x:px-3,y:py-16};default:return {x:px+3,y:py-16};}
 }
+// the empty hand (the other one wears the shackle), relative to Bagman's feet
+function gunHand(face){return face===0?{x:12.5,y:-16}:face===1?{x:-12.5,y:-15}:face===2?{x:-9,y:-22}:{x:9,y:-22};}
+function drawWaterGun(x,y,a){
+  ctx.save();ctx.translate(x,y);ctx.rotate(a);if(Math.cos(a)<-0.01)ctx.scale(1,-1);
+  ink(1.4);
+  ctx.fillStyle='#f2931c';rr(-7,-4,17,7,3);fs();                    // orange body
+  ctx.fillStyle='#c96a12';ctx.fillRect(-5,1,13,1.5);                 // body shading
+  ctx.fillStyle='#ffe14a';ctx.fillRect(10,-2.5,4,4);ctx.strokeRect(10,-2.5,4,4); // nozzle tip
+  ctx.fillStyle='#2a9df4';ctx.beginPath();ctx.arc(-1,-6,3.8,0,7);fs(); // blue water tank
+  ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillRect(-3,-8,2,2);ctx.fillRect(-5,-3,6,1.6);
+  // the grip is wrapped in his fist, so only the hand shows
+  ctx.fillStyle='#e8a07a';ctx.strokeStyle=OUT;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(-2.5,2.5,3.6,0,7);ctx.fill();ctx.stroke();
+  ctx.restore();
+}
+// facing the camera (down) or away (up): the gun is seen end-on, covering the hand, so only the
+// top of the orange body and the blue tank show
+function drawWaterGunV(x,y,down){
+  ctx.save();ctx.translate(x,y);ink(1.4);
+  if(down){
+    ctx.fillStyle='#f2931c';rr(-4.5,-5,9,12,3.5);fs();
+    ctx.fillStyle='#c96a12';ctx.fillRect(-3,4,6,1.5);
+    ctx.fillStyle='#ffe14a';ctx.beginPath();ctx.ellipse(0,7.5,2.6,1.6,0,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#2a9df4';ctx.beginPath();ctx.arc(0,-4.5,3.6,0,7);fs();
+    ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillRect(-2,-6.5,1.8,1.8);
+  }else{
+    ctx.fillStyle='#f2931c';rr(-4.5,-8,9,13,3.5);fs();
+    ctx.fillStyle='#c96a12';ctx.fillRect(-3,-6,6,1.5);
+    ctx.fillStyle='#2a9df4';ctx.beginPath();ctx.arc(0,1.5,3.6,0,7);fs();
+    ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillRect(-2,-0.5,1.8,1.8);
+  }
+  ctx.restore();
+}
 function wristPos(px,py){ // visual only: where the cuff is drawn
   const wr=wrist(P.face,P.walk,P.moving&&game==='play'||game==='trans');
   return {x:px+wr.x,y:py+wr.y+0.5};
@@ -1356,13 +1391,16 @@ function updatePlayer(dt){
   if(!inp.a){if(P.charge>=chargeNeed()&&!P.atk){P.atk={type:'spin',t:0,dur:0.5,hit:new Set()};SFX.spin();}P.charge=0;}
 
   // water gun (B)
-  P.wcd=Math.max(0,P.wcd-dt);
+  P.wcd=Math.max(0,P.wcd-dt); P.gunT=Math.max(0,P.gunT-dt);
   if(inp.b&&!helpless&&P.wcd<=0&&(S.water>0||inp.bP)){
     P.wcd=S.water>0?WRATE[S.wrate||0]:0.35;
     if(S.water>0){
       S.water--; let vx=inp.x,vy=inp.y; if(Math.hypot(vx,vy)<0.2){vx=FACE_V[P.face][0];vy=FACE_V[P.face][1];}
       const l=Math.hypot(vx,vy)||1; vx/=l; vy/=l;
-      const sp=340+(S.wrate||0)*30;cur.wshots.push({x:P.x+vx*14+rnd(-1.5,1.5),y:P.y-20+vy*8+rnd(-1.5,1.5),vx:vx*sp,vy:vy*sp,life:0.6});
+      const sp=340+(S.wrate||0)*30, gh=gunHand(P.face); P.gunT=0.45; P.gunA=Math.atan2(vy,vx);
+      const mx=P.x+gh.x+vx*14, my=P.y+gh.y+vy*14;
+      cur.wshots.push({x:mx+rnd(-1,1),y:my+rnd(-1,1),vx:vx*sp,vy:vy*sp,life:0.6});
+      burst(mx,my,['#d6f0ff','#7cc7ff'],3,60,0);
       SFX.squirt();
     }else{SFX.click();fxText('EMPTY!',P.x,P.y-54,16,'#bfe6ff','#2a7fc0');}
   }
@@ -1511,13 +1549,9 @@ const MENU=[
   {id:'resume',label:()=>'CONTINUE'},
   {id:'sfx',label:()=>'SOUND EFFECTS:  '+(sfxOn?'ON':'OFF')},
   {id:'music',label:()=>'MUSIC:  '+(musicOn?'ON':'OFF')},
-  {id:'full',label:()=>'FULL SCREEN:  '+(fsOn?'ON':'OFF')},
-  {id:'install',label:()=>isStandalone()?'INSTALLED AS APP ✓':'INSTALL AS APP'},
   {id:'save',label:()=>'SAVE GAME'},
   {id:'quit',label:()=>'SAVE & QUIT TO TITLE'}
 ];
-let installPrompt=null;
-addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;});
 function isStandalone(){try{return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||(matchMedia('(display-mode: fullscreen)').matches&&!document.fullscreenElement&&!document.webkitFullscreenElement);}catch(e){return false;}}
 function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
 function isFull(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
@@ -1542,11 +1576,6 @@ function menuActivate(){
   if(id==='resume'){game='play';SFX.blip();}
   else if(id==='sfx'){sfxOn=!sfxOn;saveSettings();SFX.blip();}
   else if(id==='music'){musicOn=!musicOn;saveSettings();SFX.blip();}
-  else if(id==='full'){fsOn=!fsOn;saveSettings();SFX.blip();if(fsOn)goFull();else exitFull();}
-  else if(id==='install'){SFX.blip();
-    if(isStandalone())menuMsg={t:2.5,text:'Already running as an installed app.'};
-    else if(installPrompt){installPrompt.prompt();installPrompt.userChoice.finally(()=>{installPrompt=null;});}
-    else menuMsg={t:5,text:isIOS()?'iPhone/iPad: tap Share, then "Add to Home Screen".':'Use your browser menu: "Install app" or "Add to Home screen".'};}
   else if(id==='save'){const ok=doSave();SFX.chest();menuMsg={t:2.2,text:ok?'GAME SAVED! You\'ll start from right here.':'Saved, but you\'ll restart at the last checkpoint (boss fight).'};}
   else if(id==='quit'){doSave();hasSave=true;dlg=null;game='title';SFX.blip();}
 }
@@ -1558,7 +1587,7 @@ function menuUpdate(dt){
   else if(inp.pP||inp.bP){game='play';SFX.blip();}
   else if(inp.mP){mapFromMenu=true;game='pause';}
 }
-const MENU_Y0=136, MENU_DY=29;
+const MENU_Y0=150, MENU_DY=34;
 function drawMenu(){
   ctx.fillStyle='rgba(12,7,4,.84)';ctx.fillRect(0,0,W,H);
   comicText('PAUSED',W/2,92,56,'#ffe14a','#f0731f',-0.04);
@@ -2241,7 +2270,10 @@ function drawPlayerAt(px,py){
   const ballBehind=by<py-14;
   ctx.save();ctx.globalAlpha=alpha;
   if(ballBehind){drawChain(h.x,h.y,bx,by,!!P.atk);drawBall(bx,by,shY,charged);}
+  const gun=P.gunT>0, gh=gunHand(P.face);
   drawBagman(px,py,P.face,P.walk,P.moving&&game==='play'||game==='trans',1);
+  if(gun&&P.face===0)drawWaterGunV(px+gh.x,py+gh.y,true); // facing up: the gun is hidden in front of him, only his hand shows
+  if(gun&&P.face>=2)drawWaterGun(px+gh.x,py+gh.y,P.gunA);
   if(!ballBehind){drawChain(h.x,h.y,bx,by,!!P.atk);drawBall(bx,by,shY,charged);}
   if(P.dizzy>0){for(let i=0;i<3;i++){const a=time*6+i*2.094;const sx=px+Math.cos(a)*13,sy=py-50+Math.sin(a)*4;ctx.fillStyle='#ffe14a';ctx.strokeStyle=OUT;ctx.lineWidth=1.2;ctx.beginPath();for(let j=0;j<10;j++){const r=j%2?2:5,b=j*Math.PI/5-Math.PI/2;ctx.lineTo(sx+Math.cos(b)*r,sy+Math.sin(b)*r);}ctx.closePath();ctx.fill();ctx.stroke();}}
   if(P.slip>0){ctx.strokeStyle='rgba(255,236,160,.8)';ctx.lineWidth=2;const l=Math.hypot(P.slipVx,P.slipVy)||1,ux=P.slipVx/l,uy=P.slipVy/l;for(let i=-1;i<=1;i++){const ox=-uy*i*8,oy=ux*i*8;line(px-ux*16+ox,py-14+oy-uy*16,px-ux*34+ox,py-14+oy-uy*34);}}
