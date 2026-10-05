@@ -143,29 +143,60 @@ function butter(e){
 }
 // Draws the player character, Bagman: legs, striped shirt/arms, and the rectangular paper-bag head.
 function bag(){
-  const x=P.x,y=P.y,wa=Math.sin(P.walk*10)*.35; // legs genuinely swing at the hip, not just pump up and down
+  const x=P.x,y=P.y,wp=P.walk*10;
   ell(x,y+25,15,5,'rgba(0,0,0,.35)');
-  for(const[hipX,ang]of[[x-5,wa],[x+5,-wa]]){
-    ctx.save();ctx.translate(hipX,y+8);ctx.rotate(ang);
-    ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(-3,0,6,14,2);ctx.fill();
-    ctx.fillStyle='#000';ctx.beginPath();ctx.roundRect(-4.5,13,9,4,2);ctx.fill();
+  // each leg is two hinged segments — thigh swings at the hip, shin bends at the knee, most bent while
+  // the leg is swinging through (recovering backward-to-forward), nearly straight at either extreme.
+  // Both hips sit close to center (not spread left/right) so the legs genuinely alternate — one forward,
+  // one back — instead of both swinging toward the same side at once.
+  for(const ph of[wp,wp+Math.PI]){
+    const thigh=.45*Math.sin(ph),knee=.3*Math.max(0,-Math.sin(ph));
+    ctx.save();ctx.translate(x+(ph===wp?-3:3),y+8);ctx.rotate(thigh); // hips spaced to fill the body's width
+    ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(-4.25,0,8.5,7,2);ctx.fill(); // thigh, widened
+    ctx.translate(0,7);ctx.rotate(knee);
+    ctx.fillStyle='#111';ctx.beginPath();ctx.roundRect(-4.25,0,8.5,7,2);ctx.fill(); // shin, widened
+    ctx.fillStyle='#000';ctx.beginPath();ctx.roundRect(-5.75,6,11.5,4,2);ctx.fill(); // foot, widened to match
     ctx.restore();
   }
-  ctx.fillStyle='#f2f2f2';ctx.fillRect(x-14,y-10,4,15);ctx.fillRect(x+10,y-10,4,15);ctx.fillStyle='#111';for(let i=0;i<3;i++){ctx.fillRect(x-14,y-9+i*5.5,4,2.6);ctx.fillRect(x+10,y-9+i*5.5,4,2.6)}ctx.fillStyle='#e8b090';ctx.fillRect(x-14,y+5,4,3);ctx.fillRect(x+10,y+5,4,3);
-  ctx.fillStyle='#f2f2f2';ctx.fillRect(x-10,y-12,20,22);ctx.fillStyle='#111';for(let i=0;i<4;i++)ctx.fillRect(x-10,y-9+i*5.5,20,2.6);
+  // the whole upper body (arms, torso, head) bounces slightly as a unit while walking, and each arm
+  // gets a small counter-swinging sway — the legs stay on the ground and are unaffected by either
+  const bounce=-Math.abs(Math.sin(wp))*1.8,uy=y+bounce,armSway=.2*Math.sin(wp);
+  const ballSlotX=-P.face*12,gunSlotX=P.face*12;
+  function arm(sx,sway){
+    ctx.save();ctx.translate(x+sx,uy-10);ctx.rotate(sway);
+    ctx.fillStyle='#f2f2f2';ctx.beginPath();ctx.roundRect(-2,0,4,15,2);ctx.fill();
+    ctx.fillStyle='#111';for(let i=0;i<3;i++)ctx.fillRect(-2,1+i*5.5,4,2.6);
+    ctx.fillStyle='#e8b090';ctx.beginPath();ctx.roundRect(-2,15,4,3,1.5);ctx.fill();
+    if(sx===ballSlotX){ // query the canvas's own true transform right here, at the hand, so the
+      // chain can never drift out of sync with however this arm actually gets drawn
+      const m=ctx.getTransform();P.wx=m.a*0+m.c*16.5+m.e;P.wy=m.b*0+m.d*16.5+m.f;
+      P.wxL=x+sx+16.5*Math.sin(sway); // the hand's logical (pre-transform) x, so the trailing ball
+      // can be positioned relative to the actual hand instead of the body's center
+    }
+    ctx.restore();
+  }
+  // the gun arm draws BEFORE the torso, so its sway can carry it behind the body, same as a real arm
+  // swinging past the torso would be partly hidden — the ball arm draws AFTER, so it's always visible
+  arm(gunSlotX,-armSway);
+  ctx.fillStyle='#f2f2f2';ctx.beginPath();ctx.roundRect(x-10,uy-12,20,22,4);ctx.fill();ctx.fillStyle='#111';for(let i=0;i<4;i++)ctx.fillRect(x-10,uy-9+i*5.5,20,2.6);
   ctx.fillStyle='#b98a52';ctx.strokeStyle='#5a3a1a';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.rect(x-11,y-36,22,23);ctx.fill();ctx.stroke();
-  ctx.fillStyle='#c99a5e';ctx.fillRect(x-11,y-36,22,5);ctx.strokeStyle='#5a3a1a';ctx.lineWidth=1;ctx.strokeRect(x-11,y-36,22,5);
-  ctx.beginPath();ctx.moveTo(x-11,y-36);ctx.lineTo(x-6,y-32);ctx.moveTo(x+11,y-36);ctx.lineTo(x+6,y-32);ctx.stroke();
-  ctx.strokeStyle='#8a6136';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y-31);ctx.lineTo(x,y-16);ctx.moveTo(x-7,y-31);ctx.lineTo(x-7,y-16);ctx.moveTo(x+7,y-31);ctx.lineTo(x+7,y-16);ctx.stroke();
-  ell(x-4.5,y-24,3.3,2.5,'#fff');ell(x+4.5,y-24,3.3,2.5,'#fff');ell(x-4.5+P.face*1.2,y-24,1.5,1.6,'#111');ell(x+4.5+P.face*1.2,y-24,1.5,1.6,'#111');
-  ctx.strokeStyle='#2a1a0a';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(x-8,y-29);ctx.lineTo(x-2,y-26);ctx.moveTo(x+8,y-29);ctx.lineTo(x+2,y-26);ctx.stroke();
+  ctx.beginPath();ctx.rect(x-11,uy-36,22,23);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#c99a5e';ctx.fillRect(x-11,uy-36,22,5);ctx.strokeStyle='#5a3a1a';ctx.lineWidth=1;ctx.strokeRect(x-11,uy-36,22,5);
+  ctx.beginPath();ctx.moveTo(x-11,uy-36);ctx.lineTo(x-6,uy-32);ctx.moveTo(x+11,uy-36);ctx.lineTo(x+6,uy-32);ctx.stroke();
+  ctx.strokeStyle='#8a6136';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,uy-31);ctx.lineTo(x,uy-16);ctx.moveTo(x-7,uy-31);ctx.lineTo(x-7,uy-16);ctx.moveTo(x+7,uy-31);ctx.lineTo(x+7,uy-16);ctx.stroke();
+  ell(x-4.5,uy-24,3.3,2.5,'#fff');ell(x+4.5,uy-24,3.3,2.5,'#fff');ell(x-4.5+P.face*1.2,uy-24,1.5,1.6,'#111');ell(x+4.5+P.face*1.2,uy-24,1.5,1.6,'#111');
+  ctx.strokeStyle='#2a1a0a';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(x-8,uy-29);ctx.lineTo(x-2,uy-26);ctx.moveTo(x+8,uy-29);ctx.lineTo(x+2,uy-26);ctx.stroke();
+  arm(ballSlotX,armSway); // always on top — can never look like it's vanished behind the torso
 }
 
 
 // Draws the super-soaker water gun held in Bagman's front hand.
-function gun(){
-  ctx.save();ctx.translate(P.x+P.face*12,P.y+3);ctx.scale(P.face,1);
+// gt: 0 = holstered at the hip (hidden when not in use), 1 = fully drawn and raised to fire
+function gun(gt){
+  if(gt<=.01)return; // nothing to draw once fully holstered
+  const GS=.68; // shrinks the whole gun down to a size proportionate with the character's arm
+  const ox=(4+8*gt)*GS,oy=14-11*gt,ang=(1-gt)*1.3,sc=(.8+.2*gt)*GS; // slides up and out, un-rotating, as it's drawn
+  ctx.save();ctx.translate(P.x+P.face*ox,P.y+oy);ctx.scale(P.face*sc,sc);ctx.rotate(ang);
   ctx.fillStyle='#c9660f';ctx.beginPath();ctx.moveTo(2,2);ctx.lineTo(-1,10);ctx.lineTo(2,9);ctx.lineTo(4,3);ctx.closePath();ctx.fill(); // angled grip
   ctx.fillStyle='#e8781a';ctx.beginPath(); // tapered body instead of a flat rectangle
   ctx.moveTo(0,1);ctx.lineTo(2,-4);ctx.lineTo(20,-5);ctx.lineTo(22,2);ctx.lineTo(20,4);ctx.lineTo(2,3);ctx.closePath();ctx.fill();
@@ -174,11 +205,30 @@ function gun(){
   ctx.fillStyle='rgba(255,255,255,.5)';ell(6,-9,2,1.4,ctx.fillStyle); // tank highlight
   ctx.restore();
 }
-// Draws the ball-and-chain, but only while a swing attack is in progress (P.sw > 0).
+// Draws the ball-and-chain: at rest it trails on the ground behind the character, right at foot level,
+// bobbing gently as it's dragged along while walking — and released into the full swinging arc during
+// an attack (P.sw > 0).
 function ball(){
-  if(P.sw<=0)return;const hx=P.x-P.sd*12,hy=P.y+6,bx=P.bx,by=P.by;
-  ctx.strokeStyle='#9a9a9a';ctx.lineWidth=2.5;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(bx,by);ctx.stroke();ctx.setLineDash([]);
-  ell(bx,by,11,11,'#1c1c20');ell(bx-3.5,by-3.5,3,2.4,'rgba(255,255,255,.55)');
+  // P.wx/P.wy were captured via the canvas's own getTransform() right at the hand, so they're true
+  // pixel coordinates. Convert everything else to that same space and draw with the transform reset
+  // to identity, so the chain can never end up in a different coordinate space than the hand. Drawing
+  // at identity also strips out whatever scale was previously implicit (the body's 1.12x pop, and any
+  // base canvas/DPR scale) — scl restores it, so sizes come out exactly as large as they used to.
+  const m=ctx.getTransform(),toPx=(lx,ly)=>({x:m.a*lx+m.c*ly+m.e,y:m.b*lx+m.d*ly+m.f}),scl=Math.hypot(m.a,m.b);
+  const hp=P.wx!=null?{x:P.wx,y:P.wy}:toPx(P.x-P.face*12,P.y+6);
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);
+  if(P.sw<=0){
+    const hop=Math.abs(Math.sin(P.walk*10)),bob=hop*4.5;
+    const handLx=P.wxL!=null?P.wxL:P.x-P.face*12; // trail relative to the hand itself, not the body's center
+    const bp=toPx(handLx-P.face*(16+hop*6),P.y+15-bob); // trails further behind, and even more so at the top of each hop
+    ctx.strokeStyle='#9a9a9a';ctx.lineWidth=2.5*scl;ctx.beginPath();ctx.moveTo(hp.x,hp.y);ctx.lineTo(bp.x,bp.y);ctx.stroke();
+    ell(bp.x,bp.y,10*scl,10*scl,'#1c1c20');ell(bp.x-3*scl,bp.y-3*scl,2.7*scl,2.2*scl,'rgba(255,255,255,.55)');
+  }else{
+    const bp=toPx(P.bx,P.by);
+    ctx.strokeStyle='#9a9a9a';ctx.lineWidth=2.5*scl;ctx.setLineDash([3*scl,3*scl]);ctx.beginPath();ctx.moveTo(hp.x,hp.y);ctx.lineTo(bp.x,bp.y);ctx.stroke();ctx.setLineDash([]);
+    ell(bp.x,bp.y,11*scl,11*scl,'#1c1c20');ell(bp.x-3.5*scl,bp.y-3.5*scl,3*scl,2.4*scl,'rgba(255,255,255,.55)');
+  }
+  ctx.restore();
 }
 // Draws one step of a climb tower (or its top attack platform), styled to match the current area.
 // Draws a sliding tray platform: a flat rail with wheels, riding its own back-and-forth or up-down motion.
@@ -449,7 +499,7 @@ document.querySelectorAll('#pad button,#act button').forEach(b=>{
 
 /* ---------- level ---------- */
 // Creates a fresh player-state object (position, health, ammo, timers) for a new run.
-const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:0,wc:0,coy:0,jh:0,kb:0,walk:0,bx:0,by:0,sd:1,bounceT:0});
+const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:0,wc:0,coy:0,jh:0,kb:0,walk:0,bx:0,by:0,sd:1,bounceT:0,gunT:0,wx:0,wy:0});
 // Spawns one enemy: t = 't'/'b'/'f' (toast/butter/flying toaster), s = its home platform, zone = patrol area for flyers.
 function addE(t,x,s,big,zone){
   const r=big?34:t=='t'?16:t=='b'?14:t=='c'?15:t=='g'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
@@ -854,7 +904,16 @@ function update(dt){
   for(const co of coins)if(!co.got&&Math.abs(P.x-co.x)<20&&Math.abs(P.y-co.y)<28){co.got=1;score+=5;sfx.coin();burst(co.x,co.y,[co.c,'#fff'],6,0)}
   coins=coins.filter(co=>!co.got);
   for(const b of bounces)b.sq=Math.max(0,b.sq-dt);
-  if(P.g)P.walk+=dt*Math.abs(P.vx)/170;
+  const step=2*Math.PI/10;
+  if(!P.g){ // airborne: hold the widest-spread moment of the stride — one leg forward, one trailing —
+    // rather than the neutral standing pose
+    const jumpBase=Math.PI/2/10,jumpTarget=jumpBase+Math.round((P.walk-jumpBase)/step)*step;
+    P.walk+=(jumpTarget-P.walk)*Math.min(1,dt*15);
+  }else if(Math.abs(P.vx)>5)P.walk+=dt*Math.abs(P.vx)/170;
+  else{ // standing still on the ground: ease back to neutral instead of freezing mid-step
+    const target=Math.round(P.walk/step)*step;
+    P.walk+=(target-P.walk)*Math.min(1,dt*12);
+  }
   /* ball and chain: only swings on attack */
   if(c('KeyJ','KeyZ','VS')&&P.sw<=0&&P.swc<=0){P.sw=.55;P.sd=P.face;P.sl=0;sfx.whoosh()}
   if(P.sw>0){P.sw-=dt;if(P.sw<=0)P.swc=.2;else{
@@ -867,6 +926,10 @@ function update(dt){
       burst(P.bx,P.y+22,['#a89a80','#7a6f5c','#d8cdb4'],14,1);
       for(const e of E)if(Math.abs(e.x-P.bx)<70+e.r&&Math.abs(e.y+e.foot-(P.y+25))<30)hurt(e,3,Math.sign(e.x-P.bx)||P.sd,340)}}}
   /* super soaker */
+  { // the gun draws out while the squirt button is held, and holsters again a moment after it's released
+    const firing=c('KeyK','KeyX','VW')&&P.sw<=0;
+    P.gunT=firing?Math.min(1,P.gunT+dt*9):Math.max(0,P.gunT-dt*3.5);
+  }
   if(c('KeyK','KeyX','VW')&&P.ammo<1&&P.wc<=0&&P.sw<=0){P.wc=.3;sfx.click()}
   if(c('KeyK','KeyX','VW')&&P.ammo>=1&&P.wc<=0&&P.sw<=0){P.wc=.09;P.ammo--;sfx.squirt();shots.push({x:P.x+P.face*26,y:P.y+3,vx:P.face*560+P.vx*.3,vy:(Math.random()-.5)*40,l:.55})}
   for(const b of shots){
@@ -1042,7 +1105,7 @@ function draw(){
     }
   }
   for(const q of blobs){ell(q.x,q.y,q.r,q.r*.85,'#f0c93a');ell(q.x-q.r*.3,q.y-q.r*.3,q.r*.35,q.r*.25,'#fff2a0')}
-  if(!(P.inv>0&&(T*20|0)%2)){ctx.save();ctx.translate(P.x,P.y+25);ctx.scale(1.12,1.12);ctx.translate(-P.x,-P.y-25);bag();if(P.sw<=0)gun();ctx.restore();ball()}
+  if(!(P.inv>0&&(T*20|0)%2)){ctx.save();ctx.translate(P.x,P.y+25);ctx.scale(1.12,1.12);ctx.translate(-P.x,-P.y-25);bag();if(P.sw<=0)gun(P.gunT);ball();ctx.restore()}
   for(const g of eagles)eagle(g);
   for(const q of comix)comicPop(q);
   ctx.textAlign='center';ctx.font='900 20px '+FONT;try{ctx.letterSpacing='.5px'}catch(e){}ctx.lineWidth=2.5;ctx.strokeStyle='#000';ctx.fillStyle='#7fffa0';for(const q of pops){ctx.globalAlpha=Math.min(1,q.l*2);ctx.strokeText(q.txt,q.x,q.y);ctx.fillText(q.txt,q.x,q.y)}ctx.globalAlpha=1;
