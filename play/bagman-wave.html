@@ -62,11 +62,24 @@ const C=document.getElementById('c'),X=C.getContext('2d'),W=800,H=400,R=Math.ran
 // Core game state. S = current screen ('title' | 'play' | 'over'). t = elapsed game time
 // (used to drive all animation). shake = screen-shake strength. keys = which keyboard keys
 // are currently held. joy/fid = the active touch-joystick and fire-button pointer IDs.
-let K=1,S='title',t=0,best=0,shake=0,overT=0,keys={},joy=null,fid=null,paused=false,contT=0,adPlaying=false,usedContinue=false;
+let K=1,S='title',t=0,best=0,shake=0,overT=0,keys={},joy=null,fid=null,paused=false,contT=0,adPlaying=false;
 // P=player. E=enemies. PB=player bullets. EB=enemy bullets. PT=floating hit-text popups
 // (e.g. 'CRUNCH!'). PP=particle burst pieces. PUD=butter puddles left on the ground.
-// SW=shockwave rings (from the ball & chain slam). POW=the current power-up pickup, if any.
-let P,E,PB,EB,PT,PP,PUD,SW,POW,powT,wave,score,toSpawn,spT,banner,mcd;
+// SW=shockwave rings (from the ball & chain slam). meter/meterMax=the kill-charge bar that
+// fills as enemies die and, once full, auto-triggers the ball & chain slam (see kill() and
+// the meter-check in up()). meterMax is recomputed from the current wave every time it's
+// read, rather than stored, so it always stays matched to the current difficulty.
+let P,E,PB,EB,PT,PP,PUD,SW,meter,wave,score,toSpawn,spT,banner,mcd;
+// Kills needed to charge the slam: deliberately set equal to a wave's own enemy count
+// (4+wave*2 - see nextWave()/mk()), so clearing roughly one wave's worth of kills earns
+// about one free slam, at EVERY wave - not just early on, and not increasingly often at
+// high waves either (which would make the late game too easy).
+// This is captured ONCE, whenever a charge cycle starts (not recomputed every frame), so
+// an in-progress meter doesn't appear to "lose" progress as soon as a new wave begins and
+// the requirement would otherwise have grown out from under it. Progress fully carries over
+// wave to wave until the player actually uses the attack.
+let meterNeed=6;
+function meterMax(){return meterNeed}
 try{best=+localStorage.getItem('bm')||0}catch(e){}
 try{document.fonts.load('30px Bangers')}catch(e){}
 const APP=document.getElementById('app');
@@ -120,7 +133,10 @@ function ol(w){X.lineWidth=w||2.5;X.strokeStyle='#111';X.lineJoin='round';X.stro
 // box = a filled rectangle with a black outline (used for limbs, HUD bars, etc).
 function box(x,y,w,h,f){X.fillStyle=f;X.fillRect(x,y,w,h);X.lineWidth=2;X.strokeStyle='#111';X.strokeRect(x,y,w,h)}
 // Draws the toast enemy's held knife.
-function knife(){X.save();X.translate(-20,4);X.rotate(-.5);box(-2,0,5,9,'#4a2a12');X.fillStyle='#d8dde6';X.beginPath();X.moveTo(-3,0);X.lineTo(-3,-24);X.lineTo(4,-30);X.lineTo(4,0);X.closePath();X.fill();ol(2);X.restore()}
+// Draws the knife anchored exactly at a given hand position/rotation, so it can be gripped
+// rigidly by whatever hand is holding it rather than drawn at a fixed offset that can drift
+// out of alignment as that hand moves/swings.
+function knife(hx,hy,rot){X.save();X.translate(hx,hy);X.rotate(rot);box(-2,0,5,9,'#4a2a12');X.fillStyle='#d8dde6';X.beginPath();X.moveTo(-3,0);X.lineTo(-3,-24);X.lineTo(4,-30);X.lineTo(4,0);X.closePath();X.fill();ol(2);X.restore()}
 // A simple cartoon eye: a colored circle with a black pupil.
 function eye(x,y,c){X.fillStyle=c;X.beginPath();X.arc(x,y,4,0,7);X.fill();ol(1.5);X.fillStyle='#111';X.beginPath();X.arc(x,y,1.6,0,7);X.fill()}
 // Angry V-shaped eyebrows, mirrored left/right.
@@ -129,8 +145,10 @@ function brows(y,d){X.beginPath();X.moveTo(-14,y-d);X.lineTo(-3,y+1);X.moveTo(14
 // bp = the toast enemy's body silhouette (the bread-slice outline).
 function bp(){X.beginPath();X.moveTo(-18,21);X.lineTo(-18,-10);X.bezierCurveTo(-26,-29,-10,-31,0,-26);X.bezierCurveTo(10,-31,26,-29,18,-10);X.lineTo(18,21);X.closePath()}
 // Draws one toast enemy 'e' (its body, crust dimples, face, legs and knife).
-function toast(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*2;
-box(-12,18,7,8+w,'#3a1c08');box(5,18,7,8-w,'#3a1c08');
+function toast(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*.4;
+// legs swing from a hip pivot (shuffling toward the player) instead of sliding straight up/down
+X.save();X.translate(-9,18);X.rotate(w);rr(-4,0,7,10,3);X.fillStyle='#3a1c08';X.fill();X.restore();
+X.save();X.translate(9,18);X.rotate(-w);rr(-4,0,7,10,3);X.fillStyle='#3a1c08';X.fill();X.restore();
 bp();X.fillStyle='#6b3714';X.fill();ol(e.s>1?1.6:2.5);
 X.save();X.translate(0,1);X.scale(.8,.8);bp();X.fillStyle=e.fl>0?'#ffd9a0':'#c2812f';X.fill();X.restore();
 X.fillStyle='rgba(30,12,2,.5)';[[-15,4,2.4],[-14,13,2],[-13,-3,1.8],[15,6,2.4],[14,14,2],[13,-3,1.8]].forEach(a=>{X.beginPath();X.arc(a[0],a[1],a[2],0,7);X.fill()});
@@ -143,19 +161,34 @@ X.fillStyle='#fff';for(let i=0;i<6;i++){const tx=-11+i*4.4;X.beginPath();X.moveT
 for(let i=0;i<5;i++){const tx=-8.8+i*4.4;X.beginPath();X.moveTo(tx,23);X.lineTo(tx+2.6,23);X.lineTo(tx+1.3,8);X.closePath();X.fill()}
 X.restore();
 X.beginPath();X.moveTo(-13,4);X.quadraticCurveTo(0,17,13,4);ol(1.5);X.restore();
-knife();X.restore()}
+// Two arms (same rounded capsule + hand style as the other characters): the one on the side
+// facing the player holds the knife, the other just swings idly along.
+function toastArm(shx,rot,col){X.save();X.translate(shx,-2);X.rotate(rot);rr(-3.5,0,7,13,3);X.fillStyle=col;X.fill();X.lineWidth=2;X.strokeStyle='#111';X.stroke();
+ X.beginPath();X.arc(0,14,4,0,7);X.fillStyle=col;X.fill();ol(1.6);X.restore()}
+const aw=Math.sin(t*6+e.ph)*.2;
+toastArm(17,-.4-aw,'#6b3714'); // far arm (away from the player)
+const nrot=.5+aw;toastArm(-17,nrot,'#6b3714'); // near arm (toward the player) - holds the knife, also swings
+// The knife's position is computed from the exact same shoulder/rotation/length used by that
+// near arm above, so its handle always lines up precisely with the hand at the end of it - but
+// its own angle is kept fixed (blade raised up and outward) independently of that, since using
+// the arm's rotation directly pointed the blade back across the body, covering the arm itself.
+knife(-17-14*Math.sin(nrot),-2+14*Math.cos(nrot),-.5);
+X.restore()}
 // rr = a rounded-rectangle path (used for the butter enemy's block body).
 function rr(x,y,w,h,rad){X.beginPath();X.moveTo(x+rad,y);X.arcTo(x+w,y,x+w,y+h,rad);X.arcTo(x+w,y+h,x,y+h,rad);X.arcTo(x,y+h,x,y,rad);X.arcTo(x,y,x+w,y,rad);X.closePath()}
 // Draws one butter enemy 'e' (its melting block body, arms/legs, and face).
 // Its hands (armLt/armRt, 0..1) shrink away when it fires and slowly regrow.
-function butter(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const w=Math.sin(t*9+e.ph)*2,aw=Math.sin(t*7+e.ph)*.3;
-box(-9,20,6,8+w,'#caa010');box(3,20,6,8-w,'#caa010');
+function butter(e){X.save();X.translate(e.x+(e.fl>0?R()*4-2:0),e.y);X.scale(e.s,e.s);const aw=Math.sin(t*7+e.ph)*.3;
+// No legs - it just hops along instead, with a squash-and-stretch bounce for a lively,
+// jelly-like feel: taller/thinner in the air, short/wide at the bottom of the hop.
+const hop=Math.abs(Math.sin(t*7+e.ph));X.translate(0,-hop*7);
+X.scale(1+(1-hop)*.1-hop*.03,1-(1-hop)*.12+hop*.05); // squash at ground contact, stretch at the apex
 rr(-13,-22,26,44,4);
 X.fillStyle=e.fl>0?'#fff8c0':'#f6d84a';X.fill();ol(e.s>1?1.6:2.5);
 X.fillStyle='#fff6a8';X.fillRect(-10,-19,5,13);
 X.fillStyle='#d9a91c';X.beginPath();X.arc(6,-16,2.5,0,7);X.arc(8,4,2,0,7);X.arc(-9,-3,2,0,7);X.arc(9,14,2,0,7);X.fill();
-X.save();X.translate(-13,-6);X.rotate(.5+aw);box(-4,0,8,15,'#f6d84a');if(e.armLt>0){X.beginPath();X.arc(0,16,5*e.armLt,0,7);X.fillStyle='#f6d84a';X.fill();if(e.armLt>.25)ol(1.8)}X.restore();
-X.save();X.translate(13,-6);X.rotate(-.5-aw);box(-4,0,8,15,'#f6d84a');if(e.armRt>0){X.beginPath();X.arc(0,16,5*e.armRt,0,7);X.fillStyle='#f6d84a';X.fill();if(e.armRt>.25)ol(1.8)}X.restore();
+X.save();X.translate(-13,-6);X.rotate(.5+aw);rr(-4,0,8,15,3);X.fillStyle='#f6d84a';X.fill();X.lineWidth=2;X.strokeStyle='#111';X.stroke();if(e.armLt>0){X.beginPath();X.arc(0,16,5*e.armLt,0,7);X.fillStyle='#f6d84a';X.fill();if(e.armLt>.25)ol(1.8)}X.restore();
+X.save();X.translate(13,-6);X.rotate(-.5-aw);rr(-4,0,8,15,3);X.fillStyle='#f6d84a';X.fill();X.lineWidth=2;X.strokeStyle='#111';X.stroke();if(e.armRt>0){X.beginPath();X.arc(0,16,5*e.armRt,0,7);X.fillStyle='#f6d84a';X.fill();if(e.armRt>.25)ol(1.8)}X.restore();
 eye(-6,-9,'#fff');eye(6,-9,'#fff');X.save();X.translate(0,-2);brows(-9,5);X.restore();
 // The butter's mouth shape, reused to fill it and to clip its teeth to it.
 function butterMouth(){X.beginPath();X.moveTo(-8,2);X.quadraticCurveTo(0,10,8,2);X.lineTo(8,5);X.quadraticCurveTo(0,13,-8,5);X.closePath()}
@@ -168,35 +201,71 @@ X.beginPath();X.moveTo(-8,2);X.quadraticCurveTo(0,10,8,2);ol(1.5);
 X.restore()}
 
 // Draws a striped shirt-sleeve patch, clipped to a small rectangle.
-function sleeve(sx,sy,sw,sh){X.save();X.beginPath();X.rect(sx,sy,sw,sh);X.clip();
+function sleeve(sx,sy,sw,sh){X.save();rr(sx,sy,sw,sh,3);X.clip();
 for(let ry=Math.floor((sy+8)/4.4)*4.4-8;ry<sy+sh;ry+=4.4){const row=Math.round((ry+8)/4.4);X.fillStyle=row%2?'#111':'#fff';X.fillRect(sx,ry,sw,4.4)}
-X.restore();X.strokeStyle='#111';X.lineWidth=2;X.strokeRect(sx,sy,sw,sh)}
+X.restore();rr(sx,sy,sw,sh,3);X.strokeStyle='#111';X.lineWidth=2;X.stroke()}
 // BagMan's water gun, drawn in his hand.
+// BagMan's water gun: a level, rounded-capsule barrel (same construction style as the arms
+// and legs elsewhere) rather than the old tilted, sharp-pointed shape.
 function gun(){X.save();X.translate(21,-3);
-X.fillStyle='#4fc3f7';X.globalAlpha=.85;X.beginPath();X.ellipse(1,-9,7,5.5,-.15,0,7);X.fill();ol(1.5);X.globalAlpha=1;
-X.fillStyle='#ff6a2b';X.beginPath();X.moveTo(-5,-3);X.lineTo(15,-5);X.lineTo(20,-2);X.lineTo(15,1);X.lineTo(-5,5);X.closePath();X.fill();ol(2);
-X.fillStyle='#333';X.fillRect(19,-3,4,3);
-X.fillStyle='#e8b090';X.fillRect(-7,2,6,10);ol(2);
-X.beginPath();X.arc(-3,8,4,.2,Math.PI*1.3);X.lineWidth=2;X.strokeStyle='#111';X.stroke();
+X.fillStyle='#4fc3f7';X.globalAlpha=.85;X.beginPath();X.ellipse(0,-9,7,5.5,0,0,7);X.fill();ol(1.8);X.globalAlpha=1;
+rr(-7,-3.5,20,7,3);X.fillStyle='#ff6a2b';X.fill();X.lineWidth=2;X.strokeStyle='#111';X.stroke();
+rr(12,-2,5,4,1.5);X.fillStyle='#333';X.fill();X.lineWidth=1.5;X.strokeStyle='#111';X.stroke();
+rr(-7,3.5,6,10,2.5);X.fillStyle='#e8b090';X.fill();X.lineWidth=2;X.strokeStyle='#111';X.stroke();
+X.beginPath();X.arc(-3,9,4,.2,Math.PI*1.3);X.lineWidth=2.2;X.strokeStyle='#111';X.stroke();
 X.restore()}
 const PS=1.08; // overall player draw scale
 // Draws BagMan himself: the ball & chain (only visible during the slam power-attack),
 // his walking animation, clothes, gun, and paper-bag head.
+// Draws the ball & chain's chain as a real series of alternating links (rather than a plain
+// line/rope): each link is drawn as a small ring, alternating edge-on/face-on along the path,
+// the classic 2D trick for making a chain read as interlocking segments. Same dark/grey
+// palette as before, just actual links now.
+function drawChain(x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx);
+const step=6.5,n=Math.max(2,Math.round(len/step));
+for(let i=0;i<=n;i++){const tI=i/n;X.save();X.translate(x1+dx*tI,y1+dy*tI);X.rotate(ang+(i%2?Math.PI/2:0));
+ X.beginPath();X.ellipse(0,0,4.2,2.4,0,0,7);X.lineWidth=2.2;X.strokeStyle='#111';X.stroke();
+ X.beginPath();X.ellipse(0,0,2.8,1.2,0,0,7);X.lineWidth=1;X.strokeStyle='#999';X.stroke();
+ X.restore()}}
 function drawP(){const x=P.x,y=P.y;
+// Walk cycle: legs swing from a hip pivot (rotation) rather than sliding up/down, and the
+// off-hand arm counter-swings opposite the legs, both for a more natural gait than before.
+// Computed up front (not just inside the character transform below) since the ball & chain,
+// drawn in world space, needs to know exactly where that swinging hand is.
+const legSwing=Math.sin(P.walk)*.3,bob=Math.abs(Math.sin(P.walk))*2;
+const armAng=-legSwing*.6,aox=-.5,aoy=20; // off-hand arm's pivot offset to its hand, pre-rotation
+const handLX=-15+(aox*Math.cos(armAng)-aoy*Math.sin(armAng)),handLY=-6+(aox*Math.sin(armAng)+aoy*Math.cos(armAng));
+const handWX=x+handLX*PS,handWY=(y-bob)+handLY*PS;
 if(P.slam!=null){const px=P.slamX-12*PS,py=P.slamY+12*PS,pr=Math.min(1,P.slam/.32);
  const ang=pr<1?(-2.1+2.7*(1-Math.pow(1-pr,3))):Math.PI/2,len=90;
  const bx=px+Math.cos(ang)*len,by=py+Math.sin(ang)*len;
- X.beginPath();X.moveTo(px,py);X.lineTo(bx,by);X.lineWidth=5;X.strokeStyle='#111';X.stroke();X.lineWidth=2.5;X.strokeStyle='#999';X.stroke();
- X.beginPath();X.arc(bx,by,10,0,7);X.fillStyle='#222';X.fill();ol(2.5);X.fillStyle='#777';X.beginPath();X.arc(bx-3,by-3,3,0,7);X.fill();
+ drawChain(px,py,bx,by);
+ X.beginPath();X.arc(bx,by,14,0,7);X.fillStyle='#222';X.fill();ol(2.5);X.fillStyle='#777';X.beginPath();X.arc(bx-4,by-4,4,0,7);X.fill();
  if(pr>=1){X.strokeStyle='rgba(255,255,255,.8)';X.lineWidth=3;for(let i=0;i<4;i++){const a2=i/4*6.28;X.beginPath();X.moveTo(bx,by);X.lineTo(bx+Math.cos(a2)*16,by+Math.sin(a2)*16);X.stroke()}}
-}else{}
+}else{
+ // The ball & chain hangs from the swinging off-hand's wrist, lagging a bit behind the hand's
+ // own motion (a delayed phase) so it visibly trails rather than moving in lockstep with it.
+ const trail=P.walk-1.4;
+ const bx=handWX+Math.sin(trail)*11-24,by=handWY+27+Math.cos(trail)*3;
+ drawChain(handWX,handWY,bx,by);
+ X.beginPath();X.arc(bx,by,10,0,7);X.fillStyle='#222';X.fill();ol(2.2);X.fillStyle='#777';X.beginPath();X.arc(bx-3,by-3,3,0,7);X.fill();
+}
 if(P.inv>0&&(P.inv*12|0)%2)return;
-const wf=Math.sin(P.walk)*5,bob=Math.abs(Math.sin(P.walk))*2;
 X.save();X.translate(x,y-bob);X.scale(PS,PS);
-box(-12,14,22,16,'#111');box(-13,29+wf,12,6,'#111');box(2,29-wf,12,6,'#111');
-for(let i=0;i<5;i++)X.fillStyle=i%2?'#111':'#fff',X.fillRect(-12,-8+i*4.4,24,4.4);X.strokeStyle='#111';X.lineWidth=2.5;X.strokeRect(-12,-8,24,22);
-sleeve(-20,-6,9,13);box(-19,5,6,10,'#e8b090');
-sleeve(10,-7,9,9);box(16,-4,6,9,'#e8b090');
+function leg(px,rot,col){X.save();X.translate(px,13);X.rotate(rot);
+ rr(-6,0,12,17,5);X.fillStyle=col;X.fill();X.lineWidth=2;X.strokeStyle='#111';X.stroke();
+ X.beginPath();X.ellipse(0,19,7,4,0,0,7);X.fillStyle=col;X.fill();ol(1.5);X.restore()}
+leg(-6,legSwing,'#111');leg(6,-legSwing,'#111');
+X.save();rr(-12,-8,24,22,6);X.clip();
+for(let i=0;i<5;i++)X.fillStyle=i%2?'#111':'#fff',X.fillRect(-12,-8+i*4.4,24,4.4);
+X.restore();rr(-12,-8,24,22,6);X.lineWidth=2.5;X.strokeStyle='#111';X.stroke();
+// left (off-hand) arm counter-swings with the opposite leg for a natural walking motion
+// Sleeves are lengthened so only a small round hand peeks out at the very end, rather than
+// exposing much of the forearm.
+X.save();X.translate(-15,-6);X.rotate(-legSwing*.6);X.translate(15,6);
+sleeve(-20,-6,9,18);X.beginPath();X.arc(-15.5,14,4.5,0,7);X.fillStyle='#e8b090';X.fill();ol(1.6);
+X.restore();
+sleeve(10,-7,11,9);X.beginPath();X.arc(22,-2,4.5,0,7);X.fillStyle='#e8b090';X.fill();ol(1.6);
 gun();
 X.beginPath();X.rect(-15,-35,30,27);X.closePath();X.fillStyle='#c9955a';X.fill();ol(2.5);
 X.strokeStyle='#8a5f30';X.lineWidth=1.3;X.beginPath();X.moveTo(-15,-9);X.lineTo(15,-9);X.moveTo(-15,-30);X.lineTo(15,-30);X.moveTo(-9,-35);X.lineTo(-9,-8);X.moveTo(9,-35);X.lineTo(9,-8);X.stroke();
@@ -286,7 +355,7 @@ function mk(k,boss){const h=boss?40+wave*4:(k=='b'||wave>5?2:1);const e={k,boss,
 // Advances to the next wave, deciding how many enemies to spawn (or a boss, every 5th wave).
 function nextWave(){wave++;banner=2.4;if(wave%5==0){E.push(mk(wave/5%2?'t':'b',1));mcd=5;toSpawn=0}else toSpawn=4+wave*2}
 // Resets all game state for a fresh run.
-function reset(){paused=false;usedContinue=false;adPlaying=false;hideAdSlot();P={x:110,y:200,hp:5,inv:0,fc:0,bx:80,by:236,walk:0,moving:false,slam:null,slamHit:false};E=[];PB=[];EB=[];PT=[];PP=[];PUD=[];SW=[];POW=null;powT=4;wave=0;score=0;spT=0;mcd=0;nextWave()}
+function reset(){paused=false;adPlaying=false;hideAdSlot();P={x:110,y:200,hp:5,inv:0,fc:0,bx:80,by:236,walk:0,moving:false,slam:null,slamHit:false};E=[];PB=[];EB=[];PT=[];PP=[];PUD=[];SW=[];meter=0;meterNeed=6;wave=0;score=0;spT=0;mcd=0;nextWave()}
 // Best-effort request to enter fullscreen + lock landscape, triggered once from the player's
 // first tap (a real user gesture is required for both of these by browsers). Guarded by
 // fsTried so later taps (retrying after game over, etc.) don't keep re-requesting it - once
@@ -318,7 +387,7 @@ function burst(x,y,k,n){for(let i=0;i<n;i++)PP.push({x,y,vx:R()*300-150,vy:R()*-
 // Applies damage to the player (with a brief invincibility window afterward).
 function endRun(){hideAdSlot();S='over';overT=t;if(score>best){best=score;try{localStorage.setItem('bm',best)}catch(e){}}}
 function hurt(){if(P.inv>0)return;P.hp--;P.inv=1.3;shake=.35;burst(P.x,P.y,'t',8);sHurt();
-if(P.hp<=0){if(!usedContinue){S='continue';contT=0;adPlaying=false}else endRun()}}
+if(P.hp<=0){S='continue';contT=0;adPlaying=false}} // the continue-with-ad offer is available on every death, not just the player's first
 // ---- Ad integration: standard Google AdSense ----
 // Plain AdSense (unlike H5 Games Ads) has no built-in "the player actually watched this"
 // signal, so instead of a rewarded-video callback, we show a real AdSense ad unit and make
@@ -333,12 +402,15 @@ function startAdView(){
 }
 // Called once the viewing window has elapsed and the player taps Continue.
 function finishAdView(){hideAdSlot();if(MG)MG.gain.value=muted?0:.55;
- usedContinue=true;P.hp=5;P.inv=2;adPlaying=false;S='play'}
+ P.hp=5;P.inv=2;adPlaying=false;S='play'}
 // Handles an enemy dying: score, particles, sound, and (for butter) puddles left behind.
-function kill(e){score+=e.boss?500:e.k=='b'?20:10;burst(e.x,e.y,e.k,e.boss?40:10);pop(e.x,e.y-20*e.s,e.boss?'K.O.!!':e.k=='t'?'CRUNCH!':'SPLAT!');
+// fromSlam is true only for the mass-kill the slam itself performs, so that a slam's own kills
+// can't refill the meter and chain into another slam for free.
+function kill(e,fromSlam,noScore){if(!noScore)score+=e.boss?500:e.k=='b'?20:10;burst(e.x,e.y,e.k,e.boss?40:10);pop(e.x,e.y-20*e.s,e.boss?'K.O.!!':e.k=='t'?'CRUNCH!':'SPLAT!');
 if(e.k=='t')sCrunch(e.boss);else sSplat(e.boss);
 if(e.k=='b'){const n=e.boss?9:4;for(let i=0;i<n;i++)PUD.push({x:e.x+R()*26*e.s-13*e.s,y:e.y+18*e.s+R()*8,r:(6+R()*7)*e.s,l:3+R()})}
-if(e.boss)shake=.6;} // (boss kills used to also heal the player +2 hearts; that's been removed)
+if(e.boss)shake=.6; // (boss kills used to also heal the player +2 hearts; that's been removed)
+if(!fromSlam)meter=Math.min(meterMax(),meter+(e.boss?8:1));} // capped at full; player triggers the slam themselves (see the SLAM button) rather than it firing automatically
 // A butter enemy fires its ball-shaped hand as a projectile; that hand then
 // regrows over time (see armLt/armRt in mk()/butter()).
 function shootArm(e){const canL=e.armLt>=1,canR=e.armRt>=1;if(!canL&&!canR)return;
@@ -355,25 +427,25 @@ function shoot(e,n,sp,v,k){const a=Math.atan2(P.y-e.y,P.x-e.x);for(let i=0;i<n;i
 function up(dt){t+=dt;if(banner>0)banner-=dt;shake=Math.max(0,shake-dt);
 let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
 if(joy){dx+=cl((joy.x-joy.ox)/45,-1,1);dy+=cl((joy.y-joy.oy)/45,-1,1)}
+dx+=GP.dx;dy+=GP.dy; // controller left stick / d-pad
 const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}
 const mv=Math.hypot(dx,dy)>.05&&P.slam==null;P.moving=mv;P.walk+=dt*(mv?10:6);
 if(P.slam==null){P.x=cl(P.x+dx*250*dt,24,400);P.y=cl(P.y+dy*250*dt,250,352)}
 if(P.slam!=null){P.slam+=dt;
  if(P.slam>=.32&&!P.slamHit){P.slamHit=true;shake=.9;SW.push({x:P.slamX,y:P.slamY,r:14,l:.6});sPow();
-  E.forEach(e=>{if(!e.boss)kill(e)});E=E.filter(e=>e.boss);pop(P.slamX,P.slamY-40,'SLAM!!')}
+  // Normal enemies die outright; a boss instead takes a fair chunk of damage (30% of its max
+  // HP) rather than being immune, so the attack is still genuinely useful in a boss fight -
+  // it just can't one-shot something that tanky.
+  E.forEach(e=>{if(!e.boss){e.hp=0;kill(e,true)}else{const dmg=Math.max(8,Math.round(e.mh*.3));e.hp-=dmg;e.fl=.15;burst(e.x,e.y,e.k,14);if(e.hp<=0)kill(e,true)}});
+  E=E.filter(e=>e.hp>0);EB=[];pop(P.slamX,P.slamY-40,'SLAM!!')}
  if(P.slam>=.7)P.slam=null}
 P.bx+=(P.x-24-P.bx)*Math.min(1,dt*7);P.by+=(Math.min(P.y+30,388)-P.by)*Math.min(1,dt*7);P.inv-=dt;P.fc-=dt;
-if((keys[' ']||fid!=null)&&P.fc<=0){P.fc=.16;PB.push({x:P.x+38*PS,y:P.y-5*PS});sShoot()}
+if((keys[' ']||fid!=null||GP.fire)&&P.fc<=0){P.fc=.16;PB.push({x:P.x+38*PS,y:P.y-5*PS});sShoot()}
 PB.forEach(b=>b.x+=560*dt);PB=PB.filter(b=>b.x<W+10);
 if(banner<=0){
  if(toSpawn>0){spT-=dt;if(spT<=0){spT=Math.max(.45,1.2-wave*.05);toSpawn--;E.push(mk(R()<Math.min(.5,.1+wave*.05)?'b':'t'))}}
  if(E.some(e=>e.boss)){mcd-=dt;if(mcd<=0){mcd=5;E.push(mk(R()<.5?'t':'b'))}}
  if(!toSpawn&&!E.length)nextWave()}
-powT-=dt;if(!POW&&powT<=0){if(E.length>=8){POW={x:W+30,y:gy({s:1},R()),ph:0}}powT=POW?99:1.2}
-if(POW){POW.x-=95*dt;POW.ph+=dt;
- if(POW.x<-30){POW=null;powT=3}
- else if(Math.hypot(P.x-POW.x,P.y-POW.y)<28){shake=.9;SW.push({x:P.x,y:P.y,r:14,l:.6});
- P.slam=.0001;P.slamHit=false;P.slamX=P.x;P.slamY=P.y;POW=null;powT=8+R()*4}}
 SW.forEach(p=>{p.r+=760*dt;p.l-=dt});SW=SW.filter(p=>p.l>0);
 E.forEach(e=>{e.fl-=dt;e.cd-=dt;if(e.k=='b'){e.pud=(e.pud==null?0:e.pud)-dt;if(e.pud<=0){e.pud=.4;PUD.push({x:e.x,y:e.y+19*e.s,r:4.5*e.s,l:2.2})}
  if(e.armLt<1)e.armLt=Math.min(1,e.armLt+dt/1.3);if(e.armRt<1)e.armRt=Math.min(1,e.armRt+dt/1.3)}
@@ -383,7 +455,7 @@ E.forEach(e=>{e.fl-=dt;e.cd-=dt;if(e.k=='b'){e.pud=(e.pud==null?0:e.pud)-dt;if(e
  else{e.x-=(e.x>e.hx?70:35)*dt;e.y=gy(e,e.l+Math.sin(t*1.3+e.ph)*.3);if(e.cd<=0&&e.x<W-20){e.cd=2.2-Math.min(1,wave*.05);shootArm(e)}}});
 PB.forEach(b=>E.forEach(e=>{if(!b.d&&e.hp>0&&Math.hypot(b.x-e.x,b.y-e.y)<18*e.s+5){b.d=1;e.hp--;e.fl=.1;burst(b.x,b.y,e.k,3);if(e.hp<=0)kill(e)}}));
 PB=PB.filter(b=>!b.d);
-E.forEach(e=>{if(e.hp>0&&Math.hypot(P.x-e.x,P.y-e.y)<16*e.s+12){if(!e.boss){e.hp=0;kill(e)}hurt()}});
+E.forEach(e=>{if(e.hp>0&&Math.hypot(P.x-e.x,P.y-e.y)<16*e.s+12){if(!e.boss){e.hp=0;kill(e,false,true)}hurt()}}); // no score for a contact kill
 E=E.filter(e=>e.hp>0&&e.x>-60&&e.x<W+220);
 EB.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;if(Math.hypot(P.x-b.x,P.y-b.y)<16){b.d=1;hurt()}});
 EB=EB.filter(b=>!b.d&&b.x>-30&&b.x<W+30&&b.y>-30&&b.y<H+30);
@@ -397,23 +469,6 @@ if(shake>0)X.translate((R()-.5)*shake*16,(R()-.5)*shake*16);
 X.drawImage(BG,-((t*40)%200),0);
 if(S=='title'){P={x:130,y:300,hp:5,inv:0,bx:96,by:330};}
 PUD.forEach(p=>{X.globalAlpha=Math.min(1,p.l/2.2)*.55;X.fillStyle='#f3d94a';X.beginPath();X.ellipse(p.x,p.y,p.r*1.5,p.r*.5,0,0,7);X.fill();X.strokeStyle='rgba(160,120,10,.5)';X.lineWidth=1;X.stroke();X.globalAlpha=1});
-// The power-up pickup gets extra visual emphasis (soft glow + spinning rays + an outward pulse
-// ring) specifically so it still reads clearly on screen even when a fight is busy/cluttered
-// with enemies, bullets and particles around it.
-if(POW){const by=Math.sin(POW.ph*4)*6;X.save();X.translate(POW.x,POW.y+by);
-// spinning light rays behind the icon
-X.save();X.rotate(POW.ph*1.5);X.globalAlpha=.35+Math.sin(POW.ph*5)*.15;X.strokeStyle='#ffe98a';X.lineWidth=2.5;
-for(let i=0;i<6;i++){const a=i/6*6.283;X.beginPath();X.moveTo(Math.cos(a)*14,Math.sin(a)*14);X.lineTo(Math.cos(a)*30,Math.sin(a)*30);X.stroke()}
-X.restore();X.globalAlpha=1;
-// an outward-expanding pulse ring, looping continuously, for extra motion-based visibility
-const pr=(POW.ph*1.1)%1;X.globalAlpha=(1-pr)*.55;X.strokeStyle='#ffd400';X.lineWidth=2.5;
-X.beginPath();X.arc(0,0,16+pr*20,0,7);X.stroke();X.globalAlpha=1;
-// soft glow behind the badge, via canvas shadow blur (cheap + looks properly soft, unlike a flat circle)
-X.shadowColor='#ffd400';X.shadowBlur=14+Math.sin(POW.ph*6)*6;
-X.globalAlpha=.5+Math.sin(POW.ph*6)*.2;X.beginPath();X.arc(0,0,17,0,7);X.fillStyle='#ffd400';X.fill();X.globalAlpha=1;X.shadowBlur=0;
-X.beginPath();X.arc(0,0,13,0,7);X.fillStyle='#2a2a2a';X.fill();ol(2);
-X.beginPath();X.moveTo(0,-9);X.lineTo(0,1);X.lineWidth=3;X.strokeStyle='#111';X.stroke();X.setLineDash([2,2]);X.lineWidth=1.5;X.strokeStyle='#999';X.stroke();X.setLineDash([]);
-X.beginPath();X.arc(0,6,5,0,7);X.fillStyle='#222';X.fill();ol(1.5);X.fillStyle='#777';X.beginPath();X.arc(-1.5,4.5,1.5,0,7);X.fill();X.restore()}
 SW.forEach(p=>{X.globalAlpha=Math.max(0,p.l/.6);X.strokeStyle='#ffd400';X.lineWidth=7;X.beginPath();X.arc(p.x,p.y,p.r,0,7);X.stroke();X.globalAlpha=1});
 E.forEach(e=>e.k=='t'?toast(e):butter(e));
 EB.forEach(b=>{if(b.k=='g'){X.beginPath();X.arc(b.x,b.y,8,0,7);X.fillStyle='#f6d84a';X.fill();ol(2.5);X.fillStyle='#fff6a8';X.beginPath();X.arc(b.x-2,b.y-2,2.5,0,7);X.fill()}
@@ -426,6 +481,14 @@ X.restore();
 // HUD
 if(S=='play'||S=='over'){T('SCORE '+score,14,30,26,'#ffd400','left');T('WAVE '+wave,W-14,30,26,'#fff','right');
  for(let i=0;i<5;i++)T('\u2665',20+i*24,58,26,i<P.hp?'#ff3b2f':'#3a2a26','left');
+ // Kill-charge meter: fills as enemies die (see kill()). Once full, a comic "SLAM!" burst pops
+ // up below it - tapping that (rather than a separate dedicated button) is what fires it.
+ const mr=cl(meter/meterMax(),0,1),ready=mr>=1&&P.slam==null;
+ box(20,70,120,11,'#2a120c');box(20,70,120*mr,11,'#ffd400');
+ if(ready&&S=='play'){const sc=1+Math.sin(t*6)*.08;
+  X.save();X.translate(100,128);X.scale(sc,sc);X.rotate(Math.sin(t*3)*.06);
+  X.beginPath();for(let i=0;i<16;i++){const r=i%2?24:44;X.lineTo(Math.cos(i*Math.PI/8)*r,Math.sin(i*Math.PI/8)*r*.8)}X.closePath();
+  X.fillStyle='#ff3b2f';X.fill();ol(3.5);T('SLAM!',0,10,34,'#ffd400');X.restore()}
  const B=E.find(e=>e.boss);if(B){const nm='GIANT '+(B.k=='t'?'TOAST':'BLISTERY BUTTER');T(nm,W/2,26,24,'#fff');box(240,34,320,12,'#2a120c');box(240,34,320*B.hp/B.mh,12,B.k=='t'?'#c0501a':'#f6d84a')}
  if(banner>0&&S=='play'){const bk=wave%5==0;T(bk?'BOSS: GIANT '+((wave/5%2)?'TOAST':'BLISTERY BUTTER')+'!':'WAVE '+wave,W/2,190,bk?48:64,bk?'#ff3b2f':'#ffd400','center','#fff')}
  if(S=='play'){X.globalAlpha=.4;X.lineWidth=4;X.strokeStyle='#fff';const j=joy||{ox:90,oy:310,x:90,y:310};
@@ -513,6 +576,7 @@ document.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=pt(e);
   }
   return}
  if(Math.hypot(x-W/2,y-26)<20){paused=true;return}
+ if(meter/meterMax()>=1&&P.slam==null&&Math.hypot(x-100,y-128)<54){tryActivateSlam();return}
  if(x<W/2){if(!joy)joy={id:e.pointerId,ox:x,oy:y,x,y}}else if(fid==null)fid=e.pointerId});
 document.addEventListener('pointermove',e=>{if(joy&&e.pointerId==joy.id){const p=pt(e);joy.x=p[0];joy.y=p[1]}});
 function pu(e){if(joy&&e.pointerId==joy.id)joy=null;if(e.pointerId==fid)fid=null}
@@ -522,9 +586,49 @@ addEventListener('keydown',e=>{const k=e.key.length>1?e.key:e.key.toLowerCase();
 addEventListener('keyup',e=>{keys[e.key.length>1?e.key:e.key.toLowerCase()]=0});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
+// Spends the kill-charge meter and starts the slam, if it's actually full - shared by both the
+// on-screen SLAM burst (tap) and a controller's button press, so the two stay in sync.
+function tryActivateSlam(){if(meter/meterMax()>=1&&P.slam==null){meter=0;meterNeed=4+wave*2;P.slam=.0001;P.slamHit=false;P.slamX=P.x;P.slamY=P.y}}
+// ---- Controller (Gamepad API) support ----
+// Movement and firing are read live every frame (see up()); menu/action buttons are
+// edge-triggered here instead (comparing against last frame's state) so holding one down
+// doesn't repeatedly fire the action, matching how a single tap/click behaves elsewhere.
+// No 'gamepadconnected' handling is needed beyond this - browsers only populate
+// navigator.getGamepads() once a button has actually been pressed on it at least once.
+let GP={dx:0,dy:0,fire:false},gpPrev={a:0,b:0,x:0,start:0};
+// gpBlocked stays true (skipping all future polling) once we learn the Gamepad API is
+// unavailable here - e.g. a page embedded in a context whose permissions policy disallows
+// it (some sandboxed/iframed previews do this), which makes navigator.getGamepads() throw a
+// SecurityError rather than just returning nothing. Controller support simply no-ops in that
+// case; everything else (touch/keyboard) is unaffected.
+let gpBlocked=false;
+function pollGamepad(){
+ if(gpBlocked)return;
+ let pads;
+ try{pads=navigator.getGamepads?navigator.getGamepads():null}catch(e){gpBlocked=true;GP.dx=0;GP.dy=0;GP.fire=false;return}
+ const gp=pads&&pads[0];
+ if(!gp){GP.dx=0;GP.dy=0;GP.fire=false;return}
+ let dx=gp.axes[0]||0,dy=gp.axes[1]||0;const b=gp.buttons;
+ if(b[14]&&b[14].pressed)dx-=1;if(b[15]&&b[15].pressed)dx+=1; // d-pad left/right
+ if(b[12]&&b[12].pressed)dy-=1;if(b[13]&&b[13].pressed)dy+=1; // d-pad up/down
+ GP.dx=Math.abs(dx)>.15?dx:0;GP.dy=Math.abs(dy)>.15?dy:0; // small deadzone
+ GP.fire=!!(b[0]&&b[0].pressed);
+ const aNow=!!(b[0]&&b[0].pressed),bNow=!!(b[1]&&b[1].pressed),xNow=!!(b[2]&&b[2].pressed),stNow=!!(b[9]&&b[9].pressed);
+ const aEdge=aNow&&!gpPrev.a,bEdge=bNow&&!gpPrev.b,xEdge=xNow&&!gpPrev.x,stEdge=stNow&&!gpPrev.start;
+ gpPrev={a:aNow,b:bNow,x:xNow,start:stNow};
+ // A = confirm/fire-screen-action, B = cancel/restart/slam, X = sound toggle, Start = pause.
+ // (buttons 0/1/2/9 are 'A'/'B'/'X'/'Start' on a standard Xbox-style layout; indices are the
+ // same across most controllers under the Gamepad API's 'standard' mapping.)
+ if(S=='continue'){if(!adPlaying){if(aEdge)startAdView();else if(bEdge)endRun()}else if(contT<=0&&aEdge)finishAdView();return}
+ if(S!='play'){if(aEdge&&(S=='title'||t-overT>.8))go();return}
+ if(stEdge){paused=!paused;return} // checked before the paused-branch below so Start can un-pause too, not just pause
+ if(paused){if(aEdge)paused=false;else if(xEdge)toggleMute();else if(bEdge){paused=false;reset()}return}
+ if(bEdge)tryActivateSlam();
+}
 let last=0;reset();S='title';
 // The main game loop, driven by the browser's animation frame timer.
 function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+ pollGamepad();
  if(S=='play'&&!paused)up(dt);else if(S!='play')t+=dt;
  if(S=='continue'&&adPlaying&&contT>0){contT-=dt;if(contT<0)contT=0} // mandatory ad-viewing countdown
  draw();requestAnimationFrame(loop)}

@@ -80,7 +80,7 @@ h1.s{font-size:clamp(34px,10vw,54px);transform:none}
 table{border-collapse:collapse;font-size:15px}td{padding:2px 14px}
 .b.r{font-size:17px;background:var(--panel);padding:8px 22px}
 .b{font:900 26px 'Bangers',Impact,"Arial Black",sans-serif;letter-spacing:.06em;padding:12px 40px;border:4px solid #000;border-radius:6px;background:var(--red);color:#fff;box-shadow:4px 4px 0 #000}
-button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
+button.b:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}button.b:focus{outline:3px solid #ffd24a;outline-offset:2px}
 /* always landscape: on touch devices held in portrait, the whole game is turned sideways */
 @media (orientation:portrait) and (pointer:coarse){
   body{position:fixed;top:0;left:0;width:100vh;width:100dvh;height:100vw;height:100dvw;transform:rotate(90deg) translateY(-100%);transform-origin:0 0}
@@ -643,7 +643,7 @@ const lab=n=>(((n-1)/LPA|0)+1)+'-'+((n-1)%LPA+1),stars=n=>'★'.repeat(n)+'☆'.
 // Writes saved progress (best score/stars per level) to the browser's localStorage.
 const save=()=>{try{localStorage.setItem('bagman-save',JSON.stringify(prog))}catch(e){}};
 // Replaces the overlay's contents with the given menu HTML.
-const panel=h=>{$('ov').className='';$('ov').innerHTML='<div class="w">'+h+'</div>'};
+const panel=h=>{$('ov').className='';$('ov').innerHTML='<div class="w">'+h+'</div>';const fb=$('ov').querySelector?.('button');if(fb)fb.focus()};
 // Builds one menu button's HTML: a=action name, t=label text, v=optional value, c=extra CSS class.
 const B=(a,t,v,c)=>`<button class="b ${c||''}" data-a="${a}"${v!=null?` data-v="${v}"`:''}>${t}</button>`;
 // Builds the small SVG icons used by the mute/pause buttons.
@@ -663,7 +663,8 @@ function helpMenu(){state='menu';musicStop();panel('<h1 class="s">HOW TO PLAY</h
   'Burner coils kill toast, butter and eggs outright; the wide molten butter pools only toast and butter can enter — eggs turn away from those, bagels turn away from everything. None of this earns you points — but a well-placed toaster explosion still does.',
   'Pantry bagels tense up and roll into a dashing spin at you. Kitchen eggs crack into a sticky yolk when killed — smash it with the ball and chain, or let a coil fry it away on its own.',
   'Defeated toast drops crumbs for points. Every 5th kill while hurt brings a food delivery; a boss kill brings a full meal.',
-  'A checkpoint sits at each level\'s midpoint. 3 lives a run — lose all your hearts and you respawn there.'
+  'A checkpoint sits at each level\'s midpoint. 3 lives a run — lose all your hearts and you respawn there.',
+  'A connected gamepad also works, menus included: stick or d-pad to move or navigate, A to jump or confirm, X to swing, B or Y to squirt, Start to pause.'
 ].join('</p><p>')+'</p>'+B('menu','BACK',null,'r'))}
 // Shows the level-select screen: 3 areas x 10 levels, locked until the previous level is cleared.
 function levelsMenu(){
@@ -1127,7 +1128,50 @@ function draw(){
 
 let last=0;
 // The requestAnimationFrame driver: computes delta-time, then calls update() and draw() each frame.
-function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;T=t/1000;update(dt);draw();requestAnimationFrame(loop)}
+// Gamepad support: maps the first connected controller onto the same virtual keys the on-screen
+// touch buttons already use (VL/VR/VJ/VS/VW), so none of the movement/combat logic needs to change
+// to understand it. Left stick or d-pad moves, A jumps, X swings, B/Y squirts, Start pauses/resumes.
+// Full menu navigation reuses the browser's own focus system: d-pad/stick up-down moves real DOM
+// focus between the panel's buttons (so the existing :focus ring shows the current selection), and
+// A presses whichever button currently has focus — falling back to the first one if none does yet.
+let gpStartHeld=false,gpAHeld=false,gpVertHeld=0;
+let gpBlocked=false; // set once if the hosting page's permissions policy disallows the Gamepad API
+// (e.g. when previewed inside a sandboxed iframe), so we don't keep retrying and throwing every frame
+function pollGamepad(){
+  if(gpBlocked||!navigator.getGamepads)return;
+  let pads;
+  try{pads=navigator.getGamepads()}catch(e){gpBlocked=true;return}
+  const gp=pads&&pads[0];
+  if(!gp)return;
+  const dz=.3,ax=gp.axes[0]||0;
+  const left=ax<-dz||!!gp.buttons[14]?.pressed,right=ax>dz||!!gp.buttons[15]?.pressed;
+  left?keys.add('VL'):keys.delete('VL');
+  right?keys.add('VR'):keys.delete('VR');
+  const aBtn=!!gp.buttons[0]?.pressed; // jump
+  aBtn?keys.add('VJ'):keys.delete('VJ');
+  (!!gp.buttons[2]?.pressed)?keys.add('VS'):keys.delete('VS'); // swing
+  (!!gp.buttons[1]?.pressed||!!gp.buttons[3]?.pressed)?keys.add('VW'):keys.delete('VW'); // squirt
+  const startBtn=!!gp.buttons[9]?.pressed;
+  if(startBtn&&!gpStartHeld){if(state=='play')pause();else if(state=='pause')A.resume()}
+  gpStartHeld=startBtn;
+  if(state!='play'){ // d-pad/stick up-down steps real focus between the current panel's buttons
+    const vAx=gp.axes[1]||0,up=vAx<-dz||!!gp.buttons[12]?.pressed,down=vAx>dz||!!gp.buttons[13]?.pressed;
+    const dir=up?-1:down?1:0;
+    if(dir&&dir!==gpVertHeld){
+      const btns=[...document.querySelectorAll('#ov button')];
+      if(btns.length){let i=btns.indexOf(document.activeElement);if(i<0)i=0;btns[(i+dir+btns.length)%btns.length].focus()}
+    }
+    gpVertHeld=dir;
+  }
+  if(aBtn&&!gpAHeld&&state!='play'){
+    goFS();initAudio();
+    const act=document.activeElement;
+    const b=(act&&act.matches&&act.matches('#ov button'))?act:document.querySelector('#ov button');
+    if(b&&b.dataset.a)A[b.dataset.a](b.dataset.v,b);
+  }
+  gpAHeld=aBtn;
+}
+function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;T=t/1000;pollGamepad();update(dt);draw();requestAnimationFrame(loop)}
 resize();P=mkP();newLevel();banner=0;
 mainMenu();
 requestAnimationFrame(loop);

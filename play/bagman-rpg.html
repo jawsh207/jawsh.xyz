@@ -98,7 +98,7 @@ body.touch .hint{display:none}
     <div id="bezel">
       <div id="gameWrap"><canvas id="c" width="512" height="400" aria-label="Bagman game"></canvas></div>
     </div>
-    <div class="hint">Keys: WASD/arrows move · Space swing (hold for spin) · X water gun · M map · Esc pause</div>
+    <div class="hint">Keys: WASD/arrows move · Space swing (hold for spin) · X water gun · M map · Esc pause · Game controllers supported</div>
   </section>
   <section id="bottom">
     <div id="dpadWrap">
@@ -607,13 +607,44 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>{K[e.code]=false;});
 addEventListener('blur',()=>{for(const k in K)K[k]=false;});
+// ---- game controllers (standard mapping: Xbox / PlayStation / Switch Pro / most Bluetooth pads) ----
+const GP={x:0,y:0,a:false,b:false,m:false,st:false,used:false};
+// Some pages (e.g. a game embedded in another site) aren't allowed to read controllers.
+// Check once; if blocked, never ask again so the browser doesn't log an error every frame.
+let padsOK=false;
+try{
+  const fp=document.permissionsPolicy||document.featurePolicy;
+  const allowed=!(fp&&fp.allowsFeature)||fp.allowsFeature('gamepad');   // ask the policy first...
+  padsOK=allowed&&typeof Navigator!=='undefined'&&'getGamepads' in Navigator.prototype; // ...then look, without touching navigator
+}catch(e){padsOK=false;}
+function readPads(){
+  GP.x=0;GP.y=0;GP.a=GP.b=GP.m=GP.st=false;
+  if(!padsOK)return;
+  let pads=[];try{pads=navigator.getGamepads()||[];}catch(e){padsOK=false;return;}
+  for(const gp of pads){
+    if(!gp||!gp.connected)continue;
+    const bt=i=>!!(gp.buttons[i]&&(gp.buttons[i].pressed||gp.buttons[i].value>0.5));
+    const ax=i=>{const v=gp.axes[i]||0;return Math.abs(v)<0.3?0:v;};   // dead zone so a resting stick doesn't drift
+    let x=ax(0),y=ax(1);
+    if(bt(14))x=-1;if(bt(15))x=1;if(bt(12))y=-1;if(bt(13))y=1;         // D-pad
+    if(x||y){GP.x=x;GP.y=y;}
+    if(bt(0))GP.a=true;                    // A / Cross: swing (hold for spin)
+    if(bt(1)||bt(2))GP.b=true;             // B / Circle or X / Square: water gun
+    if(bt(9))GP.st=true;                   // Start / Options: pause
+    if(bt(8))GP.m=true;                    // Select / Back / Share / View: map
+    if(GP.a||GP.b||GP.st||GP.m||x||y)GP.used=true;
+  }
+}
+if(padsOK)addEventListener('gamepadconnected',()=>{GP.used=true;});
 function readInput(){
-  let x=(K.ArrowRight||K.KeyD?1:0)-(K.ArrowLeft||K.KeyA?1:0)+stick.x;
-  let y=(K.ArrowDown||K.KeyS?1:0)-(K.ArrowUp||K.KeyW?1:0)+stick.y;
+  readPads();
+  let x=(K.ArrowRight||K.KeyD?1:0)-(K.ArrowLeft||K.KeyA?1:0)+stick.x+GP.x;
+  let y=(K.ArrowDown||K.KeyS?1:0)-(K.ArrowUp||K.KeyW?1:0)+stick.y+GP.y;
   inp.x=clamp(x,-1,1); inp.y=clamp(y,-1,1);
-  const a=!!(K.Space||K.KeyJ||K.KeyZ||K.Enter||tA), b=!!(K.KeyK||K.KeyX||K.KeyL||tB), m=!!(K.KeyM||K.Tab||tSel), st=!!(K.Escape||K.KeyP||tS);
+  const a=!!(K.Space||K.KeyJ||K.KeyZ||K.Enter||tA||GP.a), b=!!(K.KeyK||K.KeyX||K.KeyL||tB||GP.b), m=!!(K.KeyM||K.Tab||tSel||GP.m), st=!!(K.Escape||K.KeyP||tS||GP.st);
   inp.aP=a&&!pa; inp.bP=b&&!pb; inp.mP=m&&!pm; inp.pP=st&&!pp; inp.a=a; inp.b=b; inp.m=m; inp.p=st; pa=a; pb=b; pm=m; pp=st;
   const yy=inp.y<-0.5?-1:inp.y>0.5?1:0; inp.uP=yy===-1&&py!==-1; inp.dP=yy===1&&py!==1; py=yy;
+  if(GP.used&&(a||b||st||m))ac(); // a controller button counts as the "first interaction" that unlocks sound
 }
 
 /* ================= ROOMS ================= */
@@ -1598,7 +1629,7 @@ function drawMenu(){
       const bx=W/2-140,by=y-2;ctx.fillStyle='#c9995f';ink(2);rr(bx-8,by-8,16,16,3);fs();ctx.fillStyle='#1a0f08';ctx.fillRect(bx-5,by-2,3,3);ctx.fillRect(bx+2,by-2,3,3);}
     uiText(m.label(),W/2,y,sel?17:15,sel?'#ffe14a':'#f1e2c6','center',true);
   });
-  const touch=document.body.classList.contains('touch');
+  const touch=document.body.classList.contains('touch')||GP.used;
   if(menuMsg)uiText(menuMsg.text,W/2,MENU_Y0+MENU.length*MENU_DY+14,12,'#8fe08a','center',true);
   else uiText(touch?'D-pad choose  ·  A select  ·  START or B close':'Up/Down choose  ·  Space select  ·  Esc close',W/2,MENU_Y0+MENU.length*MENU_DY+14,11,'#a8916f','center');
 }
