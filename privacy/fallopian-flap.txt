@@ -1,0 +1,31 @@
+Privacy Policy
+
+Fallopian Flap · Last updated: October 7, 2026
+
+This policy explains what information the Fallopian Flap app ("the app") handles. The app is made by Joshua Merritt ("we").
+
+Information we collect
+
+We do not ask for, collect, or store your name, email address, contacts, or location. Your best score and whether you bought Remove Ads are saved only on your own device.
+
+Advertising (Google AdMob)
+
+The free version of the app shows ads provided by Google AdMob. To show and measure ads, Google may collect and use information such as your device's advertising ID, IP address, approximate location derived from it, and how you interact with ads. Where required by law (for example in the European Economic Area and the United Kingdom), the app asks for your consent before personalized ads are shown, and you can change your choice at any time using "Privacy settings" on the game's menu screen.
+
+You can learn how Google uses this information at https://policies.google.com/technologies/partner-sites. You can reset or delete your advertising ID in your Android device settings.
+
+Purchases (Google Play)
+
+The optional "Remove Ads" purchase is processed entirely by Google Play. We never see your payment details. Google Play tells the app only whether the purchase was made.
+
+Children
+
+The app is not directed at children under 13, and we do not knowingly collect information from them.
+
+Changes
+
+If this policy changes, the updated version will be posted on this page with a new date.
+
+Contact
+
+Questions about this policy: jmizzle207@gmail.com
