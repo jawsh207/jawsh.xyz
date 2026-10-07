@@ -1250,8 +1250,11 @@ function drawExitHints(){
     }
     ctx.restore();
     if(nd.zone&&nd.zone!==cur.d.zone){
-      const name=ZONES[nd.zone].name, lx=s==='W'?40:s==='E'?W-40:ax, ly=s==='N'?40:s==='S'?RH-38:ay-26;
-      uiText(name,lx,ly,11,'#ffe14a',s==='W'?'left':s==='E'?'right':'center',true);
+      const name=ZONES[nd.zone].name;
+      if(s==='W'||s==='E'){ // side exits: the label runs vertically along the opening, like the doorway
+        ctx.save();ctx.translate(s==='W'?40:W-40,cy);ctx.rotate(s==='W'?-Math.PI/2:Math.PI/2);
+        uiText(name,0,0,11,'#ffe14a','center',true);ctx.restore();
+      }else uiText(name,ax,s==='N'?40:RH-38,11,'#ffe14a','center',true);
     }
   }
 }
@@ -1335,7 +1338,7 @@ function handPos(px,py){
   switch(P.face){case 0:return {x:px-12.5,y:py-17};case 1:return {x:px+12.5,y:py-17};case 2:return {x:px-3,y:py-16};default:return {x:px+3,y:py-16};}
 }
 // the empty hand (the other one wears the shackle), relative to Bagman's feet
-function gunHand(face){return face===0?{x:12.5,y:-16}:face===1?{x:-12.5,y:-15}:face===2?{x:-9,y:-22}:{x:9,y:-22};}
+function gunHand(face){return face===0?{x:0,y:-17}:face===1?{x:0,y:-17}:face===2?{x:-9,y:-22}:{x:9,y:-22};}
 function drawWaterGun(x,y,a){
   ctx.save();ctx.translate(x,y);ctx.rotate(a);if(Math.cos(a)<-0.01)ctx.scale(1,-1);
   ink(1.4);
@@ -2234,7 +2237,7 @@ function wrist(face,walkT,moving){
   let ax,sw; if(!side){ax=face===0?-12.5:12.5;sw=face===0?w*0.15:-w*0.15;}else{ax=dirx*2;sw=-w*0.5;}
   return {x:ax-Math.sin(sw)*13.5,y:-31+Math.cos(sw)*13.5,rot:sw};
 }
-function drawBagman(x,y,face,walkT,moving,s,alpha){
+function drawBagman(x,y,face,walkT,moving,s,alpha,gun){
   s=s||1; ctx.save(); ctx.translate(x,y); ctx.scale(s,s); if(alpha!=null)ctx.globalAlpha=alpha;
   shadowAt(0,1,13,4);
   const w=moving?Math.sin(walkT*13):0, side=face>=2, dirx=face===2?-1:face===3?1:0;
@@ -2256,12 +2259,28 @@ function drawBagman(x,y,face,walkT,moving,s,alpha){
     ctx.fillStyle=C('#e0a07a');ctx.beginPath();ctx.arc(0,15,3,0,7);fs();
     ctx.restore();
   };
-  if(!side){drawArm(-(tw/2+2.5),moving?w*0.15:0);drawArm(tw/2+2.5,moving?-w*0.15:0);}
+  // a striped sleeve segment from (x,y); ang 0 points straight down
+  const sleeve=(x,y,ang,len)=>{ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+    ctx.fillStyle=C('#f4f1ea');rr(-2.5,-1,5,len+1,2);ctx.fill();
+    ctx.fillStyle=C('#141418');for(let i=0;i*4+1.5<len-1;i++)ctx.fillRect(-2.5,1.5+i*4,5,2);
+    ink(1.5);rr(-2.5,-1,5,len+1,2);ctx.stroke();ctx.restore();};
+  // firing up or down: the empty (gun) arm bends at the elbow toward his middle
+  const gunArmX=face===0?tw/2+2.5:-(tw/2+2.5), bent=gun&&!side;
+  if(!side){
+    const L=-(tw/2+2.5),R=tw/2+2.5;
+    if(bent&&gunArmX===L)sleeve(L,-31,-0.12,9); else drawArm(L,moving?w*0.15:0);
+    if(bent&&gunArmX===R)sleeve(R,-31,0,9);  else drawArm(R,moving?-w*0.15:0);
+  }
   else drawArm(-dirx*2,w*0.5);
   ctx.fillStyle=C('#f4f1ea');rr(-tw/2,-33,tw,19,4);ctx.fill();
   ctx.save();rr(-tw/2,-33,tw,19,4);ctx.clip();ctx.fillStyle=C('#141418');for(let i=0;i<5;i++)ctx.fillRect(-tw/2,-31+i*4,tw,2.2);ctx.restore();
   ink(1.8);rr(-tw/2,-33,tw,19,4);ctx.stroke();
   if(side)drawArm(dirx*2,-w*0.5);
+  if(bent&&face===0){ // facing the camera: forearm crosses in front of the shirt to the gun at his belly
+    const ex=gunArmX,ey=-22,hx=0.5,hy=-18,ang=Math.atan2(-(hx-ex),hy-ey);
+    sleeve(ex,ey,ang,Math.hypot(hx-ex,hy-ey));
+    ctx.fillStyle=C('#e0a07a');ink(1.5);ctx.beginPath();ctx.arc(hx,hy,3,0,7);fs();
+  }
   {const wr=wrist(face,walkT,moving);ctx.save();ctx.translate(wr.x,wr.y);ctx.rotate(wr.rot);
    ctx.fillStyle=C('#8d939b');ink(1.2);ctx.fillRect(-3.5,-1.5,7,3);ctx.strokeRect(-3.5,-1.5,7,3);ctx.fillStyle=C('#c9d2da');ctx.fillRect(-2.5,-1,2,1);ctx.restore();}
   ctx.save();ctx.translate(0,-32);
@@ -2302,7 +2321,7 @@ function drawPlayerAt(px,py){
   ctx.save();ctx.globalAlpha=alpha;
   if(ballBehind){drawChain(h.x,h.y,bx,by,!!P.atk);drawBall(bx,by,shY,charged);}
   const gun=P.gunT>0, gh=gunHand(P.face);
-  drawBagman(px,py,P.face,P.walk,P.moving&&game==='play'||game==='trans',1);
+  drawBagman(px,py,P.face,P.walk,P.moving&&game==='play'||game==='trans',1,null,gun&&P.face<=1);
   if(gun&&P.face===0)drawWaterGunV(px+gh.x,py+gh.y,true); // facing up: the gun is hidden in front of him, only his hand shows
   if(gun&&P.face>=2)drawWaterGun(px+gh.x,py+gh.y,P.gunA);
   if(!ballBehind){drawChain(h.x,h.y,bx,by,!!P.atk);drawBall(bx,by,shY,charged);}
