@@ -37,7 +37,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
 <title>Bagman: Breakfast Platformer</title>
 <!-- Google AdSense (publisher ca-pub-3721061134092374). This only loads/works once the file is hosted
-     on your own domain — Claude's own preview blocks scripts from this host by design. -->
+     on your own domain — a sandboxed preview environment blocks scripts from this host by design. -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3721061134092374" crossorigin="anonymous"></script>
 <style>
 :root{color-scheme:dark;--bg:#171210;--ink:#f3e6cf;--gold:#e8b83a;--red:#d63a2a;--panel:#3a2c1e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -143,9 +143,12 @@ function butter(e){
   // e.bph (0→1) is a genuine bounce cycle driven by the update loop, not a free-running clock: it only
   // advances while the enemy is actually translating, and sits pinned at 0 (flat on the ground) the
   // instant it stops — so it can no longer read as floating in place. arc traces a true up-down parabola-
-  // like path (0 at touchdown/takeoff, 1 at the apex); land is its mirror, peaking right at the ground.
-  const t=e.bph||0,arc=Math.sin(Math.PI*t),land=1-arc;
-  const hop=arc*9,squash=land*land; // squashes flat right at touchdown, stretches a little tall at the apex
+  // like path (0 at touchdown/takeoff, 1 at the apex). The landing squash is a separate short-lived
+  // impact pulse (e.bsq) that decays on its own — it is NOT derived from bph/arc, which would otherwise
+  // leave butter permanently pinned at its most-flattened frame the whole time it stands still (e.g.
+  // winding up next to the player), instead of relaxing back to a normal resting pose.
+  const t=e.bph||0,arc=Math.sin(Math.PI*t);
+  const hop=arc*9,squash=e.bsq||0; // squashes flat right at touchdown, stretches a little tall at the apex
   const gy=21,bsx=(e.r/15)*(1+dp*.35+squash*.22-arc*.08),bsy=(e.r/15)*(1-dp*.55-squash*.3+arc*.12);
   ctx.save();ctx.translate(e.x,e.y+sink-hop);
   // scale about the body's own ground line (gy), not its center, so squashing/stretching keeps the
@@ -727,7 +730,7 @@ function over(){
 // shows a real AdSense ad unit (publisher ca-pub-3721061134092374, ad unit 1618303538) and simply requires the
 // player to wait out a fixed viewing period before the reward unlocks — the game enforces the wait itself,
 // Google isn't confirming the ad was actually watched. If the ad can't load (blocked, account not approved yet,
-// or running inside Claude's own preview) the slot just sits empty and the countdown still runs normally.
+// or running inside a sandboxed preview environment) the slot just sits empty and the countdown still runs normally.
 function showRewardedAd(onComplete){
   const WAIT=15; // seconds the player must wait with the ad on screen before the reward unlocks
   panel('<h1>AD BREAK</h1><ins id="adSlot" class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3721061134092374" data-ad-slot="1618303538"></ins><p id="adMsg">Loading ad\u2026</p><p>Reward unlocks in <span id="adT">'+WAIT+'</span>\u2026</p>');
@@ -997,10 +1000,14 @@ function update(dt){
       // a genuine bounce cycle, not a free-running animation clock: e.bph only advances while butter is
       // actually translating (mv), and is pinned back to 0 — grounded, no hop — the instant it stops, so
       // it never reads as hovering/floating in place while stationary. Each time the cycle wraps back to
-      // 0 is a landing: stamp a puddle into the shared puddle system right there on the ground.
+      // 0 is a landing: stamp a puddle into the shared puddle system right there on the ground, and set
+      // off a brief squash-impact pulse (e.bsq) that always decays on its own clock — so if butter stops
+      // moving (e.g. winding up to spit right next to the player) it relaxes to a normal resting pose
+      // instead of staying frozen in its most-flattened landing frame for as long as it stands still.
+      e.bsq=(e.bsq||0)*Math.exp(-dt*14);
       if(mv){
         e.bph=(e.bph||0)+dt/.5;
-        if(e.bph>=1){e.bph-=1;puddles.push({x:e.x,y:s.y,w:e.big?60:36,l:6});if(Math.abs(dx)<350)sfx.plop();if(puddles.length>40)puddles.shift()}
+        if(e.bph>=1){e.bph-=1;e.bsq=1;puddles.push({x:e.x,y:s.y,w:e.big?60:36,l:6});if(Math.abs(dx)<350)sfx.plop();if(puddles.length>40)puddles.shift()}
       }else e.bph=0;
     }
     if(fly&&e.esc>0)e.esc-=dt;
