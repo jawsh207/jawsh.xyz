@@ -1,0 +1,24 @@
+Privacy Policy for Bagman: Crust & Consequence
+Effective date: October 13, 2026
+This policy explains what information is collected when you use the Bagman: Crust & Consequence Android app (com.jawsh.bagman), made by [Developer name] ("we", "us").
+Information we collect
+We do not collect any personal information. The game has no accounts, no sign-in, and no chat, and we don't run any servers that receive information about you.
+Game progress
+Your progress and settings (checkpoint, items, upgrades, sound options) are saved only on your device and are never sent to us. Uninstalling the app or clearing its data deletes them.
+Advertising
+The app shows full-screen ads from Google AdMob, after a boss battle and after your character is defeated. To show and measure ads, limit repeats and prevent fraud, Google may automatically collect information from your device, including:
+your device's advertising ID
+your IP address, which can indicate your approximate location
+device information, such as model, operating system and language
+ad interactions, such as views and taps
+diagnostic data, such as crash and performance information from the ads software
+This information is collected and handled by Google under its Privacy Policy: https://policies.google.com/privacy. More on how Google uses data from apps that show its ads: https://policies.google.com/technologies/partner-sites.
+Your choices:
+Where required by law (such as in the EEA, UK and Switzerland), the app asks for your consent before ads are personalized.
+You can turn off personalized ads or reset your advertising ID in your Android settings (Settings → Google → Ads, or Settings → Privacy → Ads, depending on your device).
+Children
+The app is not directed to children under 13, and we do not knowingly collect personal information from children.
+Changes
+We may update this policy. Changes will be posted at this address with a new effective date.
+Contact
+jmizzle207@gmail.com
