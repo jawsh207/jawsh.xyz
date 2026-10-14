@@ -36,9 +36,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
 <title>Bagman: Breakfast Platformer</title>
-<!-- Google AdSense (publisher ca-pub-3721061134092374). This only loads/works once the file is hosted
-     on your own domain — a sandboxed preview environment blocks scripts from this host by design. -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3721061134092374" crossorigin="anonymous"></script>
+<!-- AdMob rewarded ads are handled entirely in showRewardedAd() below, via a native plugin global —
+     AdMob has no web <script> tag of its own, so there's nothing to load here. -->
 <style>
 :root{color-scheme:dark;--bg:#171210;--ink:#f3e6cf;--gold:#e8b83a;--red:#d63a2a;--panel:#3a2c1e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
@@ -163,6 +162,31 @@ function butter(e){
   brows(-8,'#5a4308');
   if(e.wu>0){const u=1-e.wu/.45;ell(e.side*2,6,3+u*3,2.5+u*3,'#7a4a08');ell(e.side*(6+u*5),5,2+u*5,2+u*4,'#ffe36a')}
   else{ctx.strokeStyle='#5a4308';ctx.beginPath();ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,2,5,6);ctx.stroke()}
+  ctx.globalAlpha=1;ctx.restore();
+}
+// Draws one milk-carton enemy, the Barnyard's own threat: a gable-top carton that hops/splashes toward
+// the player exactly like butter does (same e.bph/e.bsq bounce-cycle fields, same wind-up/spit timing —
+// just a "splash" instead of a spit), but with its own carton silhouette, label-stripe face and colors.
+function milk(e){
+  const dur=e.hazT=='burner'?.6:1.5,dp=Math.min(1,(e.dis||0)/dur),sink=dp*15,fade=1-dp*.7; // melts/spills away
+  const t=e.bph||0,arc=Math.sin(Math.PI*t);
+  const hop=arc*9,squash=e.bsq||0; // squashes flat right at touchdown, stretches a little tall at the apex
+  const gy=21,bsx=(e.r/15)*(1+dp*.35+squash*.22-arc*.08),bsy=(e.r/15)*(1-dp*.55-squash*.3+arc*.12);
+  ctx.save();ctx.translate(e.x,e.y+sink-hop);
+  // scale about the body's own ground line (gy), not its center — see butter() for why
+  ctx.translate(0,gy);ctx.scale(bsx,bsy);ctx.translate(0,-gy);
+  ctx.globalAlpha=fade;
+  ell(0,21,14,4.5+arc*2,`rgba(0,0,0,${(.35-arc*.18).toFixed(2)})`); // shadow tightens/darkens as it nears the ground
+  // the carton silhouette: a rectangular body topped by a folded gable peak, the way a real carton creases
+  ctx.fillStyle=e.fl>0?'#fff':'#f5f3ea';ctx.strokeStyle='#8a8370';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-11,21);ctx.lineTo(-11,-9);ctx.lineTo(-6,-20);ctx.lineTo(0,-26);ctx.lineTo(6,-20);ctx.lineTo(11,-9);ctx.lineTo(11,21);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#c9c3b0';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(-6,-20);ctx.lineTo(6,-20);ctx.moveTo(0,-26);ctx.lineTo(0,-9);ctx.stroke(); // the gable's fold creases
+  ctx.fillStyle=e.big?'#1a4fa0':'#2f7fd6';ctx.fillRect(-11,-4,22,8); // brand stripe
+  for(const sx of[-5,3])ell(sx,0,2,2.6,'rgba(255,255,255,.5)'); // a couple of droplet icons on the stripe
+  ell(-5,-5,3.3,2.2,'#eaf4fb');ell(5,-5,3.3,2.2,'#eaf4fb');ell(-5+e.side,-5,1.4,1.4,'#222');ell(5+e.side,-5,1.4,1.4,'#222');
+  brows(-8,'#2a2a2a');
+  if(e.wu>0){const u=1-e.wu/.45;ell(e.side*2,6,3+u*3,2.5+u*3,'#9ac8ea');ell(e.side*(6+u*5),5,2+u*5,2+u*4,'#eaf4fb')}
+  else{ctx.strokeStyle='#2a2a2a';ctx.beginPath();ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,2,5,6);ctx.stroke()}
   ctx.globalAlpha=1;ctx.restore();
 }
 // Draws the player character, Bagman: legs, striped shirt/arms, and the rectangular paper-bag head.
@@ -381,6 +405,7 @@ function skyPlat(s){
   ctx.strokeStyle='#2e3438';ctx.lineWidth=1;for(let gx=x+10;gx<x+w;gx+=14){ctx.beginPath();ctx.moveTo(gx,y+3);ctx.lineTo(gx,y+10);ctx.stroke()}
   ctx.fillStyle='#2e3438';ctx.fillRect(x,y+10,4,4);ctx.fillRect(x+w-4,y+10,4,4);
 }
+// Draws an old stone well: the Barnyard's water-refill station (this used to be the Alley's — see hydrant() above).
 function well(w){
   ctx.save();ctx.translate(w.x,w.y);
   for(const x of[-21,16]){ctx.fillStyle='#6a4420';ctx.fillRect(x,-86,5,60);ctx.fillStyle='#8a5a2c';ctx.fillRect(x,-86,1.6,60)}
@@ -398,6 +423,26 @@ function well(w){
   for(let r=0;r<3;r++)for(let i=-1;i<3;i++){ctx.fillStyle=`hsl(40,4%,${46+((i*5+r*7+9)&3)*6}%)`;ctx.beginPath();ctx.roundRect(-23+i*15+(r%2)*7+.5,-28+r*9.4+.5,14,8.4,2.5);ctx.fill()}
   ctx.restore();
   ctx.strokeStyle='#a0a098';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,-28,23,7,0,0,Math.PI);ctx.stroke();
+  ctx.restore();
+}
+// Draws a fire hydrant: the Alley's water-refill station (the Alley used to use a well; a well now
+// belongs to the Barnyard instead — see the [hydrant,sink,dispenser,well][area] dispatch in draw()).
+function hydrant(w){
+  ctx.save();ctx.translate(w.x,w.y);
+  ell(0,2,16,4,'rgba(0,0,0,.25)');
+  ctx.fillStyle='#8a1c14';ctx.beginPath();ctx.roundRect(-9,-6,18,6,2);ctx.fill(); // base flange
+  ctx.fillStyle='#c6281a';ctx.strokeStyle='#5a0e08';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-8,-6);ctx.lineTo(-8,-42);ctx.quadraticCurveTo(-8,-54,0,-56);ctx.quadraticCurveTo(8,-54,8,-42);ctx.lineTo(8,-6);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#8a1c14';ctx.fillRect(-8,-36,16,4);ctx.fillRect(-8,-22,16,4); // body bands
+  for(const sx of[-1,1]){ctx.save();ctx.translate(sx*8,-30);ctx.rotate(sx*Math.PI/2); // side nozzle caps
+    ctx.fillStyle='#c6281a';ctx.strokeStyle='#5a0e08';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-3,-3,10,6,2);ctx.fill();ctx.stroke();
+    ell(7,0,2.6,2.6,'#5a0e08');
+    ctx.restore()}
+  ctx.fillStyle='#e8d8b0';ctx.strokeStyle='#5a0e08';ctx.lineWidth=1.5; // top bolt/nut
+  ctx.beginPath();ctx.moveTo(0,-62);ctx.lineTo(5,-56);ctx.lineTo(0,-50);ctx.lineTo(-5,-56);ctx.closePath();ctx.fill();ctx.stroke();
+  ell(0,-56,2.4,2.4,'#8a1c14');
+  ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(-6,-42,2.4,30); // highlight
+  for(let k=0;k<2;k++){ctx.globalAlpha=.75;ell(-11,-30+((T*26+k*13)%16),1.6,1.6,'#7fd6ff')}ctx.globalAlpha=1; // a slow drip, matching the sink/dispenser's animated water cue
   ctx.restore();
 }
 
@@ -454,12 +499,13 @@ function dispenser(w){
 // Recomputes canvas size/scale for the current screen and rebuilds the brick/tile background pattern.
 function resize(){const cw=cv.clientWidth,ch=cv.clientHeight;DPR=Math.min(devicePixelRatio||1,2);cv.width=cw*DPR;cv.height=ch*DPR;K=Math.min(cw/560,ch/440);VW=cw/K;VH=ch/K;ty=VH-460;PL=230/K;PR=270/K}
 addEventListener('resize',resize);
-const GC=[['#3a3630','#57524a','#2a2723'],['#b9b29c','#dcd5c0','#8f8977'],['#4a3320','#6b4a2c','#33200f']];
-// Pre-renders the three areas' background wall/floor textures as repeating tile patterns.
-const pats=[0,1,2].map(a=>{const c=document.createElement('canvas');c.width=64;c.height=60;const b=c.getContext('2d');
+const GC=[['#3a3630','#57524a','#2a2723'],['#b9b29c','#dcd5c0','#8f8977'],['#4a3320','#6b4a2c','#33200f'],['#5a4a22','#8a7034','#332810']];
+// Pre-renders the four areas' background wall/floor textures as repeating tile patterns.
+const pats=[0,1,2,3].map(a=>{const c=document.createElement('canvas');c.width=64;c.height=60;const b=c.getContext('2d');
  if(a==0){b.fillStyle='#2a1a16';b.fillRect(0,0,64,60);for(let r=0;r<4;r++)for(let i=-1;i<2;i++){b.fillStyle=`hsl(8,${30+r*3}%,${20+((i*7+r*5+8)%4)*2.5}%)`;b.fillRect(i*32+(r%2)*16+1,r*15+1,30,13)}}
  else if(a==1){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#2b6068':'#357078';b.fillRect(x*32,y*30,32,30);b.strokeStyle='#1d4a52';b.lineWidth=2;b.strokeRect(x*32,y*30,32,30)}}
- else{for(let i=0;i<2;i++){b.fillStyle=i?'#3a2412':'#331f10';b.fillRect(i*32,0,32,60);b.fillStyle='#1a0e06';b.fillRect(i*32,0,2,60);b.fillStyle='#4a301a';b.fillRect(i*32+8,12+i*22,3,22)}}
+ else if(a==2){for(let i=0;i<2;i++){b.fillStyle=i?'#3a2412':'#331f10';b.fillRect(i*32,0,32,60);b.fillStyle='#1a0e06';b.fillRect(i*32,0,2,60);b.fillStyle='#4a301a';b.fillRect(i*32+8,12+i*22,3,22)}}
+ else{b.fillStyle='#7a2a20';b.fillRect(0,0,64,60);for(let r=0;r<5;r++){b.fillStyle=r%2?'#8a3226':'#6e2219';b.fillRect(0,r*12,64,11);b.fillStyle='#4a1510';b.fillRect(0,r*12+11,64,1)}b.fillStyle='#e8d8b0';b.fillRect(30,0,3,60)} // red barn-board siding with a cream batten seam
  return ctx.createPattern(c,'repeat')});
 
 /* ---------- audio: everything is synthesized live in code (original, no samples) ---------- */
@@ -487,7 +533,7 @@ const sfx={
   jump:()=>tone(280,.16,'square',.18,640),land:()=>tone(130,.09,'sine',.3,60),whoosh:()=>noise(.22,.3,300,1600,'bandpass',.2),
   slam:()=>{noise(.35,.7,1000,70,'lowpass');tone(95,.3,'sine',.8,35)},squirt:()=>noise(.08,.14,2600,1800),click:()=>tone(160,.04,'square',.1),
   splat:()=>tone(700,.05,'triangle',.1,350),hit:()=>{tone(170,.13,'sawtooth',.25,60);noise(.08,.3,2000,600)},
-  killT:()=>{noise(.16,.4,2600,500);tone(220,.16,'square',.2,80)},killB:()=>{tone(320,.22,'sine',.35,110);noise(.2,.25,900,300,'lowpass')},
+  killT:()=>{noise(.16,.4,2600,500);tone(220,.16,'square',.2,80)},killB:()=>{tone(320,.22,'sine',.35,110);noise(.2,.25,900,300,'lowpass')},killM:()=>{tone(500,.12,'triangle',.25,700);noise(.18,.3,1800,400,'lowpass')},
   hurt:()=>{tone(420,.3,'sawtooth',.3,90);noise(.15,.3,1500,300)},plop:()=>tone(230,.1,'sine',.06,100),coin:()=>{tone(1100,.05,'square',.18,1500);tone(1500,.09,'square',.14,2000,.05)},boing:()=>tone(160,.35,'sine',.3,720),roll:()=>noise(.12,.3,500,1400,'lowpass'),crack:()=>{tone(300,.07,'square',.15,120);noise(.08,.25,2200,700)},sizzle:()=>{noise(.3,.3,3500,1200,'bandpass');tone(500,.12,'sawtooth',.12,900)},spit:()=>{tone(260,.14,'sawtooth',.15,120);noise(.1,.2,900,400,'lowpass')},stab:()=>tone(900,.08,'square',.12,500),zap:()=>tone(1800,.04,'square',.08,2600),short:()=>{tone(1400,.1,'square',.15,3000);tone(200,.15,'sawtooth',.1,50,.05)},boom:()=>{noise(.4,.5,300,60,'lowpass');tone(80,.35,'sine',.9,30)},lose:()=>[392,330,262].forEach((f,i)=>tone(f,.25,'sawtooth',.22,0,i*.13)),check:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.25,0,i*.08)),screech:()=>{tone(1500,.3,'sawtooth',.1,800);tone(1200,.3,'square',.06,1700,.1)},eat:()=>[660,880,1100,1320].forEach((f,i)=>tone(f,.16,'triangle',.2,0,i*.07)),charge:()=>tone(180,1.8,'sawtooth',.1,900),eject:()=>{tone(120,.25,'sawtooth',.3,420);noise(.2,.3,1200,300)},bubble:()=>tone(380+Math.random()*420,.07,'sine',.12,1000),
   clear:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.28,'square',.22,0,i*.11)),over:()=>[392,330,262,196].forEach((f,i)=>tone(f,.32,'sawtooth',.25,0,i*.2))
 };
@@ -528,10 +574,10 @@ document.querySelectorAll('#pad button,#act button').forEach(b=>{
 const mkP=()=>({x:80,y:GY-25,vx:0,vy:0,g:1,face:1,hp:5,inv:0,ammo:MAXW,sw:0,swc:0,wc:0,coy:0,jh:0,kb:0,walk:0,bx:0,by:0,sd:1,bounceT:0,gunT:0,wx:0,wy:0});
 // Spawns one enemy: t = 't'/'b'/'f' (toast/butter/flying toaster), s = its home platform, zone = patrol area for flyers.
 function addE(t,x,s,big,zone){
-  const r=big?34:t=='t'?16:t=='b'?14:t=='c'?15:t=='g'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
+  const r=big?34:t=='t'?16:t=='b'?14:t=='c'?15:t=='g'?14:t=='m'?14:24,f=t=='f'?0:21*r/(t=='t'?17:15);
   E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?TOASTY:s.y-f,
-    hp:t=='g'?1:big?12+lvl*2:(t=='t'?3:t=='b'?4:t=='c'?3:4)+(lvl/8|0),
-    sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:t=='c'?36+lvl*2:t=='g'?34+lvl*2:70+lvl*2,
+    hp:t=='g'?1:big?12+lvl*2:(t=='t'?3:t=='b'?4:t=='c'?3:t=='m'?4:4)+(lvl/8|0),
+    sp:big?40:t=='t'?42+lvl*3:t=='b'?30+lvl*2:t=='c'?36+lvl*2:t=='g'?34+lvl*2:t=='m'?32+lvl*2:70+lvl*2,
     dir:Math.random()<.5?-1:1,side:1,kx:0,hc:0,fl:0,ph:Math.random()*6,pt:1,cd:1,wu:0,tt:0,th:0,eg:15,chg:0,cs:0,esc:0,blk:0,zone:zone||null,soak:0,sc:0,scT:0,vy:0,roll:0,wind:0,rollT:0,rdir:1,dis:0,hazT:null});
 }
 // Builds a themed climb tower (stepping platforms) plus the flat attack platform at its top, for one zone.
@@ -576,10 +622,10 @@ function newLevel(){
     // die off-screen the instant a level begins
     if(hazards.some(h=>Math.abs(h.x-x)<(h.w?h.w/2:h.r)+180))continue;
     const r=Math.random();let t=r>1-Math.min(.5,.1+lvl*.035)?'b':'t';
-    if(area==2&&Math.random()<.3)t='c';else if(area==1&&Math.random()<.3)t='g'; // bagels only in the Pantry, eggs only in the Kitchen
+    if(area==2&&Math.random()<.3)t='c';else if(area==1&&Math.random()<.3)t='g';else if(area==3&&Math.random()<.3)t='m'; // bagels only in the Pantry, eggs only in the Kitchen, milk cartons only in the Barnyard
     addE(t,x,s,false);i++;
   }
-  if(lvl%10==0)[['t'],['b'],['t','b']][area].forEach((t,j)=>{
+  if(lvl%10==0)[['t'],['b'],['t','b'],['t','b','m']][area].forEach((t,j)=>{
     let bx=L-450-j*220,bt=0;
     while(hazards.some(h=>Math.abs(h.x-bx)<(h.w?h.w/2:h.r)+180)&&bt++<20)bx-=90; // nudge clear of any hazard
     addE(t,bx,S[0],true);
@@ -663,7 +709,7 @@ function deoverlap(){
   if(drop.size)S=S.filter(s=>!drop.has(s));
 }
 /* ---------- menus, progress, pause ---------- */
-const AREAS=['The Alley','The Kitchen','The Pantry'],NL=30,LPA=10;
+const AREAS=['The Alley','The Kitchen','The Pantry','The Barnyard'],NL=40,LPA=10;
 // Formats a level number as "area-level" (e.g. 12 -> "2-2"); stars() renders a 0-3 star rating as text.
 const lab=n=>(((n-1)/LPA|0)+1)+'-'+((n-1)%LPA+1),stars=n=>'★'.repeat(n)+'☆'.repeat(3-n);
 // Writes saved progress (best score/stars per level) to the browser's localStorage.
@@ -681,13 +727,13 @@ $('mute').innerHTML=ICON.on;$('pause').innerHTML=ICON.pause;
 // Toggles audio mute on/off and updates the speaker icon.
 function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').innerHTML=m?ICON.off:ICON.on}
 // Shows the title screen (Play / Scoreboard) with the how-to-play text.
-function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+B('help','HOW TO PLAY',null,'r')+'<p>Fight your way through the Alley, the Kitchen and the Pantry.</p>')}
+function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+B('help','HOW TO PLAY',null,'r')+'<p>Fight your way through the Alley, the Kitchen, the Pantry and the Barnyard.</p>')}
 function helpMenu(){state='menu';musicStop();panel('<h1 class="s">HOW TO PLAY</h1><p>'+[
   'A/D or the arrows move, W or the jump button jumps — double-tap a direction to run.',
-  'SWING slams the ball and chain in front of you. SQUIRT fires your water gun; refill at wells, sinks and dispensers.',
-  'Jump on toast or butter to squash them. 5 squirts short out a flying toaster — its platform is high up, with a ground spring the only way to reach it.',
-  'Burner coils kill toast, butter and eggs outright; the wide molten butter pools only toast and butter can enter — eggs turn away from those, bagels turn away from everything. None of this earns you points — but a well-placed toaster explosion still does.',
-  'Pantry bagels tense up and roll into a dashing spin at you. Kitchen eggs crack into a sticky yolk when killed — smash it with the ball and chain, or let a coil fry it away on its own.',
+  'SWING slams the ball and chain in front of you. SQUIRT fires your water gun; refill at fire hydrants, sinks, dispensers and wells.',
+  'Jump on toast, butter or milk cartons to squash them. 5 squirts short out a flying toaster — its platform is high up, with a ground spring the only way to reach it.',
+  'Burner coils kill toast, butter, eggs and milk cartons outright; the wide molten butter pools only toast, butter and milk cartons can enter — eggs turn away from those, bagels turn away from everything. None of this earns you points — but a well-placed toaster explosion still does.',
+  'Pantry bagels tense up and roll into a dashing spin at you. Kitchen eggs crack into a sticky yolk when killed — smash it with the ball and chain, or let a coil fry it away on its own. Barnyard milk cartons bounce toward you and splash on landing, just like butter.',
   'Defeated toast drops crumbs for points. Every 5th kill while hurt brings a food delivery; a boss kill brings a full meal.',
   'A checkpoint sits at each level\'s midpoint. 3 lives a run — lose all your hearts and you respawn there.',
   'A connected gamepad also works, menus included: stick or d-pad to move or navigate, A to jump or confirm, X to swing, B or Y to squirt, Start to pause.'
@@ -722,28 +768,36 @@ function over(){
   const areaStart=area*10+1,bossLvl=area*10+10,areaDone=!!prog[bossLvl],backTo=areaDone?cur:areaStart;
   panel('<h1>YOU\'RE<br>TOAST</h1><p>Out of lives on level '+lab(lvl)+'<br>Score '+score+(areaDone?'':'<br>Area not finished — back to '+lab(areaStart))+'</p>'+B('watchAd','\uD83D\uDCFA WATCH AD: +1 LIFE')+B('start','TRY AGAIN',backTo)+B('levels','LEVELS',null,'r'))
 }
-// PLACEHOLDER for a real rewarded-ad SDK. Swap this function's body for the real call (a native AdMob plugin
-// after wrapping this page with Capacitor/Cordova, or Google's H5 Games Ads for a pure web build): call
-// onComplete() only once the user actually finishes watching the ad, and add an onFail path for
-// skipped/closed/no-fill cases (this placeholder always "succeeds" after a short simulated countdown).
-// Regular AdSense has no built-in "rewarded ad" signal (that's only offered by H5 Games Ads or AdMob), so this
-// shows a real AdSense ad unit (publisher ca-pub-3721061134092374, ad unit 1618303538) and simply requires the
-// player to wait out a fixed viewing period before the reward unlocks — the game enforces the wait itself,
-// Google isn't confirming the ad was actually watched. If the ad can't load (blocked, account not approved yet,
-// or running inside a sandboxed preview environment) the slot just sits empty and the countdown still runs normally.
+// CHANGE ME: these are Google's public AdMob *test* ad unit IDs (safe to ship as-is during development —
+// they always serve a test creative and never earn real money). Swap in the real ones once there's an
+// actual AdMob account/app. The AdMob App ID itself doesn't go here at all — it's declared in the native
+// project config once this page is wrapped (the <meta-data> entry in AndroidManifest.xml, or the
+// GADApplicationIdentifier key in Info.plist), not in this HTML file.
+const ADMOB_REWARDED_AD_UNIT={android:'ca-app-pub-3940256099942544/5224354917',ios:'ca-app-pub-3940256099942544/1712485313'};
+// PLACEHOLDER for a real rewarded-ad SDK. AdMob is a native SDK, not a web script, so there's nothing to
+// load in <head> — once this page is wrapped in a native shell (Capacitor/Cordova) with an AdMob plugin
+// installed, that plugin exposes a global (window.AdMob below; match this to whatever plugin you actually
+// install) which this function calls directly: prepare the rewarded ad for the platform's ad unit ID,
+// show it, and only call onComplete() from the plugin's own reward event — never optimistically. Until
+// that wrapper exists (including here, in a plain web preview), window.AdMob is simply undefined, so this
+// falls back to a simulated wait so testing/play is never blocked on having a real native build.
 function showRewardedAd(onComplete){
-  const WAIT=15; // seconds the player must wait with the ad on screen before the reward unlocks
-  panel('<h1>AD BREAK</h1><ins id="adSlot" class="adsbygoogle" style="display:inline-block;width:300px;height:250px" data-ad-client="ca-pub-3721061134092374" data-ad-slot="1618303538"></ins><p id="adMsg">Loading ad\u2026</p><p>Reward unlocks in <span id="adT">'+WAIT+'</span>\u2026</p>');
-  try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}
-  // AdSense marks the slot's data-ad-status as "filled" or "unfilled" a moment after the push above;
-  // only report a real problem once we actually know the outcome, instead of guessing.
-  setTimeout(()=>{
-    const slot=$('adSlot'),msg=$('adMsg');if(!slot||!msg)return;
-    const status=slot.getAttribute('data-ad-status');
-    if(status==='filled')msg.textContent='';
-    else if(status==='unfilled')msg.textContent='(No ad available right now)';
-    else msg.textContent='(Ad space \u2014 AdSense script not loaded here)';
-  },1500);
+  const WAIT=15; // seconds the player must wait with the ad on screen before the reward unlocks, fallback path only
+  if(window.AdMob&&window.AdMob.prepareRewardVideoAd){
+    panel('<h1>AD BREAK</h1><p id="adMsg">Loading ad\u2026</p>');
+    const adId=/android/i.test(navigator.userAgent)?ADMOB_REWARDED_AD_UNIT.android:ADMOB_REWARDED_AD_UNIT.ios;
+    let done=false;
+    const cleanup=()=>{document.removeEventListener('admob.rewardvideo.reward',onReward);document.removeEventListener('admob.rewardvideo.loadfail',onFail);document.removeEventListener('admob.rewardvideo.exit',onFail)};
+    const onReward=()=>{if(done)return;done=true;cleanup();onComplete()};
+    const onFail=()=>{if(done)return;done=true;cleanup();const m=$('adMsg');if(m)m.textContent='(No ad available right now)';setTimeout(onComplete,900)};
+    document.addEventListener('admob.rewardvideo.reward',onReward);
+    document.addEventListener('admob.rewardvideo.loadfail',onFail);
+    document.addEventListener('admob.rewardvideo.exit',onFail);
+    try{window.AdMob.prepareRewardVideoAd({adId});window.AdMob.showRewardVideoAd()}catch(e){onFail()}
+    return;
+  }
+  // fallback: no native AdMob plugin present (plain web page / preview) — simulate the wait so play isn't blocked
+  panel('<h1>AD BREAK</h1><p id="adMsg">(Ad space \u2014 AdMob not available here)</p><p>Reward unlocks in <span id="adT">'+WAIT+'</span>\u2026</p>');
   let t=WAIT;
   const iv=setInterval(()=>{
     t--;const el=$('adT');if(el)el.textContent=t;
@@ -883,13 +937,13 @@ function hurt(e,d,dir,kb,env){
   e.hp-=d;if(d>=1){e.hc=.3;sfx.hit()}e.fl=.1;e.kx=dir*kb;
   if(e.hp<=0&&!e.dead){e.dead=1;
     if(e.t=='g'){sfx.crack();yolks.push({x:e.x,y:e.sf?e.sf.y:GY,r:22,burn:e.hazT=='burner'?1.1:0})}
-    else sfx[e.t=='b'?'killB':'killT']();
-    {const splat=e.t=='b'||e.t=='g';comix.push({x:e.x,y:e.y-e.r-10,txt:splat?'SPLAT!':'KRUNCH!',c:!splat,l:.7,rot:(Math.random()-.5)*.3})} // bagels share toast's KRUNCH, eggs share butter's SPLAT
+    else sfx[{b:'killB',m:'killM'}[e.t]||'killT']();
+    {const splat=e.t=='b'||e.t=='g'||e.t=='m';comix.push({x:e.x,y:e.y-e.r-10,txt:splat?'SPLAT!':'KRUNCH!',c:!splat,l:.7,rot:(Math.random()-.5)*.3})} // bagels share toast's KRUNCH, eggs and milk cartons share butter's SPLAT
     shake=Math.max(shake,e.big?9:2);
-    const pc={t:['#7a431f','#c88a4a','#3b1e0d'],b:['#f5d04a','#ffe88a','#d9a92a'],c:['#d9a24a','#f0c878','#8a5a1e'],g:['#fff','#f0e4c8','#f5c518']}[e.t]||['#c9d1d5','#5e676c','#ff5a3a'];
-    burst(e.x,e.y,pc,e.big?30:12,e.t!='b');
+    const pc={t:['#7a431f','#c88a4a','#3b1e0d'],b:['#f5d04a','#ffe88a','#d9a92a'],c:['#d9a24a','#f0c878','#8a5a1e'],g:['#fff','#f0e4c8','#f5c518'],m:['#f5f3ea','#eaf4fb','#2f7fd6']}[e.t]||['#c9d1d5','#5e676c','#ff5a3a'];
+    burst(e.x,e.y,pc,e.big?30:12,e.t!='b'&&e.t!='m');
     if(!env){ // the environment (molten butter, etc) killing something earns the player nothing
-      onKill(e);score+=e.big?100:e.t=='t'?10:e.t=='b'?15:e.t=='c'?12:e.t=='g'?10:30;
+      onKill(e);score+=e.big?100:e.t=='t'?10:e.t=='b'?15:e.t=='c'?12:e.t=='g'?10:e.t=='m'?15:30;
       if(e.t=='t'){ // crumbs only ever come from defeated toast, dropped right where it fell
         const n=e.big?3:1;
         for(let i=0;i<n;i++)coins.push({x:e.x+(i-(n-1)/2)*16,y:e.y-6,ph:Math.random()*6,c:['#c9a36a','#a97c42','#8a5a2e','#e0c080'][Math.random()*4|0]});
@@ -966,7 +1020,7 @@ function update(dt){
       if(e.t=='f'&&!e.sc){e.soak++;e.fl=.12;sfx.zap();if(e.soak>=SOAK_MAX)shortCircuit(e)}
       else{hurt(e,.5,Math.sign(b.vx),90);sfx.splat()}
     }
-    for(const q of blobs)if(!b.d&&q.l>0&&Math.hypot(b.x-q.x,b.y-q.y)<q.r+7){b.d=1;q.l=0;burst(q.x,q.y,['#f5d04a','#7fd6ff'],6,0);sfx.splat()}
+    for(const q of blobs)if(!b.d&&q.l>0&&Math.hypot(b.x-q.x,b.y-q.y)<q.r+7){b.d=1;q.l=0;burst(q.x,q.y,q.m?['#eaf4fb','#7fd6ff']:['#f5d04a','#7fd6ff'],6,0);sfx.splat()}
     if(b.d||b.y>GY)b.l=0;
   }
   shots=shots.filter(b=>b.l>0);
@@ -991,23 +1045,23 @@ function update(dt){
       if(e.wind>0){mv=0;e.wind-=dt;if(e.wind<=0){e.roll=1;e.rollT=.55;sfx.roll()}}
       if(e.roll){d=e.rdir;e.rollT-=dt;if(e.rollT<=0)e.roll=0}
     }
-    if((e.t=='t'||e.t=='b')&&e.dis>0)mv=0; // frozen in place while melting/dissolving
+    if((e.t=='t'||e.t=='b'||e.t=='m')&&e.dis>0)mv=0; // frozen in place while melting/dissolving
     const spMul=e.t=='c'&&e.roll?4:(near?1.8:1);
-    if(e.t=='b'&&e.dis<=0){
+    if((e.t=='b'||e.t=='m')&&e.dis<=0){ // butter and milk cartons share the same hop/wind-up/splash plumbing
       if(near&&Math.abs(dx)<150)mv=0;
       if(near&&Math.abs(dx)<170&&e.cd<=0&&e.wu<=0){e.wu=.45;e.cd=2.4}
-      if(e.wu>0){mv=0;e.wu-=dt;if(e.wu<=0){const tt=Math.max(.15,Math.abs(dx)/240);blobs.push({x:e.x+d*e.r,y:e.y-4,vx:d*240,vy:(P.y-e.y+4)/tt-110*tt,l:2,r:e.big?10:6});sfx.spit()}}
-      // a genuine bounce cycle, not a free-running animation clock: e.bph only advances while butter is
+      if(e.wu>0){mv=0;e.wu-=dt;if(e.wu<=0){const tt=Math.max(.15,Math.abs(dx)/240);blobs.push({x:e.x+d*e.r,y:e.y-4,vx:d*240,vy:(P.y-e.y+4)/tt-110*tt,l:2,r:e.big?10:6,m:e.t=='m'});sfx.spit()}}
+      // a genuine bounce cycle, not a free-running animation clock: e.bph only advances while butter/milk is
       // actually translating (mv), and is pinned back to 0 — grounded, no hop — the instant it stops, so
       // it never reads as hovering/floating in place while stationary. Each time the cycle wraps back to
       // 0 is a landing: stamp a puddle into the shared puddle system right there on the ground, and set
-      // off a brief squash-impact pulse (e.bsq) that always decays on its own clock — so if butter stops
+      // off a brief squash-impact pulse (e.bsq) that always decays on its own clock — so if it stops
       // moving (e.g. winding up to spit right next to the player) it relaxes to a normal resting pose
       // instead of staying frozen in its most-flattened landing frame for as long as it stands still.
       e.bsq=(e.bsq||0)*Math.exp(-dt*14);
       if(mv){
         e.bph=(e.bph||0)+dt/.5;
-        if(e.bph>=1){e.bph-=1;e.bsq=1;puddles.push({x:e.x,y:s.y,w:e.big?60:36,l:6});if(Math.abs(dx)<350)sfx.plop();if(puddles.length>40)puddles.shift()}
+        if(e.bph>=1){e.bph-=1;e.bsq=1;puddles.push({x:e.x,y:s.y,w:e.big?60:36,l:6,m:e.t=='m'});if(Math.abs(dx)<350)sfx.plop();if(puddles.length>40)puddles.shift()}
       }else e.bph=0;
     }
     if(fly&&e.esc>0)e.esc-=dt;
@@ -1027,14 +1081,14 @@ function update(dt){
       }
     }
     e.x=nx;e.side=d;e.ph+=dt*e.sp/12;
-    if((e.t=='t'||e.t=='b'||e.t=='g')&&!fly&&s===S[0]){
+    if((e.t=='t'||e.t=='b'||e.t=='g'||e.t=='m')&&!fly&&s===S[0]){
       const hz=hazards.find(h=>Math.abs(e.x-h.x)<hazHw(h)+e.r*.5);
       const vulnerable=hz&&(e.t!='g'||hz.type=='burner'); // egg only vulnerable to a burner, not molten butter
       if((vulnerable&&!e.dead)||e.dis>0){ // once it's started dying to a hazard there's no walking back out of it
         if(hz&&!e.hazT){e.hazT=hz.type;if(hz.type=='burner')sfx.sizzle()} // lock in which kind of hazard triggered this, for the right effect
         const fast=e.hazT=='burner',dur=fast?.6:1.5;
         e.dis+=dt;e.fl=.1;
-        const fx=e.t=='t'?(fast?['#ff5a2a','#ffb02a','#fff2a0']:['#f0c93a','#fff2a0']):e.t=='b'?(fast?['#ffe88a','#fff','#c9eaff']:['#ffe88a','#fff2b0']):['#fff','#f5c518','#ffb02a'];
+        const fx=e.t=='t'?(fast?['#ff5a2a','#ffb02a','#fff2a0']:['#f0c93a','#fff2a0']):e.t=='b'?(fast?['#ffe88a','#fff','#c9eaff']:['#ffe88a','#fff2b0']):e.t=='m'?(fast?['#eaf4fb','#fff','#2f7fd6']:['#eaf4fb','#dff0fb']):['#fff','#f5c518','#ffb02a'];
         if(e.dis>.1&&(e.dis*8)%1<dt*8)burst(e.x,e.y,fx,fast?3:2,0);
         if(e.dis>=dur&&!e.dead)hurt(e,999,e.side,0,true); // the hazard killed it, not the player — no reward
       }
@@ -1068,9 +1122,9 @@ function update(dt){
   E=E.filter(e=>e.hp>0);
   for(const b of blobs){
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy+=220*dt;b.l-=dt;
-    if(P.sw>0&&P.el>=.22&&Math.hypot(b.x-P.bx,b.y-P.by)<b.r+12){b.l=0;burst(b.x,b.y,['#f5d04a','#ffe88a'],6,0);sfx.splat()}
+    if(P.sw>0&&P.el>=.22&&Math.hypot(b.x-P.bx,b.y-P.by)<b.r+12){b.l=0;burst(b.x,b.y,b.m?['#eaf4fb','#ffffff']:['#f5d04a','#ffe88a'],6,0);sfx.splat()}
     else if(P.inv<=0&&Math.abs(b.x-P.x)<b.r+9&&Math.abs(b.y-P.y)<b.r+30){b.l=0;hitP(b.vx)}
-    else if(b.y>GY-2){puddles.push({x:b.x,y:GY,w:44,l:6});b.l=0}
+    else if(b.y>GY-2){puddles.push({x:b.x,y:GY,w:44,l:6,m:b.m});b.l=0}
   }
   blobs=blobs.filter(b=>b.l>0);
   /* never more than 2 flying toasters exist at once, so never more than 2 on screen; extras queue up and fly in later from off-screen */
@@ -1111,7 +1165,7 @@ function draw(){
   const X=DPR*K;ctx.setTransform(X,0,0,X,0,0);
   ctx.save();ctx.translate(-(((cam*.5)%64+64)%64),0);ctx.fillStyle=pats[area];ctx.fillRect(0,0,VW+64,VH);ctx.restore();
   ctx.translate(-cam+(Math.random()-.5)*shake,ty+(Math.random()-.5)*shake);
-  ctx.fillStyle='rgba(230,205,110,.55)';ctx.font='900 18px '+FONT;ctx.textAlign='left';ctx.fillText(['THE BAG','FRESH TOAST','DRY GOODS'][area],60,GY-130);
+  ctx.fillStyle='rgba(230,205,110,.55)';ctx.font='900 18px '+FONT;ctx.textAlign='left';ctx.fillText(['THE BAG','FRESH TOAST','DRY GOODS','THE BARNYARD'][area],60,GY-130);
   const gc=GC[area];ctx.fillStyle=gc[0];ctx.fillRect(cam-10,GY,VW+20,400);ctx.fillStyle=gc[1];ctx.fillRect(cam-10,GY,VW+20,6);ctx.fillStyle=gc[2];
   for(let x=Math.floor(cam/80)*80;x<cam+VW+80;x+=80)ctx.fillRect(x,GY+6,3,400);
   for(const s of S)if(s.y<GY&&s.x<cam+VW&&s.x+s.w>cam){
@@ -1127,13 +1181,13 @@ function draw(){
   {const fw=Math.sin(T*5)*(cpOn?5:2);ctx.fillStyle='#9aa3a8';ctx.fillRect(cpX-2,GY-96,4,96);ell(cpX,GY-97,4,4,'#d5dde1');ell(cpX,GY-1,12,3,'#5e676c');
    ctx.fillStyle=cpOn?'#2fbf5a':'#c8382a';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cpX+2,GY-92);ctx.quadraticCurveTo(cpX+22,GY-92+fw,cpX+44,GY-84+fw*1.4);ctx.quadraticCurveTo(cpX+22,GY-76+fw,cpX+2,GY-70);ctx.closePath();ctx.fill();ctx.stroke();
    if(cpOn){ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText('✓',cpX+18,GY-78+fw*.6)}}
-  for(const w of wells)[well,sink,dispenser][area](w);
-  for(const p of puddles){ctx.globalAlpha=Math.min(.75,p.l/1.5*.75);ell(p.x,p.y-2,p.w/2,4,'#f0cc3c');ell(p.x-6,p.y-3,6,1.5,'#fff2a0')}ctx.globalAlpha=1;
+  for(const w of wells)[hydrant,sink,dispenser,well][area](w);
+  for(const p of puddles){ctx.globalAlpha=Math.min(.75,p.l/1.5*.75);if(p.m){ell(p.x,p.y-2,p.w/2,4,'#eaf4fb');ell(p.x-6,p.y-3,6,1.5,'#ffffff')}else{ell(p.x,p.y-2,p.w/2,4,'#f0cc3c');ell(p.x-6,p.y-3,6,1.5,'#fff2a0')}}ctx.globalAlpha=1;
   if(fx){ctx.globalAlpha=1-fx.t/.25;ctx.strokeStyle='#e8d8b0';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(fx.x,fx.y-2,20+90*fx.t/.25,4+8*fx.t/.25,0,0,7);ctx.stroke();ctx.globalAlpha=1}
   for(const it of items){const b=it.on?Math.sin(T*4+it.ph)*3:0;ell(it.x,it.sf.y-2,15,3,'rgba(0,0,0,.25)');ctx.globalAlpha=.3+.12*Math.sin(T*5);ell(it.x,it.y-18-b,30,26,'#fff2a0');ctx.globalAlpha=1;food(it.t,it.x,it.y-6-b,1)}
   for(const y of yolks)if(y.x>cam-30&&y.x<cam+VW+30)yolk(y);
   for(const e of E)if(e.x>cam-90&&e.x<cam+VW+90){
-    ({t:toast,b:butter,f:toaster,c:bagel,g:egg})[e.t](e);
+    ({t:toast,b:butter,f:toaster,c:bagel,g:egg,m:milk})[e.t](e);
     if(e.t=='f'&&e.soak>0&&!e.sc){ // a straight meter below the toaster showing its short-circuit progress
       const p=Math.min(1,e.soak/SOAK_MAX),barY=e.y+e.r+14,hw=16;
       ctx.save();ctx.lineCap='round';
@@ -1142,7 +1196,7 @@ function draw(){
       ctx.restore();
     }
   }
-  for(const q of blobs){ell(q.x,q.y,q.r,q.r*.85,'#f0c93a');ell(q.x-q.r*.3,q.y-q.r*.3,q.r*.35,q.r*.25,'#fff2a0')}
+  for(const q of blobs){if(q.m){ell(q.x,q.y,q.r,q.r*.85,'#eaf4fb');ell(q.x-q.r*.3,q.y-q.r*.3,q.r*.35,q.r*.25,'#ffffff')}else{ell(q.x,q.y,q.r,q.r*.85,'#f0c93a');ell(q.x-q.r*.3,q.y-q.r*.3,q.r*.35,q.r*.25,'#fff2a0')}}
   if(!(P.inv>0&&(T*20|0)%2)){ctx.save();ctx.translate(P.x,P.y+25);ctx.scale(1.12,1.12);ctx.translate(-P.x,-P.y-25);bag();if(P.sw<=0)gun(P.gunT);ball();ctx.restore()}
   for(const g of eagles)eagle(g);
   for(const q of comix)comicPop(q);
