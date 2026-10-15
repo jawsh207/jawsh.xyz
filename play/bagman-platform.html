@@ -162,7 +162,15 @@ function toast(e){
     ctx.beginPath();ctx.roundRect(-2.5,-5,5,12,2.5);ctx.fill();ctx.stroke();
     ctx.restore();
   }
-  knife(e.side,e.ph,'#4a2a14');ctx.globalAlpha=1;ctx.restore();
+  knife(e.side,e.ph,'#4a2a14');
+  if(e.big&&AREAS[area]=="The Grain Silos"){ // Tex, the Texas Toast Outlaw -- a costume worn only by this specific boss; everything else about this toast (stats, hazards, hurt(), the knife prop above) is the same toast() everyone else uses
+    ctx.fillStyle='#8a5a2c';ctx.strokeStyle='#4a2e18';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.ellipse(0,-24,17,5,0,0,7);ctx.fill();ctx.stroke(); // hat brim
+    ctx.beginPath();ctx.moveTo(-8,-25);ctx.quadraticCurveTo(0,-40,8,-25);ctx.closePath();ctx.fill();ctx.stroke(); // hat crown
+    ell(-13,-24,2,2,'#e8d8b0');ell(13,-24,2,2,'#e8d8b0'); // hat-band studs
+    ctx.fillStyle='#c6281a';ctx.beginPath();ctx.moveTo(-9,2);ctx.lineTo(9,2);ctx.lineTo(0,14);ctx.closePath();ctx.fill(); // bandana
+  }
+  ctx.globalAlpha=1;ctx.restore();
 }
 // Draws one butter enemy, including the melting drips and its mouth glowing before it spits.
 // Butter has no limbs at all — it gets around by hopping, bouncing higher and squashing flatter on
@@ -176,9 +184,14 @@ function butter(e){
   brows(-8,'#5a4308');
   if(e.wu>0){const u=1-e.wu/.45;ell(e.side*2,6,3+u*3,2.5+u*3,'#7a4a08');ell(e.side*(6+u*5),5,2+u*5,2+u*4,'#ffe36a')}
   else{ctx.strokeStyle='#5a4308';ctx.beginPath();ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,2,5,6);ctx.stroke()}
+  if(e.big&&AREAS[area]=="The Creamery"){ // Duchess Blister, Queen of the Creamery -- a crown worn only by this specific boss; everything else about this butter (stats, hazards, hurt(), the bounce/spit above) is the same butter() everyone else uses
+    ctx.fillStyle='#e8c23a';ctx.strokeStyle='#8a6a10';ctx.lineWidth=1.3;
+    ctx.beginPath();ctx.moveTo(-10,-17);ctx.lineTo(-10,-24);ctx.lineTo(-5,-19);ctx.lineTo(0,-28);ctx.lineTo(5,-19);ctx.lineTo(10,-24);ctx.lineTo(10,-17);ctx.closePath();ctx.fill();ctx.stroke(); // scalloped crown band + points
+    ctx.fillStyle='#c6281a';ell(0,-28,1.8,1.8,'#c6281a');ell(-10,-24,1.4,1.4,'#2f7fd6');ell(10,-24,1.4,1.4,'#2f7fd6'); // ruby tip, sapphire points
+  }
   ctx.globalAlpha=1;ctx.restore();
 }
-// Draws one milk-carton enemy, the Barnyard's own threat: a gable-top carton that hops/splashes toward
+// Draws one milk-carton enemy, the Grain Silos' own threat: a gable-top carton that hops/splashes toward
 // the player exactly like butter does (same e.bph/e.bsq bounce-cycle fields, same wind-up/spit timing —
 // just a "splash" instead of a spit), but with its own carton silhouette, label-stripe face and colors.
 function milk(e){
@@ -193,6 +206,56 @@ function milk(e){
   brows(-8,'#2a2a2a');
   if(e.wu>0){const u=1-e.wu/.45;ell(e.side*2,6,3+u*3,2.5+u*3,'#9ac8ea');ell(e.side*(6+u*5),5,2+u*5,2+u*4,'#eaf4fb')}
   else{ctx.strokeStyle='#2a2a2a';ctx.beginPath();ctx.moveTo(-5,6);ctx.quadraticCurveTo(0,2,5,6);ctx.stroke()}
+  ctx.globalAlpha=1;ctx.restore();
+}
+// Draws the butter-knife boss (Sir Spreadsalot, the Back Alley's boss): a giant dinner knife with a
+// butter smear along the blade, legless like butter -- it slides into position rather than walking.
+function knifeBoss(e){
+  const{dp,sink,fade}=dissolve(e,16); // the butter smear melts away as it's beaten
+  const s=e.r/15;ctx.save();ctx.translate(e.x,e.y+sink);ctx.scale(s,s);ctx.rotate(Math.sin(e.ph)*.04);ctx.globalAlpha=fade;
+  ell(0,34,19,5,'rgba(0,0,0,.35)');
+  ctx.fillStyle=e.fl>0?'#fff':'#c9a96a';ctx.strokeStyle='#5a4420';ctx.lineWidth=1.5; // crossguard ("arms")
+  ctx.beginPath();ctx.roundRect(-20,6,40,8,3);ctx.fill();ctx.stroke();
+  ctx.fillStyle=e.fl>0?'#fff':'#4a3a30';ctx.strokeStyle='#241a12';ctx.lineWidth=2; // handle
+  ctx.beginPath();ctx.roundRect(-7,14,14,22,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=e.fl>0?'#fff':'#d7dde2';ctx.strokeStyle='#7a828a';ctx.lineWidth=2; // blade
+  ctx.beginPath();ctx.moveTo(-9,6);ctx.lineTo(-9,-30);ctx.quadraticCurveTo(-9,-42,0,-44);ctx.quadraticCurveTo(9,-42,9,-30);ctx.lineTo(9,6);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-5,2);ctx.lineTo(-5,-28);ctx.stroke(); // blade highlight
+  ctx.fillStyle='#f0c93a';ctx.beginPath();ctx.moveTo(5,2);ctx.quadraticCurveTo(10,-10,6,-24);ctx.quadraticCurveTo(10,-30,7,-38);ctx.lineTo(3,-36);ctx.quadraticCurveTo(6,-28,3,-22);ctx.quadraticCurveTo(6,-10,1,0);ctx.closePath();ctx.fill(); // butter smear
+  ell(-3,-14,3,2.3,'#ff2a1a');ell(3,-14,3,2.3,'#ff2a1a');brows(-18,'#5a4a30');
+  ctx.strokeStyle='#5a4a30';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-4,-6);ctx.quadraticCurveTo(0,-2,4,-6);ctx.stroke();
+  ctx.globalAlpha=1;ctx.restore();
+}
+// Draws the greasy-spoon boss (Greasy Gus, the Greasy Spoon's boss): a giant metal spoon with a
+// grease stain and a face in the bowl.
+function spoon(e){
+  const{dp,sink,fade}=dissolve(e,16);
+  const s=e.r/15;ctx.save();ctx.translate(e.x,e.y+sink);ctx.scale(s,s);ctx.rotate(Math.sin(e.ph)*.04);ctx.globalAlpha=fade;
+  ell(0,34,20,5,'rgba(0,0,0,.35)');
+  ctx.fillStyle=e.fl>0?'#fff':'#8a8f94';ctx.strokeStyle='#4a4f54';ctx.lineWidth=2; // handle
+  ctx.beginPath();ctx.roundRect(-5,2,10,34,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle=e.fl>0?'#fff':'#c2c8cc';ctx.strokeStyle='#4a4f54';ctx.lineWidth=2; // bowl
+  ctx.beginPath();ctx.ellipse(0,-20,17,22,0,0,7);ctx.fill();ctx.stroke();
+  ell(5,-14,7,9,'rgba(138,110,30,.5)'); // grease stain
+  ell(-6,-28,4,7,'rgba(255,255,255,.5)'); // shine
+  ell(-6,-22,3,2.4,'#ff2a1a');ell(6,-22,3,2.4,'#ff2a1a');brows(-27,'#4a4f54');
+  ctx.strokeStyle='#4a4f54';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-5,-10);ctx.quadraticCurveTo(0,-6,5,-10);ctx.stroke();
+  ctx.globalAlpha=1;ctx.restore();
+}
+// Draws the French-toast boss (François, the French Toast Terror, Café Croissant's boss): an egg-dipped
+// slice with a beret and a curly mustache, dripping syrup.
+function frenchToast(e){
+  const{dp,sink,fade}=dissolve(e,15);
+  const s=e.r/16,arc=Math.sin(Math.PI*(e.bph||0));
+  ctx.save();ctx.translate(e.x,e.y+sink);ctx.scale(s,s);ctx.globalAlpha=fade;
+  ell(0,21,16,4.5,'rgba(0,0,0,.35)');
+  ctx.fillStyle=e.fl>0?'#fff':'#d9a24a';ctx.strokeStyle='#6a4410';ctx.lineWidth=2; // golden, egg-dipped crust
+  ctx.beginPath();ctx.moveTo(-15,18);ctx.lineTo(-15,-6);ctx.bezierCurveTo(-20,-20,-8,-23,0,-19);ctx.bezierCurveTo(8,-23,20,-20,15,-6);ctx.lineTo(15,18);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(120,70,10,.5)';ctx.lineWidth=1.5;for(const[x,y]of[[-7,-11],[6,-13],[-8,8],[8,6],[1,10]]){ctx.beginPath();ctx.arc(x,y,2,0,7);ctx.stroke()} // cinnamon speckles
+  ctx.fillStyle='#d9a230';ctx.beginPath();ctx.moveTo(-12,-3);ctx.quadraticCurveTo(0,-9,12,-3);ctx.quadraticCurveTo(0,3,-12,-3);ctx.closePath();ctx.fill(); // beret
+  ell(-5,0,3.2,2.4,'#2a1a0a');ell(5,0,3.2,2.4,'#2a1a0a');brows(-6,'#6a4410');
+  ctx.strokeStyle='#6a4410';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-6,8);ctx.quadraticCurveTo(-3,6,0,8);ctx.quadraticCurveTo(3,6,6,8);ctx.stroke(); // curly mustache
+  ctx.fillStyle='rgba(140,70,10,.75)';ctx.beginPath();ctx.moveTo(-3,14);ctx.quadraticCurveTo(0,20,2,26+arc*2);ctx.quadraticCurveTo(4,20,1,14);ctx.closePath();ctx.fill(); // syrup drip
   ctx.globalAlpha=1;ctx.restore();
 }
 // Draws the player character, Bagman: legs, striped shirt/arms, and the rectangular paper-bag head.
@@ -410,7 +473,7 @@ function skyPlat(s){
   ctx.strokeStyle='#2e3438';ctx.lineWidth=1;for(let gx=x+10;gx<x+w;gx+=14){ctx.beginPath();ctx.moveTo(gx,y+3);ctx.lineTo(gx,y+10);ctx.stroke()}
   ctx.fillStyle='#2e3438';ctx.fillRect(x,y+10,4,4);ctx.fillRect(x+w-4,y+10,4,4);
 }
-// Draws an old stone well: the Barnyard's water-refill station (this used to be the Back Alley's — see hydrant() above).
+// Draws an old stone well: the Grain Silos' water-refill station (this used to be the Back Alley's — see hydrant() above).
 function well(w){
   ctx.save();ctx.translate(w.x,w.y);
   for(const x of[-21,16]){ctx.fillStyle='#6a4420';ctx.fillRect(x,-86,5,60);ctx.fillStyle='#8a5a2c';ctx.fillRect(x,-86,1.6,60)}
@@ -430,8 +493,22 @@ function well(w){
   ctx.strokeStyle='#a0a098';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,-28,23,7,0,0,Math.PI);ctx.stroke();
   ctx.restore();
 }
+// Draws a wall-mounted shop spigot: Sparky's Appliances' water-refill station.
+function spigot(w){
+  ctx.save();ctx.translate(w.x,w.y);
+  ell(0,2,16,4,'rgba(0,0,0,.25)');
+  ctx.fillStyle='#6a747c';ctx.strokeStyle='#3a4248';ctx.lineWidth=2; // wall plate
+  ctx.beginPath();ctx.roundRect(-16,-62,32,62,3);ctx.fill();ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(-16,-62,3,62); // panel seam highlight
+  ctx.fillStyle='#4a545c';ctx.beginPath();ctx.roundRect(-6,-40,12,12,2);ctx.fill(); // valve body
+  ctx.strokeStyle='#8a949c';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-34);ctx.lineTo(12,-34);ctx.moveTo(0,-46);ctx.lineTo(0,-22);ctx.stroke(); // valve wheel spokes
+  ell(0,-34,7,7,'rgba(0,0,0,0)');ctx.strokeStyle='#8a949c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-34,7,0,7);ctx.stroke(); // valve wheel rim
+  ctx.strokeStyle='#8a949c';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(0,-6);ctx.stroke(); // spout
+  for(let k=0;k<2;k++){ctx.globalAlpha=.75;ell(0,-4+((T*26+k*13)%16),1.6,1.6,'#7fd6ff')}ctx.globalAlpha=1; // same drip cue as the other stations
+  ctx.restore();
+}
 // Draws a fire hydrant: the Back Alley's water-refill station (the Back Alley used to use a well; a well now
-// belongs to the Barnyard instead — see the [hydrant,churn,sink,dispenser,well][area] dispatch in draw()).
+// belongs to the Grain Silos instead — see the [hydrant,churn,espresso,sink,dispenser,well,spigot][area] dispatch in draw()).
 function hydrant(w){
   ctx.save();ctx.translate(w.x,w.y);
   ell(0,2,16,4,'rgba(0,0,0,.25)');
@@ -466,13 +543,29 @@ function churn(w){
   for(let k=0;k<2;k++){ctx.globalAlpha=.75;ell(16,-10+((T*26+k*13)%16),1.6,1.6,'#7fd6ff')}ctx.globalAlpha=1; // same drip cue as the other stations
   ctx.restore();
 }
+// Draws a chrome espresso machine: Café Croissant's water-refill station.
+function espresso(w){
+  ctx.save();ctx.translate(w.x,w.y);
+  ell(0,2,18,4,'rgba(0,0,0,.25)');
+  ctx.fillStyle='#8a8f94';ctx.strokeStyle='#4a4f54';ctx.lineWidth=2; // body
+  ctx.beginPath();ctx.roundRect(-18,-50,36,50,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#c2c8cc';ctx.fillRect(-18,-50,36,8); // top panel
+  ell(-9,-46,3,2,'#2a8fb8');ell(9,-46,3,2,'#d6483a'); // dials
+  ctx.fillStyle='#4a4f54';ctx.fillRect(-4,-38,8,16); // group head
+  ctx.strokeStyle='#8a8f94';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-4,-22);ctx.lineTo(-4,-14);ctx.moveTo(4,-22);ctx.lineTo(4,-14);ctx.stroke(); // portafilter spouts
+  ctx.fillStyle='#3a2a1a';ctx.beginPath();ctx.roundRect(-9,-16,18,8,2);ctx.fill(); // cup
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillRect(-14,-46,2.5,34); // chrome highlight
+  for(let k=0;k<2;k++){ctx.globalAlpha=.75;ell(-4,-18+((T*26+k*13)%14),1.6,1.6,'#7fd6ff')}ctx.globalAlpha=1; // same drip cue as the other stations
+  ctx.restore();
+}
 
 // Draws the flying toaster enemy: wings, body, fork, and its short-circuit sparking state.
 function toaster(e){
   const s=e.side||1,bob=Math.sin(e.ph*2)*2,fl=Math.sin(e.ph*3),f=e.fl>0;
-  ell(e.x,e.sf.y-2,24,5,'rgba(0,0,0,.25)');
+  const sc=1.6*(e.r/24),shR=sc/1.6; // scales with e.r so the grounded Toastmaster 3000 boss (same draw function, much bigger e.r) renders giant; shR keeps the shadow in proportion
+  ell(e.x,e.sf.y-2,24*shR,5*shR,'rgba(0,0,0,.25)');
   const g=e.chg?e.chg*(.65+.35*Math.sin(T*18)):0,mx=(a,b)=>`rgb(${a.map((v,i)=>(v+(b[i]-v)*g)|0)})`;
-  ctx.save();ctx.translate(e.x+Math.sin(T*90)*1.6*(e.chg||0),e.y+bob+Math.cos(T*77)*1.2*(e.chg||0));ctx.scale(s*1.6,1.6);
+  ctx.save();ctx.translate(e.x+Math.sin(T*90)*1.6*(e.chg||0),e.y+bob+Math.cos(T*77)*1.2*(e.chg||0));ctx.scale(s*sc,sc);
   if(g>0){const gr=ctx.createRadialGradient(0,0,4,0,0,40);gr.addColorStop(0,`rgba(255,110,40,${.6*g})`);gr.addColorStop(1,'rgba(255,110,40,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(0,0,40,0,7);ctx.fill()}
   const wing=(px,py,a,c1,c2)=>{ctx.save();ctx.translate(px,py);ctx.rotate(a);ell(0,-14,5.5,15,c1);ell(-3.5,-11,3.5,11,c2);ell(3.5,-10,3.5,10,c2);ctx.restore()};
   wing(-3,-9,-.35+fl*.6,'#cfcfc4','#b9b9ae');
@@ -492,7 +585,7 @@ function toaster(e){
   ell(12,12,3.5,3.5,'#f7f7f0');
   ctx.restore();
 }
-// Draws a kitchen sink: the Kitchen's water-refill station.
+// Draws a kitchen sink: the Greasy Spoon's water-refill station.
 function sink(w){
   ctx.save();ctx.translate(w.x,w.y);
   ctx.fillStyle='#d9d3c0';ctx.fillRect(-26,-36,52,36);ctx.strokeStyle='#8f8977';ctx.lineWidth=2;ctx.strokeRect(-26,-36,52,36);ctx.strokeRect(-23,-32,21,29);ctx.strokeRect(2,-32,21,29);
@@ -520,14 +613,16 @@ function dispenser(w){
 // Recomputes canvas size/scale for the current screen and rebuilds the brick/tile background pattern.
 function resize(){const cw=cv.clientWidth,ch=cv.clientHeight;DPR=Math.min(devicePixelRatio||1,2);cv.width=cw*DPR;cv.height=ch*DPR;K=Math.min(cw/560,ch/440);VW=cw/K;VH=ch/K;ty=VH-460;PL=230/K;PR=270/K}
 addEventListener('resize',resize);
-const GC=[['#3a3630','#57524a','#2a2723'],['#a4aba8','#bec2bb','#73827d'],['#b9b29c','#dcd5c0','#8f8977'],['#4a3320','#6b4a2c','#33200f'],['#5a4a22','#8a7034','#332810']];
-// Pre-renders the five areas' background wall/floor textures as repeating tile patterns.
-const pats=[0,1,2,3,4].map(a=>{const c=document.createElement('canvas');c.width=64;c.height=60;const b=c.getContext('2d');
+const GC=[['#3a3630','#57524a','#2a2723'],['#a4aba8','#bec2bb','#73827d'],['#caa06a','#e8caa0','#8a6030'],['#b9b29c','#dcd5c0','#8f8977'],['#4a3320','#6b4a2c','#33200f'],['#5a4a22','#8a7034','#332810'],['#8a949c','#c2ccd2','#4a545c']];
+// Pre-renders the seven areas' background wall/floor textures as repeating tile patterns.
+const pats=[0,1,2,3,4,5,6].map(a=>{const c=document.createElement('canvas');c.width=64;c.height=60;const b=c.getContext('2d');
  if(a==0){b.fillStyle='#2a1a16';b.fillRect(0,0,64,60);for(let r=0;r<4;r++)for(let i=-1;i<2;i++){b.fillStyle=`hsl(8,${30+r*3}%,${20+((i*7+r*5+8)%4)*2.5}%)`;b.fillRect(i*32+(r%2)*16+1,r*15+1,30,13)}}
- else if(a==1){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#b0b8b5':'#bec2bb';b.fillRect(x*32,y*30,32,30);b.strokeStyle='#94a19b';b.lineWidth=2;b.strokeRect(x*32,y*30,32,30)}} // dairy-tile floor, the Creamery (darkened from the original, too-bright version)
- else if(a==2){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#2b6068':'#357078';b.fillRect(x*32,y*30,32,30);b.strokeStyle='#1d4a52';b.lineWidth=2;b.strokeRect(x*32,y*30,32,30)}}
- else if(a==3){for(let i=0;i<2;i++){b.fillStyle=i?'#3a2412':'#331f10';b.fillRect(i*32,0,32,60);b.fillStyle='#1a0e06';b.fillRect(i*32,0,2,60);b.fillStyle='#4a301a';b.fillRect(i*32+8,12+i*22,3,22)}}
- else{b.fillStyle='#7a2a20';b.fillRect(0,0,64,60);for(let r=0;r<5;r++){b.fillStyle=r%2?'#8a3226':'#6e2219';b.fillRect(0,r*12,64,11);b.fillStyle='#4a1510';b.fillRect(0,r*12+11,64,1)}b.fillStyle='#e8d8b0';b.fillRect(30,0,3,60)} // red barn-board siding with a cream batten seam
+ else if(a==1){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#b0b8b5':'#bec2bb';b.fillRect(x*32,y*30,32,30);b.strokeStyle='#94a19b';b.lineWidth=2;b.strokeRect(x*32,y*30,32,30)}} // dairy-tile floor, the Creamery
+ else if(a==2){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#2a2420':'#e8ddc8';b.fillRect(x*32,y*30,32,30)}} // black/cream bistro-tile floor, Café Croissant
+ else if(a==3){for(let y=0;y<2;y++)for(let x=0;x<2;x++){b.fillStyle=(x+y)%2?'#2b6068':'#357078';b.fillRect(x*32,y*30,32,30);b.strokeStyle='#1d4a52';b.lineWidth=2;b.strokeRect(x*32,y*30,32,30)}} // the Greasy Spoon
+ else if(a==4){for(let i=0;i<2;i++){b.fillStyle=i?'#3a2412':'#331f10';b.fillRect(i*32,0,32,60);b.fillStyle='#1a0e06';b.fillRect(i*32,0,2,60);b.fillStyle='#4a301a';b.fillRect(i*32+8,12+i*22,3,22)}} // the Pantry
+ else if(a==5){b.fillStyle='#7a2a20';b.fillRect(0,0,64,60);for(let r=0;r<5;r++){b.fillStyle=r%2?'#8a3226':'#6e2219';b.fillRect(0,r*12,64,11);b.fillStyle='#4a1510';b.fillRect(0,r*12+11,64,1)}b.fillStyle='#e8d8b0';b.fillRect(30,0,3,60)} // red barn-board siding with a cream batten seam, the Grain Silos
+ else{for(let i=0;i<2;i++){b.fillStyle=i?'#7a848c':'#6a747c';b.fillRect(i*32,0,32,60);b.fillStyle='rgba(255,255,255,.18)';b.fillRect(i*32+4,0,2,60);b.fillStyle='#4a545c';b.fillRect(i*32,0,32,2);b.fillRect(i*32,30,32,2)}} // brushed-steel appliance panels, Sparky's Appliances
  return ctx.createPattern(c,'repeat')});
 
 /* ---------- audio: everything is synthesized live in code (original, no samples) ---------- */
@@ -617,11 +712,18 @@ const ETYPE={
   c:{r:15,hp:3,sp:36,score:12,sfx:'killT',pc:['#d9a24a','#f0c878','#8a5a1e']}, // bagel has no hazVuln -- it dodges every hazard instead (see its own avoidance check in update())
   g:{r:14,hp:4,sp:34,score:10,sfx:'killT',pc:['#fff','#f0e4c8','#f5c518'],hazVuln:true,hazFx:['#fff','#f5c518','#ffb02a']}, // no freeze:true -- eggs keep waddling right up until they crack, unlike toast/butter/milk. g's hp/score are moot: hurt() and addE() both special-case eggs (1 hp, cracks instead of a kill sfx) before this table is read
   m:{r:14,hp:4,sp:32,score:15,sfx:'killM',pc:['#f5f3ea','#eaf4fb','#2f7fd6'],soft:true,hazVuln:true,freeze:true,hazFx:['#eaf4fb','#dff0fb'],hazFxFast:['#eaf4fb','#fff','#2f7fd6']},
-  f:{r:24,hp:4,sp:70,score:30,sfx:'killT',pc:['#c9d1d5','#5e676c','#ff5a3a']}
+  f:{r:24,hp:4,sp:70,score:30,sfx:'killT',pc:['#c9d1d5','#5e676c','#ff5a3a']},
+  // k/r/s/o below are boss-only (they only ever spawn via BOSS[area], always big) -- their r/hp/sp are
+  // moot in practice since addE() overrides all three to the universal boss values whenever big is
+  // true, but are still filled in for consistency / in case that ever changes.
+  k:{r:16,hp:4,sp:34,score:20,sfx:'killT',pc:['#d7dde2','#f0c93a','#4a3a30'],hazVuln:true,freeze:true,hazFx:['#f0c93a','#fff2a0']}, // Sir Spreadsalot, the Butter Knife (Back Alley)
+  r:{r:17,hp:3,sp:38,score:14,sfx:'killB',pc:['#d9a24a','#f0c878','#6a4410'],hazVuln:true,freeze:true,hazFx:['#d9a24a','#fff2a0']}, // François, the French Toast Terror (Café Croissant)
+  s:{r:17,hp:4,sp:34,score:16,sfx:'killT',pc:['#c2c8cc','#eef0f2','#4a4f54'],hazVuln:true,freeze:true,hazFx:['#c2c8cc','#fff']}, // Greasy Gus, the Greasy Spoon (the Greasy Spoon)
+  o:{r:24,hp:4,sp:70,score:40,sfx:'killT',pc:['#c9d1d5','#5e676c','#ff5a3a']} // the Toastmaster 3000 (Sparky's Appliances) -- a grounded appliance, not food, so no hazVuln/freeze
 };
 function addE(t,x,s,big,zone){
   const et=ETYPE[t];
-  const r=big?34:et.r,f=t=='f'?0:21*r/(t=='t'?17:15);
+  const r=big?34:et.r,f=t=='f'?0:t=='o'?r*1.1:21*r/(t=='t'?17:15); // 'o' (Toastmaster 3000) stands on the ground like any other enemy, but needs its own foot offset since its art isn't drawn around the same ground-line convention as toast/butter
   E.push({t,x,sf:s,big,r,foot:f,y:t=='f'?TOASTY:s.y-f,
     hp:t=='g'?1:big?12+lvl*2:et.hp+(lvl/8|0),
     sp:big?40:et.sp+lvl*(t=='t'?3:2),
@@ -673,14 +775,16 @@ function newLevel(){
     if(hazards.some(h=>Math.abs(h.x-x)<(h.w?h.w/2:h.r)+180))continue;
     let t='t'; // the Back Alley (area 0) is toast-only; nothing below ever runs for it
     if(area>0){const r=Math.random();if(r>1-Math.min(.5,.1+lvl*.035))t='b'} // butter is introduced in the Creamery and stays in the mix for every area after
-    if(area==3&&Math.random()<.3)t='c';else if(area==2&&Math.random()<.3)t='g';else if(area==4&&Math.random()<.3)t='m'; // bagels only in the Pantry, eggs only in the Kitchen, milk cartons only in the Barnyard
+    if(area==4&&Math.random()<.3)t='c';else if(area==3&&Math.random()<.3)t='g';else if(area==5&&Math.random()<.3)t='m'; // bagels only in the Pantry, eggs only in the Greasy Spoon, milk cartons only in the Grain Silos
     addE(t,x,s,false);i++;
   }
-  if(lvl%10==0)[['t'],['b'],['t','b'],['t','b'],['t','b','m']][area].forEach((t,j)=>{
-    let bx=L-450-j*220,bt=0;
+  // every area's boss is one single named character (see BOSS/BOSSNAME below), not a multi-enemy group
+  // fight -- adding a new area's boss means one more entry in each of those two arrays, nothing else
+  if(lvl%10==0){
+    let bx=L-450,bt=0;
     while(hazards.some(h=>Math.abs(h.x-bx)<(h.w?h.w/2:h.r)+180)&&bt++<20)bx-=90; // nudge clear of any hazard
-    addE(t,bx,S[0],true);
-  });
+    addE(BOSS[area],bx,S[0],true);
+  }
   if(lvl>=3){
     let slots=2;
     zones.forEach(z=>{if(slots>0){addE('f',z.x0+40+Math.random()*(z.x1-z.x0-80),S[0],false,z);slots--}else fq++});
@@ -760,7 +864,12 @@ function deoverlap(){
   if(drop.size)S=S.filter(s=>!drop.has(s));
 }
 /* ---------- menus, progress, pause ---------- */
-const AREAS=['The Back Alley','The Creamery','The Kitchen','The Pantry','The Barnyard'],NL=50,LPA=10;
+const AREAS=['The Back Alley','The Creamery','Café Croissant','The Greasy Spoon','The Pantry','The Grain Silos',"Sparky's Appliances"],NL=70,LPA=10;
+// Each area's single boss enemy (the type letter spawned at big:true on every lvl%10==0 level) and the
+// name/title shown on the level-start banner for that boss fight -- see the "A BOSS GUARDS THE EXIT"
+// banner code in draw(). Adding a new area's boss means one more entry in each array, nothing else.
+const BOSS=['k','b','r','s','c','t','o'];
+const BOSSNAME=['SIR SPREADSALOT, THE BUTTER KNIFE','DUCHESS BLISTER, QUEEN OF THE CREAMERY','FRANÇOIS, THE FRENCH TOAST TERROR','GREASY GUS, THE GREASY SPOON','BARON BAGEL, THE RING LEADER','TEX, THE TEXAS TOAST OUTLAW',"THE TOASTMASTER 3000"];
 // Formats a level number as "area-level" (e.g. 12 -> "2-2"); stars() renders a 0-3 star rating as text.
 const lab=n=>(((n-1)/LPA|0)+1)+'-'+((n-1)%LPA+1),stars=n=>'★'.repeat(n)+'☆'.repeat(3-n);
 // Writes saved progress (best score/stars per level) to the browser's localStorage.
@@ -778,18 +887,19 @@ $('mute').innerHTML=ICON.on;$('pause').innerHTML=ICON.pause;
 // Toggles audio mute on/off and updates the speaker icon.
 function setMuted(m){initAudio();muted=m;if(mg)mg.gain.value=m?0:.6;$('mute').innerHTML=m?ICON.off:ICON.on}
 // Shows the title screen (Play / Scoreboard) with the how-to-play text.
-function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+B('help','HOW TO PLAY',null,'r')+'<p>Fight your way through the Back Alley, the Creamery, the Kitchen, the Pantry and the Barnyard.</p>')}
+function mainMenu(){state='menu';musicStop();panel('<h1>BAGMAN<small>Breakfast Platformer</small></h1>'+B('levels','PLAY')+B('score','SCOREBOARD')+B('help','HOW TO PLAY',null,'r')+'<p>Fight your way through the Back Alley, the Creamery, Café Croissant, the Greasy Spoon, the Pantry, the Grain Silos and Sparky\'s Appliances.</p>')}
 function helpMenu(){state='menu';musicStop();panel('<h1 class="s">HOW TO PLAY</h1><p>'+[
   'A/D or the arrows move, W or the jump button jumps — double-tap a direction to run.',
-  'SWING slams the ball and chain in front of you. SQUIRT fires your water gun; refill at fire hydrants, churns, sinks, dispensers and wells.',
+  'SWING slams the ball and chain in front of you. SQUIRT fires your water gun; refill at fire hydrants, churns, espresso machines, sinks, dispensers, wells and shop spigots.',
   'Jump on toast, butter or milk cartons to squash them. 5 squirts short out a flying toaster — its platform is high up, with a ground spring the only way to reach it.',
   'Burner coils kill toast, butter, eggs and milk cartons outright; the wide molten butter pools only toast, butter and milk cartons can enter — eggs turn away from those, bagels turn away from everything. None of this earns you points — but a well-placed toaster explosion still does.',
-  'The Back Alley has only toast to deal with. The Creamery is where butter shows up for the first time, hopping toward you and splashing on landing. Pantry bagels tense up and roll into a dashing spin at you. Kitchen eggs crack into a sticky yolk when killed — smash it with the ball and chain, or let a coil fry it away on its own. Barnyard milk cartons bounce toward you and splash on landing, just like butter.',
+  'The Back Alley has only toast to deal with. The Creamery is where butter shows up for the first time, hopping toward you and splashing on landing. Pantry bagels tense up and roll into a dashing spin at you. The Greasy Spoon\'s eggs crack into a sticky yolk when killed — smash it with the ball and chain, or let a coil fry it away on its own. The Grain Silos\' milk cartons bounce toward you and splash on landing, just like butter.',
+  'Each area ends in a boss fight against its own named character — Sir Spreadsalot, Duchess Blister, François, Greasy Gus, Baron Bagel, Tex and the Toastmaster 3000 — tougher and bigger, but fought the exact same way as their regular-sized kin.',
   'Defeated toast drops crumbs for points. Every 5th kill while hurt brings a food delivery; a boss kill brings a full meal.',
   'A checkpoint sits at each level\'s midpoint. 3 lives a run — lose all your hearts and you respawn there.',
   'A connected gamepad also works, menus included: stick or d-pad to move or navigate, A to jump or confirm, X to swing, B or Y to squirt, Start to pause.'
 ].join('</p><p>')+'</p>'+B('menu','BACK',null,'r'))}
-// Shows the level-select screen: 5 areas x 10 levels, locked until the previous level is cleared.
+// Shows the level-select screen: 7 areas x 10 levels, locked until the previous level is cleared.
 function levelsMenu(){
   state='menu';musicStop();let h='<h1 class="s">SELECT LEVEL</h1>';
   AREAS.forEach((a,i)=>{h+='<h2>'+(i+1)+'. '+a+'</h2><div class="g" style="flex-wrap:wrap;max-width:340px;justify-content:center">';
@@ -990,7 +1100,7 @@ function hurt(e,d,dir,kb,env){
     const et=ETYPE[e.t];
     if(e.t=='g'){sfx.crack();yolks.push({x:e.x,y:e.sf?e.sf.y:GY,r:22,burn:e.hazT=='burner'?1.1:0})}
     else sfx[et.sfx]();
-    {const splat=e.t=='b'||e.t=='g'||e.t=='m';comix.push({x:e.x,y:e.y-e.r-10,txt:splat?'SPLAT!':'KRUNCH!',c:!splat,l:.7,rot:(Math.random()-.5)*.3})} // bagels share toast's KRUNCH, eggs and milk cartons share butter's SPLAT
+    {const splat=e.t=='b'||e.t=='g'||e.t=='m'||e.t=='r';comix.push({x:e.x,y:e.y-e.r-10,txt:splat?'SPLAT!':'KRUNCH!',c:!splat,l:.7,rot:(Math.random()-.5)*.3})} // bagels/knife/spoon/toastmaster share toast's KRUNCH; eggs, milk cartons and François (soggy French toast) share butter's SPLAT
     shake=Math.max(shake,e.big?9:2);
     burst(e.x,e.y,et.pc,e.big?30:12,e.t!='b'&&e.t!='m');
     if(!env){ // the environment (molten butter, etc) killing something earns the player nothing
@@ -1003,6 +1113,9 @@ function hurt(e,d,dir,kb,env){
   }
 }
 
+// True on a boss level (lvl%LPA==0) for as long as its one big boss enemy is still alive in E -- the
+// single source of truth for both gating the exit (update()) and coloring the exit door (draw()).
+function bossGuards(){return lvl%LPA==0&&E.some(e=>e.big)}
 // The main per-frame simulation step: input, physics, combat, enemy AI, pickups, everything that changes state.
 function update(dt){
   if(state!='play')return;
@@ -1207,7 +1320,7 @@ function update(dt){
   for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.95;p.vy=p.vy*.95+200*dt;p.l-=dt}parts=parts.filter(p=>p.l>0);
   if(fx){fx.t+=dt;if(fx.t>.25)fx=null}
   shake=Math.max(0,shake-dt*30);
-  if(P.x>exitX-20&&state=='play')clear();
+  if(P.x>exitX-20&&state=='play'&&!bossGuards())clear();
   cam+=(Math.max(-PL,Math.min(L-VW+PR,P.x-VW*.4))-cam)*Math.min(1,dt*6);
 }
 
@@ -1217,7 +1330,7 @@ function draw(){
   const X=DPR*K;ctx.setTransform(X,0,0,X,0,0);
   ctx.save();ctx.translate(-(((cam*.5)%64+64)%64),0);ctx.fillStyle=pats[area];ctx.fillRect(0,0,VW+64,VH);ctx.restore();
   ctx.translate(-cam+(Math.random()-.5)*shake,ty+(Math.random()-.5)*shake);
-  ctx.fillStyle='rgba(230,205,110,.55)';ctx.font='900 18px '+FONT;ctx.textAlign='left';ctx.fillText(['THE BAG','FRESH CREAM','FRESH TOAST','DRY GOODS','THE BARNYARD'][area],60,GY-130);
+  ctx.fillStyle='rgba(230,205,110,.55)';ctx.font='900 18px '+FONT;ctx.textAlign='left';ctx.fillText(['THE BAG','FRESH CREAM','CAFÉ CROISSANT','FRESH TOAST','DRY GOODS','THE GRAIN SILOS',"SPARKY'S APPLIANCES"][area],60,GY-130);
   const gc=GC[area];ctx.fillStyle=gc[0];ctx.fillRect(cam-10,GY,VW+20,400);ctx.fillStyle=gc[1];ctx.fillRect(cam-10,GY,VW+20,6);ctx.fillStyle=gc[2];
   for(let x=Math.floor(cam/80)*80;x<cam+VW+80;x+=80)ctx.fillRect(x,GY+6,3,400);
   for(const s of S)if(s.y<GY&&s.x<cam+VW&&s.x+s.w>cam){
@@ -1228,8 +1341,9 @@ function draw(){
   for(const b of bounces)if(b.x>cam-40&&b.x<cam+VW+40)bouncePad(b);
   for(const hz of hazards){const m=(hz.w||34)/2+20;if(hz.x>cam-m&&hz.x<cam+VW+m)burner(hz);}
   for(const co of coins)if(co.x>cam-20&&co.x<cam+VW+20)crumb(co);
-  ctx.fillStyle='#e8b83a';ctx.fillRect(exitX-32,GY-104,64,104);ctx.fillStyle='#1f5a2e';ctx.fillRect(exitX-27,GY-99,54,99);ell(exitX+16,GY-48,3,3,'#e8b83a');
-  ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText('EXIT',exitX,GY-112);
+  const bossUp=bossGuards(); // red door while the boss still lives, green once it's beaten (or on any non-boss level)
+  ctx.fillStyle='#e8b83a';ctx.fillRect(exitX-32,GY-104,64,104);ctx.fillStyle=bossUp?'#8a1f1a':'#1f5a2e';ctx.fillRect(exitX-27,GY-99,54,99);ell(exitX+16,GY-48,3,3,'#e8b83a');
+  ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText(bossUp?'LOCKED':'EXIT',exitX,GY-112);
   {const fw=Math.sin(T*5)*(cpOn?5:2);ctx.fillStyle='#9aa3a8';ctx.fillRect(cpX-2,GY-96,4,96);ell(cpX,GY-97,4,4,'#d5dde1');ell(cpX,GY-1,12,3,'#5e676c');
    ctx.fillStyle=cpOn?'#2fbf5a':'#c8382a';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cpX+2,GY-92);ctx.quadraticCurveTo(cpX+22,GY-92+fw,cpX+44,GY-84+fw*1.4);ctx.quadraticCurveTo(cpX+22,GY-76+fw,cpX+2,GY-70);ctx.closePath();ctx.fill();ctx.stroke();
    if(cpOn){ctx.fillStyle='#fff';ctx.font='900 16px '+FONT;ctx.textAlign='center';ctx.fillText('✓',cpX+18,GY-78+fw*.6)}}
@@ -1238,13 +1352,13 @@ function draw(){
   // "for(const w of wells)" block earlier in update()) and the ground-floor-only placement (newLevel())
   // are both already generic and apply to every entry here regardless of appearance -- a new station is
   // visual-only, never its own mechanic.
-  for(const w of wells)[hydrant,churn,sink,dispenser,well][area](w);
+  for(const w of wells)[hydrant,churn,espresso,sink,dispenser,well,spigot][area](w);
   for(const p of puddles){ctx.globalAlpha=Math.min(.75,p.l/1.5*.75);if(p.m){ell(p.x,p.y-2,p.w/2,4,'#eaf4fb');ell(p.x-6,p.y-3,6,1.5,'#ffffff')}else{ell(p.x,p.y-2,p.w/2,4,'#f0cc3c');ell(p.x-6,p.y-3,6,1.5,'#fff2a0')}}ctx.globalAlpha=1;
   if(fx){ctx.globalAlpha=1-fx.t/.25;ctx.strokeStyle='#e8d8b0';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(fx.x,fx.y-2,20+90*fx.t/.25,4+8*fx.t/.25,0,0,7);ctx.stroke();ctx.globalAlpha=1}
   for(const it of items){const b=it.on?Math.sin(T*4+it.ph)*3:0;ell(it.x,it.sf.y-2,15,3,'rgba(0,0,0,.25)');ctx.globalAlpha=.3+.12*Math.sin(T*5);ell(it.x,it.y-18-b,30,26,'#fff2a0');ctx.globalAlpha=1;food(it.t,it.x,it.y-6-b,1)}
   for(const y of yolks)if(y.x>cam-30&&y.x<cam+VW+30)yolk(y);
   for(const e of E)if(e.x>cam-90&&e.x<cam+VW+90){
-    ({t:toast,b:butter,f:toaster,c:bagel,g:egg,m:milk})[e.t](e);
+    ({t:toast,b:butter,f:toaster,c:bagel,g:egg,m:milk,k:knifeBoss,r:frenchToast,s:spoon,o:toaster})[e.t](e);
     if(e.t=='f'&&e.soak>0&&!e.sc){ // a straight meter below the toaster showing its short-circuit progress
       const p=Math.min(1,e.soak/SOAK_MAX),barY=e.y+e.r+14,hw=16;
       ctx.save();ctx.lineCap='round';
@@ -1263,7 +1377,7 @@ function draw(){
   ctx.setTransform(X,0,0,X,0,0);
   if(state=='play'&&banner>0){ctx.globalAlpha=Math.min(1,banner*1.5);ctx.textAlign='center';ctx.font='900 48px '+FONT;ctx.lineWidth=6;ctx.strokeStyle='#000';ctx.fillStyle='#e8b83a';
     ctx.strokeText(lab(lvl)+'  '+AREAS[area],VW/2,VH*.3);ctx.fillText(lab(lvl)+'  '+AREAS[area],VW/2,VH*.3);
-    if(lvl%LPA==0){ctx.font='900 20px '+FONT;ctx.fillStyle='#ff5a3a';ctx.strokeText('A BOSS GUARDS THE EXIT',VW/2,VH*.3+28);ctx.fillText('A BOSS GUARDS THE EXIT',VW/2,VH*.3+28)}ctx.globalAlpha=1}
+    if(lvl%LPA==0){ctx.font='900 16px '+FONT;ctx.fillStyle='#ff5a3a';ctx.strokeText(BOSSNAME[area]+' AWAITS',VW/2,VH*.3+26);ctx.fillText(BOSSNAME[area]+' AWAITS',VW/2,VH*.3+26)}ctx.globalAlpha=1}
   if(state=='play'&&note&&note.l>0){ctx.globalAlpha=Math.min(1,note.l*1.5);ctx.textAlign='center';ctx.font='900 40px '+FONT;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.fillStyle='#ff5a3a';ctx.strokeText(note.txt,VW/2,VH*.32);ctx.fillText(note.txt,VW/2,VH*.32);ctx.globalAlpha=1}
   document.body.classList.toggle('m',!(state=='play'||state=='pause'));
   {const h=Math.max(0,P.hp),str='♥'.repeat(h)+'♡'.repeat(5-h)+' '+HEAD+'<span style="color:#fff;margin-left:3px">×'+Math.max(0,lives)+'</span>';if(str!==lastHud){hudHp.innerHTML=str;lastHud=str}}
