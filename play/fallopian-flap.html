@@ -565,8 +565,8 @@
   // (a toughest climb) or to the very bottom (a free fall). A small "set-up"
   // hop to the top edge makes room for more free falls.
   // It never sits higher than a player can climb in the time between obstacles
-  // when tapping 10 times a second (345px/s), so every climb is possible.
-  const MAX_CLIMB_SPEED = 345;   // 10 taps a second: 420 - 750 * 0.1
+  // when tapping 7 times a second (~313px/s), so every climb is possible.
+  const MAX_CLIMB_SPEED = 420 - 750 / 7;   // 7 taps a second (~313px/s)
   const SWING_START = 0.65, SWING_END = 0.90;
   const EXTREME_CLIMB_START = 0.015, EXTREME_CLIMB_END = 0.08; // after a low opening
   const EXTREME_DROP_START = 0.08, EXTREME_DROP_END = 0.30;    // after a high opening
