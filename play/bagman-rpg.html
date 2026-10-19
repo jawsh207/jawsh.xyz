@@ -239,7 +239,7 @@ const ROOMS={
  E9,'..#........#..',E9,E9,E9,E9,E9,'..#........#..',E9],en:[]},
 'store:0,0':{area:'store',exits:'S',out:1,
  sign:['CRUMB & CO.  "We sell the good stuff."','Walk into an item to buy it with CRUMBS.','Toast and butter drop crumbs when you beat them.'],
- wares:{'1':{id:'tank',name:'BIGGER WATER TANK',desc:'Carry 3 more water shots.',price:30,once:1},'2':{id:'nozzle',name:'TURBO NOZZLE',desc:'Your water gun fires faster.',price:45,once:1},'3':{id:'water',name:'WATER REFILL',desc:'Fills your water gun.',price:3},'4':{id:'food',name:'HEARTY SANDWICH',desc:'Restores all your health.',price:5}},
+ wares:{'1':{id:'tank',name:'BIGGER WATER TANK',desc:'Carry 3 more water shots.',price:350,once:1},'2':{id:'nozzle',name:'TURBO NOZZLE',desc:'Your water gun fires faster.',price:350,once:1},'3':{id:'life',name:'EXTRA LIFE',desc:'One more try before GAME OVER.',price:500},'4':{id:'food',name:'HEARTY SANDWICH',desc:'Restores all your health.',price:5}},
  map:['ttt1t2t3t4tttt',E9,'..s...........',E9,E9,E9,E9,E9,E9],en:[]},
 /* ---- SUDS-O-RAMA (final) ---- */
 'laundry:0,1':{area:'laundry',exits:'NS',out:1,checkpoint:1,
@@ -366,7 +366,7 @@ const ROOMS={
  map:['BBBBBBBBBBBBBB', 'BBBBBBDBBBBBBB', '..H........H..', '......::......', '..H...::...H..', '......::......', '.....::::.....', '.....::::.....', '.....::::.....'],
  en:[]},
 'city:6,2':{area:'city',zone:'farm',exits:'N',chest:'crumbs',
- map:['BBBBB::::BBBBB', '.....::::.....', '.HHHH.........', '.HC.F.........', '.HHHH.........', '..........H...', '..............', '...H......H...', 'BBBBBBBBBBBBBB'],
+ map:['BBBBB::::BBBBB', '.....::::.....', '.ffff.........', '.fC.F.........', '.ffff.........', '..........H...', '..............', '...H......H...', 'BBBBBBBBBBBBBB'],
  en:[['toast', 8, 4], ['butter', 11, 6], ['toast', 6, 6]]},
 /* ---- new dungeons ---- */
 'cafe:1,2':{area:'cafe',exits:'NWES',out:1,checkpoint:1,sign:['THE DINING ROOM.','North: a locked door. FRANÇOIS is past it.','West: a key, behind a block puzzle.','East: one wall looks cracked. A SPIN ATTACK might do it.'],
@@ -534,6 +534,137 @@ function expandDungeons(){
   }
 }
 expandDungeons();
+
+/* ---------- Props ----------
+   Small props (crates, trash cans, hydrants, sinks, flour sacks, plants) are normal one-tile props at their original size.
+   Big props (tables, washers, butter vats, hay bales, benches) are drawn large and centred where four tiles meet:
+   the map letter marks the top-left tile of a 2x2 block, and the prop sits in the middle of that block.
+   Big props block with an outline matching their picture. In block-puzzle rooms (and one room whose props guard a
+   secret) big props stay one-tile props at their original size, so those layouts work exactly as designed. */
+const BIG={q:1.6,w:1.5,V:1.5,H:1.5,j:1.6};
+// visible outline of each big prop's picture inside a 32x32 tile, before scaling (left, top, right, bottom)
+const PROPBOX={q:[1,4,31,28],w:[2,1,30,30],V:[2,1,30,29],H:[2,5,30,28],j:[2,10,30,29]};
+const isBig=(ch,d)=>!!BIG[ch]&&!(d&&d.smallProps);
+function propRect(ch,c,r){const k=BIG[ch],b=PROPBOX[ch],X=(c+1)*T,Y=(r+1)*T;return [X+(b[0]-16)*k,Y+(b[1]-16)*k,X+(b[2]-16)*k,Y+(b[3]-16)*k];}
+const rectsHit=(a,b)=>a[0]<b[2]&&a[2]>b[0]&&a[1]<b[3]&&a[3]>b[1];
+function propRects(grid,d){const out=[];if(d&&d.smallProps)return out;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const ch=grid[r][c];if(BIG[ch])out.push({c,r,ch,b:propRect(ch,c,r)});}return out;}
+
+/* ---------- Prop layouts (built once at load, always the same result) ----------
+   Same kinds of props as each room had, in mirrored arrangements: at most 6 per room (4 in boss rooms), never
+   directly under a wall or other solid scenery, never on a road or rails, with a clear tile all round each one, and
+   clear of doorways, signs, chests, puzzle pieces, hazards and enemy start spots. Kept exactly as designed:
+   block-puzzle rooms, hedges that work as walls, hydrants and sinks, and any room whose props guard a secret.
+   Every path must stay open, and nothing behind a lock, cracked wall, fire or gate may become reachable another way. */
+const PROP_LOG=[];
+function layoutProps(){
+  const GAP='\u0001', REFILL=new Set(['h','u']), SMALL=new Set(['k','c','r','p']);
+  const FLOORUP=new Set(['.',':','g','~','l','y','=','-','+','o']);       // what may be directly above a prop (anything not a wall)
+  const NOTNEXT=new Set(['C','s','D','_','P','F','W','Q','L','G','h','u',GAP]);
+  for(const id in ROOMS){
+    const d=ROOMS[id]; if(!d.map)continue;
+    const g=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(r>0&&r<ROWS-1&&c>0&&c<COLS-1?d.map[r-1][c-1]:'#');g.push(row);}
+    const origAll=[];for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++){const t=g[r][c];if(BIG[t]||SMALL.has(t)||REFILL.has(t))origAll.push({c,r,ch:t});}
+    if(!origAll.length)continue;
+    const puzzle=d.map.some(row=>row.indexOf('P')>=0);
+    // in block-puzzle rooms the small props stay exactly where they are, and big props keep clear of the area the
+    // blocks are pushed through (every block and pressure plate, plus two tiles round them)
+    const forbid=new Set();
+    if(puzzle){const pts=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(g[r][c]==='P'||g[r][c]==='_')pts.push([c,r]);
+      const c0=Math.min(...pts.map(p=>p[0]))-2,c1=Math.max(...pts.map(p=>p[0]))+2,r0=Math.min(...pts.map(p=>p[1]))-2,r1=Math.max(...pts.map(p=>p[1]))+2;
+      for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)forbid.add(c+','+r);}
+    const gaps=gapsFor(d), keep=new Set();
+    for(const s of d.exits)for(const [c,r] of gaps[s]){g[r][c]=GAP;const D=DIRV[s];keep.add((c-D[0])+','+(r-D[1]));keep.add((c-2*D[0])+','+(r-2*D[1]));}
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(g[r][c]==='D'){keep.add(c+','+(r+1));keep.add(c+','+(r+2));}
+    for(const w in EXITTO){const o=EXITTO[w];if(o.to===id)keep.add(Math.floor(o.x/T)+','+Math.floor((o.y-6)/T));}
+    if(ENTRY[id])keep.add(Math.floor((ENTRY[id].x+16)/T)+','+Math.floor((ENTRY[id].y-6)/T));
+    const foes=(d.en||[]).map(([t,c,r])=>{const x=(c+1)*T+16,y=(r+1)*T+24;return [x-11,y-13,x+11,y+1];});
+    let small=true;   // while checking the original layout, big props are still one-tile props
+    const solidAt=t=>SOLID.has(t)&&!(BIG[t]&&!small);
+    function reach(gatesOpen){
+      const props=small?[]:propRects(g);
+      const pass=(c,r)=>{if(c<0||r<0||c>=COLS||r>=ROWS)return false;const t=g[r][c];if(t==='#'||t==='B')return false;
+        if(t===GAP||t==='D')return true;
+        if('QFWLGP'.includes(t))return gatesOpen;
+        if(solidAt(t))return false;
+        for(const ox of [0,-6,6])for(const oy of [0,-5,5]){const x=c*T+16+ox,y=r*T+16+oy,fb=[x-9,y-7,x+9,y+7];if(!props.some(o=>rectsHit(fb,o.b)))return true;}
+        return false;};
+      const tg=[],nth={};for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const t=g[r][c];
+        if(t===GAP||t==='D')tg.push({k:'x'+c+','+r,c,r});
+        if(t==='C'||t==='s'||t==='_')tg.push({k:t+c+','+r,c,r,adj:1});
+        if(t==='h'||t==='u'){nth[t]=(nth[t]||0)+1;tg.push({k:t+'#'+nth[t],c,r,adj:1});}}
+      for(const [t,c,r] of d.en||[])tg.push({k:'e'+c+','+r,c:c+1,r:r+1});
+      const st=tg.find(o=>!o.adj&&o.k[0]==='x'); if(!st)return null;
+      const seen=new Set([st.c+','+st.r]),q=[[st.c,st.r]];
+      while(q.length){const [c,r]=q.shift();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(c+a)+','+(r+b);if(!seen.has(k)&&pass(c+a,r+b)){seen.add(k);q.push([c+a,r+b]);}}}
+      const got=new Set();
+      for(const o of tg){if(o.adj){if([[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>seen.has((o.c+a)+','+(o.r+b))))got.add(o.k);}else if(seen.has(o.c+','+o.r))got.add(o.k);}
+      return {got};
+    }
+    const base0=reach(true), lock0=reach(false);
+    // hedges (3+ plants in a row/clump) work as walls: they stay
+    const hedge=new Set();
+    for(const o of origAll)if(o.ch==='p'){let n=0;const seen=new Set([o.c+','+o.r]),q=[[o.c,o.r]];
+      while(q.length){const [c,r]=q.pop();n++;for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(c+a)+','+(r+b);if(!seen.has(k)&&g[r+b]&&g[r+b][c+a]==='p'){seen.add(k);q.push([c+a,r+b]);}}}
+      if(n>=3)hedge.add(o.c+','+o.r);}
+    const bigPool=[],smallPool=[];
+    for(const o of origAll){if(REFILL.has(o.ch)||hedge.has(o.c+','+o.r)||(puzzle&&!BIG[o.ch]))continue;g[o.r][o.c]='.';(BIG[o.ch]?bigPool:smallPool).push(o.ch);}
+    const after=reach(false);
+    if(after&&[...after.got].some(k=>!lock0.got.has(k))){for(const o of origAll)g[o.r][o.c]=o.ch;d.smallProps=1;PROP_LOG.push(id+' kept (guards a secret)');continue;}
+    small=false;
+    // occupancy: every tile taken by a prop (a big prop takes its whole 2x2 block)
+    const occ=(c,r)=>{for(let dr=0;dr<=1;dr++)for(let dc=0;dc<=1;dc++){const t=g[r-dr]&&g[r-dr][c-dc];if(BIG[t])return true;}const t=g[r][c];return SMALL.has(t)||REFILL.has(t);};
+    function cellFree(c,r){return c>=1&&r>=1&&c<=COLS-2&&r<=ROWS-2&&g[r][c]==='.'&&!keep.has(c+','+r)&&!forbid.has(c+','+r)&&!occ(c,r);}
+    function okAt(ch,c,r){
+      const big=!!BIG[ch], fw=big?2:1;
+      for(let dr=0;dr<fw;dr++)for(let dc=0;dc<fw;dc++)if(!cellFree(c+dc,r+dr))return false;
+      for(let dc=0;dc<fw;dc++)if(!FLOORUP.has(g[r-1][c+dc]))return false;              // never directly under a wall
+      for(let rr=r-1;rr<=r+fw;rr++)for(let cc=c-1;cc<=c+fw;cc++){                       // a clear tile all round
+        if(rr>=r&&rr<r+fw&&cc>=c&&cc<c+fw)continue;
+        if(occ(cc,rr))return false;
+        const corner=(rr===r-1||rr===r+fw)&&(cc===c-1||cc===c+fw);
+        if(!corner&&NOTNEXT.has(g[rr]&&g[rr][cc]))return false;}
+      const b=big?propRect(ch,c,r):[c*T+2,r*T+2,c*T+30,r*T+30];
+      if(foes.some(f=>rectsHit(b,f)))return false;
+      return true;
+    }
+    function stillOpen(){const r=reach(true);if(!r||!base0)return true;
+      for(const k of base0.got)if(!r.got.has(k))return false;
+      const l=reach(false);for(const k of l.got)if(!lock0.got.has(k))return false;
+      return true;}
+    let seed=0;for(const ch of id)seed=(seed*31+ch.charCodeAt(0))>>>0;
+    const rnd=()=>{seed=(seed+0x6D2B79F5)>>>0;let t=seed;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};
+    const style=Math.floor(rnd()*4), cap=d.boss?4:6;
+    const score=(x,y)=>{const mx=Math.min(x,16-x);   // x,y = the prop's centre in tiles
+      if(style===0)return Math.abs(mx-2.5)*2+Math.abs(y-6)*0.3+rnd();
+      if(style===1)return Math.min(Math.hypot(mx-3,y-3),Math.hypot(mx-3,y-9))+rnd()*0.8;
+      if(style===2)return Math.abs(mx-4)+Math.abs(y-6)*0.5+rnd()*1.5;
+      return Math.abs(Math.hypot(mx-8,y-6)-4)+rnd();};
+    function place(ch){   // a mirrored pair if possible, else one on the centre line, else one anywhere
+      const big=!!BIG[ch], fw=big?2:1, cand=[];
+      for(let r=1;r<ROWS-1;r++)for(let c=1;c<=(big?7:7);c++)cand.push([c,r,score(c+fw/2,r+fw/2)]);
+      cand.sort((a,b)=>a[2]-b[2]);
+      const put=(c,r)=>{if(!okAt(ch,c,r))return false;g[r][c]=ch;if(stillOpen())return true;g[r][c]='.';return false;};
+      return {pair(){for(const [c,r] of cand){const mc=COLS-fw-c;if(mc===c)continue;if(put(c,r)){if(put(mc,r))return 2;g[r][c]='.';}}return 0;},
+              one(){for(const [c,r] of cand){for(const cc of [c,COLS-fw-c])if(put(cc,r))return 1;}return 0;}};
+    }
+    let placed=0;
+    const bigWant=Math.min(bigPool.length,4,cap);
+    const types=[...bigPool].sort();let nb=0;
+    while(nb<bigWant&&types.length){const ch=types.shift();const pl=place(ch);
+      if(nb+2<=bigWant&&types[0]===ch){const n=pl.pair();if(n){types.shift();nb+=n;continue;}}
+      if(pl.one())nb++;}
+    placed+=nb;
+    const smallWant=Math.min(smallPool.length,cap-placed);
+    const st=[...smallPool].sort();let ns=0;
+    while(ns<smallWant&&st.length){const ch=st.shift();const pl=place(ch);
+      if(ns+2<=smallWant&&st[0]===ch){const n=pl.pair();if(n){st.shift();ns+=n;continue;}}
+      if(pl.one())ns++;}
+    placed+=ns;
+    PROP_LOG.push(id+' style'+style+' big '+nb+'/'+bigPool.length+' small '+ns+'/'+smallPool.length);
+    d.map=d.map.map((row,r)=>row.split('').map((ch,c)=>{const t=g[r+1][c+1];if(t===GAP)return ch;return t;}).join(''));
+  }
+}
+layoutProps();
 // old saves stored room ids from before the expansion: move them to the shifted positions
 function migrateIds(str){return str.replace(/\b([a-z]+):(-?\d+),(-?\d+)/g,(m,w,x,y)=>SHIFT[w]?w+':'+(+x+SHIFT[w][0])+','+(+y+SHIFT[w][1]):m);}
 function migrateSave(s){
@@ -554,7 +685,14 @@ const WRATE=[0.45,0.27,0.18,0.11];  // seconds between shots while B is held: ~2
 function addTank(){S.wmax=Math.min(20,WM()+3);S.water=S.wmax;}
 function addRate(){S.wrate=Math.min(3,(S.wrate||0)+1);}
 const MAXHP=20; // 10 hearts
-function newState(){return {mapv:2,wmax:5,wrate:0,crumbs:0,water:5,hp:6,maxHp:6,keys:0,chain:0,iron:0,flags:{},visited:{},cp:{room:'city:2,4',x:8*T,y:7*T+8},deaths:0,time:0};}
+// difficulty: 0 easy, 1 normal (the original game), 2 hard
+const DIFFS=[
+  {name:'LIGHTLY TOASTED',tag:'EASY',desc:['Enemies hit softer and fall faster.','More hearts drop. Great for a relaxed run.'],hurt:-1,hp:0.75,heart:1.6,spd:0.9,inv:1.4},
+  {name:'GOLDEN BROWN',tag:'NORMAL',desc:['The game as it was meant to be toasted.',''],hurt:0,hp:1,heart:1,spd:1,inv:1.1},
+  {name:'BURNT TO A CRISP',tag:'HARD',desc:['Every hit costs an extra half heart.','Tougher, faster enemies. Fewer hearts drop.'],hurt:1,hp:1.35,heart:0.5,spd:1.12,inv:0.9}];
+function DF(){return DIFFS[(S&&S.diff!==undefined)?S.diff:1]||DIFFS[1];}
+const MAXLIVES=9;
+function newState(){return {lives:3,diff:1,mapv:2,wmax:5,wrate:0,crumbs:0,water:5,hp:6,maxHp:6,keys:0,chain:0,iron:0,flags:{},visited:{},cp:{room:'city:2,4',x:8*T,y:7*T+8},deaths:0,time:0};}
 const SKEY='bagman-city-v2';
 function save(){try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(SKEY);return s?JSON.parse(s):null;}catch(e){return null;}}
@@ -669,7 +807,7 @@ const Music={name:null,step:0,next:0,
 };
 function musicFor(){
   if(game==='title')return 'city';
-  if(game==='dead'||game==='win'||!cur)return null;
+  if(game==='dead'||game==='win'||game==='ad'||!cur)return null;
   if(cur.d.boss&&(cur.cameo||cur.enemies.some(e=>e.boss&&!e.dead)))return 'boss';
   return (cur.area==='city'||cur.area==='store')?'city':'dungeon';
 }
@@ -795,6 +933,7 @@ function pushBlock(h){
   if(tr<=0||tc<=0||tr>=ROWS-1||tc>=COLS-1)return;
   const dest=cur.grid[tr][tc];
   if(SOLID.has(dest)||dest==='D')return;
+  {const tb=[tc*T+4,tr*T+4,tc*T+T-4,tr*T+T];if(cur.props&&cur.props.some(o=>rectsHit(tb,o.b)))return;}
   if(cur.enemies.some(e=>!e.dead&&Math.floor(e.x/T)===tc&&Math.floor((e.y-6)/T)===tr))return;
   cur.under[tc+','+tr]=dest; cur.grid[h.r][h.c]=cur.under[h.c+','+h.r]||'.'; cur.grid[tr][tc]='P';
   cur.bgDirty=true; SFX.thunk(); burst(tc*T+16,tr*T+28,['#b9ab8f','#8a7f72'],8,80,200);
@@ -822,11 +961,13 @@ function buildGrid(id,shut){
   return g;
 }
 function tileAt(c,r){if(!cur||r<0||r>=ROWS||c<0||c>=COLS)return null;return cur.grid[r][c];}
-function solidP(c,r){const t=tileAt(c,r);return t!==null&&SOLID.has(t);}
-function solidE(c,r){if(c<=0||r<=0||c>=COLS-1||r>=ROWS-1)return true;return SOLID.has(cur.grid[r][c]);}
+function solidT(t){return SOLID.has(t)&&!(BIG[t]&&!(cur&&cur.d.smallProps));}
+function solidP(c,r){const t=tileAt(c,r);return t!==null&&solidT(t);}
+function solidE(c,r){if(c<=0||r<=0||c>=COLS-1||r>=ROWS-1)return true;return solidT(cur.grid[r][c]);}
 function boxHit(x,y,hw,hh,fn){
   const c0=Math.floor((x-hw)/T),c1=Math.floor((x+hw-0.001)/T),r0=Math.floor((y-hh)/T),r1=Math.floor((y+hh-0.001)/T);
   for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)if(fn(c,r))return {c,r};
+  if((fn===solidP||fn===solidE)&&cur&&cur.props){const a=[x-hw,y-hh,x+hw,y+hh];for(const o of cur.props)if(cur.grid[o.r][o.c]===o.ch&&rectsHit(a,o.b))return {c:o.c,r:o.r};}
   return null;
 }
 function moveAxis(o,d,axis,hw,hh,oy,fn){
@@ -847,6 +988,8 @@ function enterRoom(id,ex,ey){
   const shut=bossAlive||!!((d.shut||lockable)&&!S.flags['clear:'+id]);
   if(shut&&!bossAlive)after(0.35,()=>{if(cur&&cur.id===id&&cur.shut)fxText('DOORS LOCKED!',W/2,RH/2-50,22,'#ff8a5c','#ff2a1a');});
   cur={id,d,area:d.area,grid:buildGrid(id,shut),under:{},plates:[],enemies:[],proj:[],wshots:[],hazards:[],decals:[],drops:[],parts:[],fx:[],shut,intro:0,bg:null,bgDirty:true};
+  cur.base=cur.grid.map(row=>row.slice());
+  refreshProps();
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(cur.grid[r][c]==='_')cur.plates.push([c,r]);
   P.x=ex;P.y=ey;P.ball.x=ex-10;P.ball.y=ey+2;P.atk=null;P.charge=0;P.kbx=P.kby=0;P.slip=0;P.dizzy=0;P.stuck=0;
   if(d.checkpoint||(prevArea&&prevArea!==d.area))S.cp={room:id,x:ex,y:ey};
@@ -859,7 +1002,15 @@ function enterRoom(id,ex,ey){
   else if(prevArea!==d.area||(d.zone&&prevZone!==d.zone))showBanner(roomName(d),d.area==='city'?'CRUMB CITY':'',2);
   save();
 }
-function rebuild(){cur.grid=buildGrid(cur.id,cur.shut);cur.bgDirty=true;unstick();}
+// Rebuild after a state change (doors opening, a lock opened, a chest appearing) WITHOUT resetting the room:
+// only tiles whose built layout changed are replaced, so pushed blocks and other changes stay put until the player leaves.
+function refreshProps(){cur.props=propRects(cur.grid,cur.d).map(o=>({c:o.c,r:o.r,ch:o.ch,b:[o.b[0]+1,o.b[1]+1,o.b[2]-1,o.b[3]-1]}));}
+function rebuild(){
+  const n=buildGrid(cur.id,cur.shut),b=cur.base;
+  if(b)for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(n[r][c]!==b[r][c])cur.grid[r][c]=n[r][c];}
+  else cur.grid=n;
+  cur.base=n.map(row=>row.slice());refreshProps();cur.bgDirty=true;unstick();
+}
 function unstick(){
   if(!boxHit(P.x,P.y-6,9,7,solidP))return;
   for(let rad=4;rad<100;rad+=4)for(let a=0;a<16;a++){
@@ -883,6 +1034,7 @@ function spawn(type,x,y,extra){
   const e={type,x,y,hp:d.hp,maxHp:d.hp,r:d.r,hy:d.hy,boss:!!d.boss,kbx:0,kby:0,inv:0,flash:0,t:rnd(0.6,1.8),st:'idle',st_t:0,anim:rnd(0,10),dir:rnd(0,6.28),side:1,dmg:1,vx:0,vy:0,rot:0};
   if(!e.boss&&cur&&cur.d){const t=tierOf(cur.d);e.hp=e.maxHp=Math.max(1,Math.round(d.hp*(1+0.2*(t-1))));e.spd=1+0.045*(t-1);if(t>=7)e.dmg=2;e.tier=t;}
   if(extra)Object.assign(e,extra);
+  {const f=DF();if(f.hp!==1){e.hp=e.maxHp=Math.max(1,Math.round(e.hp*f.hp));}if(!e.boss&&f.spd!==1)e.spd=(e.spd||1)*f.spd;}
   cur.enemies.push(e); return e;
 }
 function spawnBoss(b){
@@ -1239,7 +1391,7 @@ function killEnemy(e){
   if(e.type==='egg'){const y=spawn('yolk',e.x,e.y);y.inv=0.35;unstickE(y);fxText('IT\'S LOOSE!',e.x,e.y-56,14,'#ffd76a','#ff8a1f');}
   if(e.type==='jelly')addJelly(e.x,e.y,20);
   if(e.type==='butter'){for(const s of [-1,1]){const p=spawn('pat',e.x+s*10,e.y);p.inv=0.3;p.kbx=s*180;}}
-  if(!e.boss){const r=Math.random();if(r<0.18)cur.drops.push({type:'heart',x:e.x,y:e.y-6,life:9,t:0});else if(r<0.42)cur.drops.push({type:'water',x:e.x,y:e.y-6,life:9,t:0});else if(r<0.9)cur.drops.push({type:'crumb',v:Math.random()<0.2?5:1,x:e.x,y:e.y-6,life:9,t:0});}
+  if(!e.boss){const r=Math.random();if(r<0.18*DF().heart)cur.drops.push({type:'heart',x:e.x,y:e.y-6,life:9,t:0});else if(r<0.42)cur.drops.push({type:'water',x:e.x,y:e.y-6,life:9,t:0});else if(r<0.9)cur.drops.push({type:'crumb',v:Math.random()<0.2?5:1,x:e.x,y:e.y-6,life:9,t:0});}
   if(e.boss)bossDown(e);
 }
 /* Rotating rewards: bosses alternate FOOD / UTENSIL-or-APPLIANCE, upgrades alternate BALL & CHAIN / WATER GUN */
@@ -1276,7 +1428,7 @@ function bossDown(e){
   S.flags[BOSS[b].flag]=1;
   cur.hazards=[];
   showBanner(e.type==='blister'?'SPLATTED & DEFEATED!':e.type==='stinky'?'SCRUBBED & DEFEATED!':'CRUSHED & DEFEATED!',BOSS[b].name,2.6);
-  if(b==='stinky'){after(3,()=>{game='win';winT=0;SFX.win();clearSave();hasSave=false;});return;}
+  if(b==='stinky'){after(3,()=>{clearSave();hasSave=false;showAd(()=>{game='win';winT=0;SFX.win();});});return;}
   const allDone=bossCount()>=8; if(allDone)S.flags.all=1;
   after(2.7,()=>{
     S.hp=S.maxHp; cur.shut=false; rebuild(); SFX.door(); SFX.chest();
@@ -1284,7 +1436,7 @@ function bossDown(e){
     const rw=REWARD[b]; if(rw){rw.give();lines.push(...rw.lines());}
     {const n=bossCount(),gm=GATE_MSG[n];if(gm)lines.push(gm);const g=nextGoal();if(g&&b!=='stinky')lines.push('NEXT: '+g.dungeon+(g.district?' in '+g.district:'')+'.');}
     lines.push('You head back out to the street.');
-    save(); say(lines,()=>{const o=EXITTO[cur.area];warp(o.to,o.x,o.y,0);});
+    save(); say(lines,()=>showAd(()=>{const o=EXITTO[cur.area];warp(o.to,o.x,o.y,0);}));
   });
 }
 function after(t,fn){later.push({t,fn});}
@@ -1307,13 +1459,14 @@ function waterHit(e,sh){
   if(WET.has(e.type)){
     if(e.inv>0)return;
     if(e.boss&&!bossVulnerable(e))return;
-    e.hp-=2; e.inv=0.15; e.flash=0.14; e.soggy=2.5; SFX.hit();
+    if(e.boss){if(time-(e.wT||-9)<0.7){if(Math.random()<0.25)fxText('DRIP.',e.x+rnd(-14,14),e.y-e.hy-24,12,'#d6f0ff','#5b7d99');return;}e.wT=time;}  // bosses: water chips 1, at most every 0.7s
+    e.hp-=e.boss?1:2; if(!e.boss)e.inv=0.15; e.flash=0.14; e.soggy=2.5; SFX.hit();
     if(!e.boss){e.kbx=Math.cos(a)*200;e.kby=Math.sin(a)*200;}
     burst(e.x,e.y-e.hy,['#7cc7ff','#d6f0ff'],8,150,200);
     if(e.hp<=0){e.wetKill=1;killEnemy(e);}else fxText(pick(['SOGGY!','SPLOOSH!','DRENCHED!']),e.x,e.y-e.hy-26,18,'#bfe6ff','#2a7fc0');
   }else if(ELEC.has(e.type)){
     if(e.zap>0)return;
-    e.hp-=1; e.zap=0.25; e.flash=0.2; SFX.zap(); shake(4,0.15);
+    e.hp-=1; e.zap=e.boss?0.7:0.25; e.flash=0.2; SFX.zap(); shake(4,0.15);
     fxText(pick(['FZZT!','ZAP!','SHORT CIRCUIT!']),e.x+rnd(-20,20),e.y-e.hy-50,22,'#fff59a','#2a7fc0');
     burst(e.x,e.y-e.hy-10,['#fff59a','#7cc7ff','#ffffff'],14,220,0);
     if(e.hp<=0){e.zapKill=1;killEnemy(e);}
@@ -1472,9 +1625,11 @@ function wristPos(px,py){ // visual only: where the cuff is drawn
 }
 function hurtPlayer(dmg,fx,fy){
   if(P.inv>0||game!=='play'||cur.intro>0)return;
-  S.hp-=dmg; P.inv=1.1; const a=Math.atan2(P.y-fy,P.x-fx); P.kbx=Math.cos(a)*270; P.kby=Math.sin(a)*270;
+  dmg=Math.max(1,dmg+DF().hurt); S.hp-=dmg; P.inv=DF().inv; const a=Math.atan2(P.y-fy,P.x-fx); P.kbx=Math.cos(a)*270; P.kby=Math.sin(a)*270;
   shake(6,0.25); SFX.hurt(); burst(P.x,P.y-24,['#ffffff','#c9995f'],6,120,200); P.atk=null; P.charge=0;
-  if(S.hp<=0){S.hp=0;game='dead';deadT=0;SFX.die();save();}
+  if(S.hp<=0){S.hp=0;game='dead';deadT=0;SFX.die();
+    S.lives=Math.max(0,(S.lives===undefined?3:S.lives)-1); gameOver=S.lives<=0;
+    if(gameOver){clearSave();hasSave=false;}else save();}
 }
 function updatePlayer(dt){
   let ix=inp.x,iy=inp.y; const m=Math.hypot(ix,iy);
@@ -1586,12 +1741,19 @@ function bump(h){
 function buyWare(w){
   P.bumpCD=0.9;
   if(w.once&&S.flags['buy:'+w.id]){say(['SOLD OUT. "Come back never. Kidding!"']);return;}
+  if(w.id==='life'&&S.lives>=MAXLIVES){say(['EXTRA LIFE: You already have '+MAXLIVES+' lives. That\'s the most a bag can hold.']);return;}
   if(S.crumbs<w.price){say([w.name+': '+w.desc,'That\'s '+w.price+' crumbs. You have '+S.crumbs+'.']);return;}
+  // ask first: YES buys, NO (or B) walks away
+  sayChoice([w.name+': '+w.desc,'Buy it for '+w.price+' crumbs? You have '+S.crumbs+'.'],yes=>{if(yes)completeBuy(w);});
+}
+function completeBuy(w){
+  if(S.crumbs<w.price||(w.once&&S.flags['buy:'+w.id]))return;
   S.crumbs-=w.price; if(w.once)S.flags['buy:'+w.id]=1; cur.bgDirty=true; SFX.chest();
   fxText('SOLD!',P.x,P.y-56,22,'#ffe14a','#f0731f');
   if(w.id==='tank'){addTank();say(['BIGGER WATER TANK! You can carry '+WM()+' shots now.']);}
   else if(w.id==='nozzle'){addRate();say(['TURBO NOZZLE! Your water gun fires faster. (Pump level '+S.wrate+' of 3)']);}
   else if(w.id==='heart'){S.maxHp=Math.min(MAXHP,S.maxHp+2);S.hp=S.maxHp;say(['HEART CONTAINER! Max health went up.']);}
+  else if(w.id==='life'){S.lives=Math.min(MAXLIVES,S.lives+1);say(['EXTRA LIFE! You now have '+S.lives+' lives.']);}
   else if(w.id==='water'){S.water=WM();}
   else if(w.id==='food'){S.hp=S.maxHp;fxText('+HEALTH',P.x,P.y-36,16,'#ff8a8a','#e0262a');}
   save();
@@ -1641,9 +1803,9 @@ function breakAt(px,py){
     return;
   }
   if(cur.grid[r][c]!=='k')return;
-  cur.grid[r][c]='.';cur.bgDirty=true;SFX.kill();
+  cur.grid[r][c]='.';cur.bgDirty=true;refreshProps();SFX.kill();
   burst(c*T+16,r*T+16,['#a5713b','#6b4421','#d29a5a'],14,140,320);fxText('SMASH!',c*T+16,r*T+6,18);
-  {const q=Math.random();if(q<0.3)cur.drops.push({type:'heart',x:c*T+16,y:r*T+20,life:9,t:0});else if(q<0.55)cur.drops.push({type:'water',x:c*T+16,y:r*T+20,life:9,t:0});else if(q<0.85)cur.drops.push({type:'crumb',v:Math.random()<0.3?5:1,x:c*T+16,y:r*T+20,life:9,t:0});}
+  {const q=Math.random();if(q<0.3*DF().heart)cur.drops.push({type:'heart',x:c*T+16,y:r*T+20,life:9,t:0});else if(q<0.55)cur.drops.push({type:'water',x:c*T+16,y:r*T+20,life:9,t:0});else if(q<0.85)cur.drops.push({type:'crumb',v:Math.random()<0.3?5:1,x:c*T+16,y:r*T+20,life:9,t:0});}
 }
 
 /* ================= FX ================= */
@@ -1652,13 +1814,15 @@ function burst(x,y,cols,n,spd,g){for(let i=0;i<n;i++){const a=rnd(0,6.28),s=rnd(
 function shake(m,t){shakeM=Math.max(shakeM,m);shakeT=Math.max(shakeT,t);}
 function showBanner(text,sub,dur){banner={text,sub,t:0,dur};}
 function say(lines,cb){dlg={lines,i:0,cb};}
+// a dialog whose last line asks YES / NO; pick(true) for YES, pick(false) for NO
+function sayChoice(lines,pick){dlg={lines,i:0,choice:{sel:0,held:false,pick}};}
 
 /* ================= GAME FLOW ================= */
-function newGame(){
-  S=newState(); cur=null; later=[]; banner=null; enterRoom('city:2,4',8*T,7*T+8); game='play'; P.face=1; P.inv=0;
+function newGame(diff){
+  S=newState(); S.diff=diff===undefined?1:diff; cur=null; later=[]; banner=null; enterRoom('city:2,4',8*T,7*T+8); game='play'; P.face=1; P.inv=0;
   const touch=document.body.classList.contains('touch');
   say([
-    'A madman named STINKY J brewed something awful in his bathtub and poured it into the Breadworks Factory.',
+    'A madman named STINKY J brewed up something awful inside the Breadworks Factory, then unleashed it on the town.',
     'Now the toast has teeth. The butter has blisters. And they have taken over CRUMB CITY.',
     'Somebody has to put breakfast back in its place. That somebody wears a paper bag.',
     touch?'Press A to swing your ball and chain. Keep holding after the swing, then let go for a SPIN attack.':'Press Space or J to swing your ball and chain. Keep holding after the swing, then let go for a SPIN attack.',
@@ -1669,7 +1833,69 @@ function newGame(){
 }
 function continueGame(){
   const s=loadSave(); if(!s){newGame();return;}
-  migrateSave(s); S=s; cur=null; later=[]; banner=null; S.hp=S.maxHp; if(S.water===undefined)S.water=WM(); if(S.crumbs===undefined)S.crumbs=0; S.maxHp=Math.min(MAXHP,S.maxHp); S.hp=Math.min(S.hp,S.maxHp); if(S.wmax)S.wmax=Math.min(20,S.wmax); S.wrate=Math.min(3,S.wrate||0); if(!ROOMS[S.cp.room])S.cp={room:'city:2,4',x:8*T,y:7*T+8}; enterRoom(S.cp.room,S.cp.x,S.cp.y); game='play'; P.inv=1;
+  migrateSave(s); S=s; if(S.lives===undefined)S.lives=3; S.lives=clamp(S.lives,1,MAXLIVES); cur=null; later=[]; banner=null; S.hp=S.maxHp; if(S.water===undefined)S.water=WM(); if(S.crumbs===undefined)S.crumbs=0; S.maxHp=Math.min(MAXHP,S.maxHp); S.hp=Math.min(S.hp,S.maxHp); if(S.wmax)S.wmax=Math.min(20,S.wmax); S.wrate=Math.min(3,S.wrate||0); if(!ROOMS[S.cp.room])S.cp={room:'city:2,4',x:8*T,y:7*T+8}; enterRoom(S.cp.room,S.cp.x,S.cp.y); game='play'; P.inv=1;
+}
+/* ================= ADS (AdMob) =================
+   An interstitial ad plays after every boss battle and after every death.
+   In the Android app (built with Capacitor + @capacitor-community/admob) a real AdMob ad is shown.
+   In a web browser there is no AdMob, so a short "AD BREAK" preview card stands in (set webPreview:false to skip it).
+   While testing is true, AdMob serves Google's test ads. Set testing:false for the release build. */
+const ADS={
+  androidId:'ca-app-pub-3721061134092374/9036042404',  // Bagman interstitial ad unit (used only when testing is false)
+  testId:'ca-app-pub-3940256099942544/1033173712',     // Google's official test interstitial
+  testing:true,     // true = Google test ads only (safe on your own phone). Set to false for the release build.
+  webPreview:true,
+  webSeconds:3
+};
+const Ads=(()=>{
+  const C=window.Capacitor, native=!!(C&&C.isNativePlatform&&C.isNativePlatform());
+  const plat=native&&C.getPlatform?C.getPlatform():'web';
+  let A=null; try{if(native)A=(C.Plugins&&C.Plugins.AdMob)||(C.registerPlugin&&C.registerPlugin('AdMob'));}catch(e){A=null;}
+  let ready=false, loading=false, inited=null, done=null;
+  const unit=()=>ADS.testing?ADS.testId:ADS.androidId;   // never request a real ad while testing
+  function finish(){if(done){const f=done;done=null;f();}}
+  async function init(){
+    if(!A)return;
+    try{
+      await A.initialize({initializeForTesting:ADS.testing});
+      try{const ci=await A.requestConsentInfo();if(ci&&ci.isConsentFormAvailable&&ci.status==='REQUIRED')await A.showConsentForm();}catch(e){}
+      A.addListener('interstitialAdDismissed',()=>{ready=false;finish();load();});
+      A.addListener('interstitialAdFailedToShow',()=>{ready=false;finish();load();});
+      A.addListener('interstitialAdFailedToLoad',()=>{ready=false;loading=false;});
+      load();
+    }catch(e){A=null;}
+  }
+  function load(){
+    if(!A||ready||loading)return; loading=true;
+    A.prepareInterstitial({adId:unit(),isTesting:ADS.testing}).then(()=>{ready=true;loading=false;}).catch(()=>{ready=false;loading=false;setTimeout(load,30000);});
+  }
+  if(A)inited=init();
+  // show(cb): plays an ad, then calls cb exactly once. The game never waits on an ad that isn't ready.
+  function show(cb){
+    if(A){
+      if(!ready){load();cb();return;}
+      done=cb; game='ad'; adT=0; adWeb=false;
+      try{if(AC&&AC.state==='running')AC.suspend();}catch(e){}
+      A.showInterstitial().catch(()=>{ready=false;finish();load();});
+      setTimeout(()=>{if(done&&game==='ad'&&adT>90)finish();},95000); // safety net: never get stuck
+      return;
+    }
+    if(ADS.webPreview){done=cb;game='ad';adT=0;adWeb=true;return;}
+    cb();
+  }
+  return {show,finish,get native(){return !!A;}};
+})();
+let adT=0, adWeb=false, gameOver=false;
+function showAd(cb){
+  Ads.show(()=>{try{if(AC&&AC.state==='suspended')AC.resume();}catch(e){} inp.aP=false; cb();});
+}
+function drawAd(){
+  ctx.fillStyle='#0d0806';ctx.fillRect(0,0,W,H);
+  if(!adWeb){uiText('Loading ad...',W/2,H/2,15,'#f1e2c6','center',true);return;}
+  comicText('AD BREAK',W/2,H/2-40,54,'#ffe14a','#f0731f',-0.04);
+  uiText('In the Android app, an ad plays here.',W/2,H/2+18,14,'#f1e2c6','center',true);
+  const left=Math.max(0,Math.ceil(ADS.webSeconds-adT));
+  uiText(left>0?'Back to the game in '+left+'...':'Back to the game!',W/2,H/2+46,14,'#bfe6ff','center',true);
 }
 function respawn(){
   S.hp=S.maxHp; S.water=Math.max(S.water,Math.ceil(WM()/2)); S.deaths++; cur=null; later=[]; banner=null; dlg=null;
@@ -1739,7 +1965,7 @@ const CAMEO={
   toaster:['Bagman, Bagman... You\'re about to get TOASTED.','Toastmaster, crank it to eleven! I\'m out of here!'],
   slicer:['The Breadworks is MY factory now. I fired everyone. Then I set the machines on fire. Then I fired the fire.','Preslicer! Slice him thinner than my excuses!'],
   francois:['Bonjour, bag-head. Meet my finest creation.','FRANÇOIS! Batter him up!'],
-  duchess:['A paper bag with a ball and chain? Ha! You must be the "hero."','I\'m STINKY J. I cooked up the evil breakfast in my bathtub, and soon CRUMB CITY will be all mine!','Duchess, darling... spread him thin!'],
+  duchess:['A paper bag with a ball and chain? Ha! You must be the "hero."','I\'m STINKY J. I cooked up the evil breakfast myself, and soon CRUMB CITY will be all mine!','Duchess, darling... spread him thin!'],
   tex:['This town ain\'t big enough for the two of us. So I\'m leaving.','TEX! Fill him full of crumbs!'],
   final:['My royal toast will finish you off.','Me? I\'ll be at the SUDS-O-RAMA. Not washing anything. Just waiting.','Try not to get any stink on that nice paper bag. HAH!']
 };
@@ -1775,11 +2001,28 @@ function checkDoor(){
   if(tileAt(Math.floor(P.x/T),Math.floor((P.y-8)/T))==='D'){const e=ENTRY[d.to];warp(d.to,e.x,e.y,e.face);}
 }
 
+let titleSel=0,titleHeld=false,diffPick=false,diffSel=1,diffHeld=false;   // title menu: 0 = CONTINUE when there's a save
 function update(dt){
   time+=dt;
   if(shakeT>0){shakeT-=dt;if(shakeT<=0)shakeM=0;}
-  if(game==='title'){if(inp.aP)newGame();else if((inp.bP||inp.mP||inp.pP)&&hasSave)continueGame();else if(inp.pP)newGame();return;}
-  if(game==='dead'){deadT+=dt;if(deadT>0.9&&inp.aP)respawn();return;}
+  if(game!=='title'){titleSel=0;titleHeld=false;diffPick=false;}   // every visit to the title screen starts on CONTINUE
+  if(game==='title'){
+    const opts=hasSave?['continue','new']:['new'];
+    if(titleSel>=opts.length)titleSel=0;
+    const dir=inp.y>0.5?1:inp.y<-0.5?-1:0;
+    if(diffPick){  // choosing a difficulty for a new game
+      const d2=inp.y>0.5?1:inp.y<-0.5?-1:0;
+      if(d2&&!diffHeld){diffSel=(diffSel+d2+3)%3;SFX.blip();}
+      diffHeld=!!d2;
+      if(inp.bP||inp.pP){diffPick=false;SFX.blip();}
+      else if(inp.aP){diffPick=false;newGame(diffSel);}
+      return;}
+    if(dir&&!titleHeld&&opts.length>1){titleSel=(titleSel+dir+opts.length)%opts.length;SFX.blip();}
+    titleHeld=!!dir;
+    if(inp.aP||inp.pP){if(opts[titleSel]==='continue')continueGame();else{diffPick=true;diffSel=1;diffHeld=true;SFX.blip();}}
+    return;}
+  if(game==='ad'){adT+=dt;if(adWeb&&adT>=ADS.webSeconds)Ads.finish();return;}
+  if(game==='dead'){deadT+=dt;if(deadT>(gameOver?1.6:0.9)&&inp.aP)showAd(gameOver?()=>{gameOver=false;S=null;cur=null;game='title';hasSave=!!loadSave();}:respawn);return;}
   if(game==='win'){winT+=dt;updParts(dt);if(winT>2&&inp.aP){game='title';hasSave=!!loadSave();}return;}
   if(game==='trans'){trans.t+=dt;if(trans.t>=trans.dur){game='play';trans=null;}return;}
   if(game==='fade'){
@@ -1791,6 +2034,13 @@ function update(dt){
   if(game==='pause'){if(inp.aP||inp.bP||inp.mP||inp.pP)game=mapFromMenu?'menu':'play';return;}
   if(game==='menu'){menuUpdate(dt);return;}
   if(dlg){
+    if(dlg.choice&&dlg.i===dlg.lines.length-1){
+      const ch=dlg.choice, dir=(inp.x>0.5||inp.y>0.5)?1:(inp.x<-0.5||inp.y<-0.5)?-1:0;
+      if(dir&&!ch.held){const n=dir>0?1:0;if(n!==ch.sel){ch.sel=n;SFX.blip();}}
+      ch.held=!!dir;
+      if(inp.aP||inp.bP){const yes=inp.aP&&ch.sel===0;dlg=null;P.bumpCD=0.7;P.charge=0;SFX.blip();ch.pick(yes);}
+      return;
+    }
     if(inp.aP){dlg.i++;SFX.blip();if(dlg.i>=dlg.lines.length){const cb=dlg.cb;dlg=null;P.bumpCD=0.7;P.charge=0;if(cb)cb();}}
     return;
   }
@@ -1853,6 +2103,17 @@ function drawHeart(x,y,s,v){
   heartPath(x,y,s);ctx.fillStyle='#3a2620';ctx.fill();
   if(v>0){ctx.save();heartPath(x,y,s);ctx.clip();ctx.fillStyle='#e0262a';ctx.fillRect(x-s*1.3,y-s,v>=2?s*2.6:s*1.3,s*2);ctx.fillStyle='rgba(255,255,255,.45)';ell(x-s*0.45,y-s*0.3,s*0.25,s*0.18,-0.6);ctx.fill();ctx.restore();}
   heartPath(x,y,s);ink(2);ctx.stroke();
+}
+function drawLifeHead(x,y,s){  // Bagman's paper-bag head, used as the lives symbol
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.translate(0,10);
+  const bag=()=>{ctx.beginPath();ctx.moveTo(-10.5,-23);ctx.lineTo(10.5,-23);ctx.lineTo(12.5,2.8);ctx.lineTo(9.375,-0.2);ctx.lineTo(6.25,2.8);ctx.lineTo(3.125,-0.2);ctx.lineTo(0,2.8);ctx.lineTo(-3.125,-0.2);ctx.lineTo(-6.25,2.8);ctx.lineTo(-9.375,-0.2);ctx.lineTo(-12.5,2.8);ctx.closePath();};
+  bag();ctx.fillStyle='#c9995f';ctx.fill();
+  ctx.save();bag();ctx.clip();ctx.fillStyle='#a87a45';ctx.fillRect(5,-26,10,32);ctx.restore();
+  ctx.strokeStyle='#0d0805';ctx.lineWidth=2;ctx.lineJoin='round';bag();ctx.stroke();
+  ctx.fillStyle='#1a0f08';for(const ex of [-5,5]){ctx.beginPath();ctx.ellipse(ex,-10.5,3.3,2.4,0,0,7);ctx.fill();}
+  ctx.fillStyle='#ffffff';for(const ex of [-5,5]){ctx.beginPath();ctx.arc(ex+0.8,-10.9,0.9,0,7);ctx.fill();}
+  ctx.strokeStyle='#3a2410';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(-9.5,-15.5);ctx.lineTo(-2,-12.6);ctx.moveTo(9.5,-15.5);ctx.lineTo(2,-12.6);ctx.stroke();
+  ctx.restore();
 }
 function drawKeyIcon(x,y){
   ink(1.6);ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.arc(x,y,5,0,7);fs();
@@ -2080,6 +2341,7 @@ function drawDoor(ch,x,y,vertical){
     if(ch==='G'){ctx.fillStyle='#c0261a';ink(1.5);ctx.beginPath();ctx.arc(x+16,y+16,6,0,7);fs();ctx.fillStyle='#ffb347';ctx.beginPath();ctx.arc(x+16,y+16,2,0,7);ctx.fill();}
   }
 }
+let propPass=false;
 function drawTileStatic(area,g,c,r){
   const ch=g[r][c],x=c*T,y=r*T;
   if(ch==='#'||ch==='B'){drawWall(area,c,r,x,y,g);return;}
@@ -2089,9 +2351,12 @@ function drawTileStatic(area,g,c,r){
   if(ch==='Q'){drawFloor(area,c,r,x,y,g);ink(2);ctx.fillStyle='#4b4f57';ctx.fillRect(x+2,y+4,T-4,4);ctx.fillRect(x+2,y+T-8,T-4,4);ctx.strokeRect(x+2,y+4,T-4,T-8);
     for(let i=0;i<4;i++){ctx.fillStyle='#8d939b';ctx.fillRect(x+5+i*7,y+4,3,T-8);}ctx.fillStyle='#f2931c';ctx.fillRect(x+13,y+14,6,4);return;}
   if(ch==='L'||ch==='G'||ch==='X'){drawWall(area,c,r,x,y,g);drawDoor(ch,x,y,c===0||c===COLS-1);return;}
-  drawFloor(area,c,r,x,y,g);
-  const border=r===0||c===0||r===ROWS-1||c===COLS-1;
-  if(border){ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(x,y,T,T);}
+  if(!propPass){
+    drawFloor(area,c,r,x,y,g);
+    const border=r===0||c===0||r===ROWS-1||c===COLS-1;
+    if(border){ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(x,y,T,T);}
+    if(isBig(ch,cur.d))return;
+  }else{const k=BIG[ch];ctx.save();ctx.translate((c+1)*T,(r+1)*T);ctx.scale(k,k);ctx.translate(-(x+16),-(y+16));}
   switch(ch){
     case 'c':{
       shadowAt(x+17,y+29,12,4);ink(2);
@@ -2216,6 +2481,7 @@ function drawTileStatic(area,g,c,r){
       ctx.fillStyle='#b07b44';rr(x+3,y+4,26,15,2);fs();ctx.strokeStyle='#5a3a1f';ctx.lineWidth=1.5;line(x+7,y+9,x+25,y+9);line(x+7,y+14,x+20,y+14);
       break;}
   }
+  if(propPass)ctx.restore();
 }
 function drawCityDoor(x,y,c,r){
   const lbl=cur&&cur.d&&cur.d.door?cur.d.door.label:'';
@@ -2272,6 +2538,7 @@ function drawDoorFrames(room){
   for(const s of room.d.exits){
     const gp=gapsFor(room.d)[s],cs=gp.map(g=>g[0]),rs=gp.map(g=>g[1]);
     const x0=Math.min(...cs)*T,x1=(Math.max(...cs)+1)*T,y0=Math.min(...rs)*T,y1=(Math.max(...rs)+1)*T;
+    if(room.grid[gp[0][1]][gp[0][0]]==='W')continue;   // a secret cracked wall gets no frame until it's been smashed open
     const open=room.grid[gp[0][1]][gp[0][0]]==='.', horiz=(s==='N'||s==='S');
     if(open){
       // passage fading into darkness toward the outside
@@ -2294,6 +2561,7 @@ function makeBG(room){
   const cvs=makeCanvas(W,RH), g=cvs.getContext('2d'), saved=ctx; ctx=g; g.setTransform(SC,0,0,SC,0,0);
   const savedCur=cur; cur=room;
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)drawTileStatic(room.area,room.grid,c,r);
+  propPass=true;try{for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(isBig(room.grid[r][c],room.d))drawTileStatic(room.area,room.grid,c,r);}finally{propPass=false;}
   if(room.d.wares){
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const ch=room.grid[r][c],w=room.d.wares[ch]; if(!w)continue;
@@ -2301,6 +2569,7 @@ function makeBG(room){
       if(sold){uiText('SOLD',x,y+6,10,'#8a7f72','center',true);continue;}
       if(w.id==='tank'){drawDrop(x,y+2,8);ctx.fillStyle='#ffffff';ctx.fillRect(x+6,y-6,6,2);ctx.fillRect(x+8,y-8,2,6);}
       else if(w.id==='nozzle'){drawDrop(x-4,y+2,6);ctx.fillStyle='#ffe14a';ink(1.2);ctx.beginPath();ctx.moveTo(x+6,y-8);ctx.lineTo(x+1,y+2);ctx.lineTo(x+5,y+2);ctx.lineTo(x+2,y+10);ctx.lineTo(x+10,y-1);ctx.lineTo(x+6,y-1);ctx.closePath();fs();}
+      else if(w.id==='life')drawLifeHead(x,y+3,0.62);
       else if(w.id==='water')drawDrop(x,y+2,6);
       else{ink(1.5);ctx.fillStyle='#e6b36a';rr(x-9,y-4,18,6,3);fs();ctx.fillStyle='#6fa055';ctx.fillRect(x-9,y+2,18,2);ctx.fillStyle='#c0392b';ctx.fillRect(x-8,y+4,16,2);ctx.fillStyle='#e6b36a';rr(x-9,y+6,18,5,2);fs();}
       drawCrumb(x-9,y+30,4);uiText(String(w.price),x+2,y+30,11,'#ffe14a','left',true);
@@ -2381,7 +2650,7 @@ function drawBagman(x,y,face,walkT,moving,s,alpha,gun){
   {const wr=wrist(face,walkT,moving);ctx.save();ctx.translate(wr.x,wr.y);ctx.rotate(wr.rot);
    ctx.fillStyle=C('#8d939b');ink(1.2);ctx.fillRect(-3.5,-1.5,7,3);ctx.strokeRect(-3.5,-1.5,7,3);ctx.fillStyle=C('#c9d2da');ctx.fillRect(-2.5,-1,2,1);ctx.restore();}
   ctx.save();ctx.translate(0,-32);
-  const bag=()=>{ctx.beginPath();ctx.moveTo(-10.5,-23);ctx.lineTo(10.5,-23);ctx.lineTo(12.5,2);ctx.lineTo(9,-0.5);ctx.lineTo(5.5,3);ctx.lineTo(2,0);ctx.lineTo(-2,3.2);ctx.lineTo(-5.5,0);ctx.lineTo(-9,2.8);ctx.lineTo(-12.5,0.5);ctx.closePath();};
+  const bag=()=>{ctx.beginPath();ctx.moveTo(-10.5,-23);ctx.lineTo(10.5,-23);ctx.lineTo(12.5,2.8);ctx.lineTo(9.375,-0.2);ctx.lineTo(6.25,2.8);ctx.lineTo(3.125,-0.2);ctx.lineTo(0,2.8);ctx.lineTo(-3.125,-0.2);ctx.lineTo(-6.25,2.8);ctx.lineTo(-9.375,-0.2);ctx.lineTo(-12.5,2.8);ctx.closePath();};
   bag();ctx.fillStyle=C('#c9995f');ctx.fill();
   ctx.save();bag();ctx.clip();ctx.fillStyle=C('#a87a45');ctx.fillRect(5+dirx*3,-26,10,32);ctx.fillStyle=C('rgba(255,240,210,.25)');ctx.fillRect(-10,-21,4,22);
   ctx.strokeStyle='rgba(110,70,30,.6)';ctx.lineWidth=1;line(-11,-19.5,11,-19.5);line(-10.5,-23,-8,-19.5);line(10.5,-23,8,-19.5);ctx.restore();
@@ -2835,6 +3104,7 @@ function drawHUD(){
   const n=S.maxHp/2, hs=n>8?16:19, hz=n>8?7:8;
   for(let i=0;i<n;i++)drawHeart(16+i*hs,18,hz,clamp(S.hp-i*2,0,2));
   drawKeyIcon(18,38);uiText('×'+S.keys,36,38,12,'#f1e2c6','left',true);
+  drawLifeHead(76,36,0.5);uiText('×'+(S.lives===undefined?3:S.lives),86,38,12,S.lives===1?'#ff8a5c':'#f1e2c6','left',true);
   // center: where you are
   comicText(roomName(cur.d),W/2,20,18,'#ffe14a','#f0731f',0,'center');
   // right: water gun gauge, crumbs underneath
@@ -2883,6 +3153,13 @@ function drawDialog(){
   ctx.font='bold 15px '+UIF;
   const lines=wrapText(dlg.lines[dlg.i],w-36);
   lines.slice(0,4).forEach((l,i)=>uiText(l,x+18,y+22+i*20,15,'#1f150c','left',true));
+  if(dlg.choice&&dlg.i===dlg.lines.length-1){   // YES / NO choice
+    ['YES','NO'].forEach((t,i)=>{const bx=x+w-150+i*74,by=y+h-22,on=dlg.choice.sel===i;
+      if(on){ctx.fillStyle='#f0731f';rr(bx-6,by-13,62,24,5);ctx.fill();
+        ctx.beginPath();ctx.moveTo(bx-14,by-6);ctx.lineTo(bx-8,by-1);ctx.lineTo(bx-14,by+4);ctx.closePath();ctx.fill();}
+      uiText(t,bx+25,by+5,15,on?'#fff6df':'#8a7558','center',true);});
+    return;
+  }
   if(Math.floor(time*3)%2){ctx.fillStyle='#f0731f';ctx.beginPath();ctx.moveTo(x+w-24,y+h-18);ctx.lineTo(x+w-12,y+h-18);ctx.lineTo(x+w-18,y+h-10);ctx.closePath();ctx.fill();}
   uiText((dlg.i+1)+'/'+dlg.lines.length,x+w-30,y+h-14,10,'#8a7558','right');
 }
@@ -2917,7 +3194,7 @@ function drawMap(){
   uiText(wld==='city'?'Bosses crushed: '+nb+' / '+Object.keys(BOSS).length:'Find the key, beat the boss. Walk out the way you came in to leave.',W/2,yy,12,'#d8c7a8','center',true);
 
   yy=Math.min(yy+24,H-58);
-  uiText('Keys: '+S.keys+'    Hearts: '+S.maxHp/2+'    Crumbs: '+(S.crumbs||0),40,yy,13,'#f1e2c6','left',true);
+  uiText('Lives: '+S.lives+'    Keys: '+S.keys+'    Hearts: '+S.maxHp/2+'    Crumbs: '+(S.crumbs||0)+'    '+DF().tag,40,yy,13,'#f1e2c6','left',true);
   yy+=20;
   const items=['Ball & chain'];if(S.chain)items.push('Long chain');if(S.chain2)items.push('Coil chain');if(S.quick)items.push('Quick spin');items.push('Water '+S.water+'/'+WM()+' (pump '+(S.wrate||0)+'/3)');if(S.iron)items.push('Iron ball');
   uiText(items.join(' · '),40,yy,12,'#e8b923','left',true);
@@ -2950,17 +3227,37 @@ function drawTitle(){
   comicText('CRUST & CONSEQUENCE',W/2,114,26,'#ffffff','#ffd23f',0.02);
   const touch=document.body.classList.contains('touch');
   if(Math.floor(time*2)%2||true){
-    ctx.fillStyle='rgba(0,0,0,.55)';rr(W/2-150,142,300,hasSave?50:30,6);ctx.fill();
-    uiText((touch?'A':'Space')+': new game',W/2,157,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);
-    if(hasSave)uiText((touch?'B':'M')+': continue from checkpoint',W/2,179,13,'#f1e2c6','center',true);
-    if(isIOS()&&!isStandalone())uiText('Tip: tap Share > Add to Home Screen to play full screen',W/2,hasSave?204:184,11,'#bfe6ff','center',true);
+    // title menu: CONTINUE (always selected first) / NEW GAME
+    const blink=Math.floor(time*2.5)%2;
+    if(diffPick){
+      ctx.fillStyle='rgba(20,10,4,.86)';rr(W/2-150,134,300,156,6);ctx.fill();
+      uiText('CHOOSE YOUR TOAST',W/2,152,13,'#ffe14a','center',true);
+      DIFFS.forEach((d,i)=>{const y=176+i*22,on=i===diffSel;
+        if(on){ctx.fillStyle=blink?'#ffe14a':'#f0731f';ctx.beginPath();ctx.moveTo(W/2-118,y-6);ctx.lineTo(W/2-110,y);ctx.lineTo(W/2-118,y+6);ctx.closePath();ctx.fill();}
+        uiText(d.name+'  ('+d.tag+')',W/2+4,y+5,14,on?(blink?'#ffe14a':'#fff6df'):'#9c8f7c','center',true);});
+      const dd=DIFFS[diffSel];uiText(dd.desc[0],W/2,252,11,'#d8c7a8','center',true);if(dd.desc[1])uiText(dd.desc[1],W/2,266,11,'#d8c7a8','center',true);
+      uiText(touch?'A: start    B: back':'Space: start    X / Esc: back',W/2,284,10,'#9c8f7c','center',true);
+      return;}
+    const opts=hasSave?['CONTINUE','NEW GAME']:['NEW GAME'];
+    ctx.fillStyle='rgba(0,0,0,.55)';rr(W/2-110,138,220,opts.length*24+12,6);ctx.fill();
+    opts.forEach((t,i)=>{const y=156+i*24,on=i===titleSel;
+      if(on){ctx.fillStyle=blink?'#ffe14a':'#f0731f';ctx.beginPath();ctx.moveTo(W/2-66,y-6);ctx.lineTo(W/2-58,y);ctx.lineTo(W/2-66,y+6);ctx.closePath();ctx.fill();}
+      uiText(t,W/2+4,y+5,15,on?(blink?'#ffe14a':'#fff6df'):'#9c8f7c','center',true);});
+    if(isIOS()&&!isStandalone())uiText('Tip: tap Share > Add to Home Screen to play full screen',W/2,hasSave?212:188,11,'#bfe6ff','center',true);
   }
 }
 function drawDead(){
   ctx.fillStyle='rgba(60,4,0,'+Math.min(0.75,deadT)+')';ctx.fillRect(0,0,W,H);
   const s=Math.min(1,deadT*2);
+  if(gameOver){
+    ctx.fillStyle='rgba(0,0,0,'+Math.min(0.5,deadT*0.4)+')';ctx.fillRect(0,0,W,H);
+    ctx.save();ctx.translate(W/2,H/2-40);ctx.scale(0.6+0.4*s,0.6+0.4*s);comicText('GAME OVER',0,0,72,'#ffe14a','#f0731f',-0.05);ctx.restore();
+    if(deadT>0.9){uiText('Out of lives. Stinky J wins... for now.',W/2,H/2+22,15,'#f1e2c6','center',true);uiText('Your adventure starts over from the beginning.',W/2,H/2+42,13,'#d8c7a8','center',true);}
+    if(deadT>1.6)uiText('Press A / Space to return to the title',W/2,H/2+70,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);
+    return;}
   ctx.save();ctx.translate(W/2,H/2-30);ctx.scale(0.6+0.4*s,0.6+0.4*s);comicText('FLATTENED!',0,0,72,'#ffe14a','#f0731f',-0.05);ctx.restore();
-  if(deadT>0.9){uiText('The breakfast won this round.',W/2,H/2+30,15,'#f1e2c6','center',true);uiText('Press A / Space to get back up',W/2,H/2+56,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);}
+  if(deadT>0.6){drawLifeHead(W/2-22,H/2+12,0.7);uiText('×'+S.lives+(S.lives===1?'  LAST LIFE!':'  LEFT'),W/2-10,H/2+8,16,S.lives===1?'#ff8a5c':'#ffe14a','left',true);}
+  if(deadT>0.9){uiText('The breakfast won this round.',W/2,H/2+36,15,'#f1e2c6','center',true);uiText('Press A / Space to get back up',W/2,H/2+60,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);}
 }
 function drawWin(){
   ctx.fillStyle='#1a0e08';ctx.fillRect(0,0,W,H);
@@ -2973,7 +3270,7 @@ function drawWin(){
   uiText('Stinky J got scrubbed, rinsed and hung out to dry.',W/2,292,14,'#f1e2c6','center',true);
   uiText('Crumb City smells like fresh bread again.',W/2,312,14,'#f1e2c6','center',true);
   const t=Math.floor(S.time),mm=Math.floor(t/60),ss=('0'+t%60).slice(-2);
-  uiText('Time '+mm+':'+ss+'   Knockouts '+S.deaths+'   Hearts '+S.maxHp/2,W/2,342,13,'#e8b923','center',true);
+  uiText('Time '+mm+':'+ss+'   Knockouts '+S.deaths+'   Hearts '+S.maxHp/2+'   '+DF().name,W/2,342,13,'#e8b923','center',true);
   if(winT>2)uiText('Press A / Space to return to the title',W/2,372,13,Math.floor(time*2.5)%2?'#ffe14a':'#a8916f','center',true);
 }
 
@@ -3025,6 +3322,7 @@ function render(){
   if(game==='pause')drawMap();
   if(game==='menu')drawMenu();
   if(game==='dead')drawDead();
+  if(game==='ad')drawAd();
 }
 function overlay(){if(!HT)makeHalftone();ctx.save();ctx.globalAlpha=0.07;ctx.fillStyle=HT;ctx.fillRect(0,0,W,H);ctx.restore();}
 
@@ -3079,12 +3377,15 @@ bindBtn(document.getElementById('bStart'),v=>{tS=v;});
 cv.addEventListener('pointerdown',e=>{
   ac();
   if(game==='menu'){const r=cv.getBoundingClientRect(),ly=(e.clientY-r.top)/r.height*H,i=Math.round((ly-MENU_Y0)/MENU_DY);if(i>=0&&i<MENU.length&&Math.abs(ly-(MENU_Y0+i*MENU_DY))<16){menuSel=i;menuActivate();}return;}
+  if(game==='title'){const r=cv.getBoundingClientRect(),ly=(e.clientY-r.top)/r.height*H;
+    if(diffPick){const i=Math.round((ly-176)/22);if(i>=0&&i<3&&Math.abs(ly-(176+i*22))<11){diffSel=i;diffHeld=true;tA=true;setTimeout(()=>{tA=false;},90);}return;}
+    const n=hasSave?2:1,i=Math.round((ly-156)/24);if(i>=0&&i<n&&Math.abs(ly-(156+i*24))<12)titleSel=i;}
   if(game==='title'||game==='dead'||game==='win'||dlg){tA=true;setTimeout(()=>{tA=false;},90);}
 });
 const muteBtn=document.getElementById('mute');
 bindBtn(muteBtn,v=>{tSel=v;});
 
-if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&!Ads.native){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 window.__bag={get audio(){return [AC?AC.state:null,Music.step,Music.name];},spawn,get S(){return S;},get cur(){return cur;},P,ROOMS,enterRoom,update,render,newGame,setGame:g=>{game=g;},get game(){return game;},inp,K,get dlg(){return dlg;},clearDlg:()=>{dlg=null;}};
