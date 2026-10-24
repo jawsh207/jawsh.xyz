@@ -19,16 +19,18 @@
 <style>
 :root{
   --bg:#e7e3ec; --panel:#d8d3e0; --edge:#bdb6c9; --ink:#1d1720; --muted:#5d5468;
-  --screen:#0e0906; --pad:#2b2530; --btnA:#f0731f; --btnAd:#a3480f; --btnB:#2a7fc0; --btnBd:#174e7a; --pill:#6f6878;
+  --screen:#0e0906; --pad:#2b2530; --padd:#141118; --btnA:#f0731f; --btnAd:#a3480f; --btnB:#2a7fc0; --btnBd:#174e7a; --pill:#6f6878; --pilld:#46404e;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){--bg:#110d14;--panel:#1c1720;--edge:#2c2532;--ink:#efe6f5;--muted:#9a8fa6;--pad:#3a3240;--pill:#5a5262;}
+  :root:not([data-theme="light"]){--bg:#110d14;--panel:#1c1720;--edge:#2c2532;--ink:#efe6f5;--muted:#9a8fa6;--pad:#3a3240;--padd:#1d1822;--pill:#5a5262;--pilld:#36303d;}
 }
-:root[data-theme="dark"]{--bg:#110d14;--panel:#1c1720;--edge:#2c2532;--ink:#efe6f5;--muted:#9a8fa6;--pad:#3a3240;--pill:#5a5262;}
-*,*::before,*::after{box-sizing:inherit}
+:root[data-theme="dark"]{--bg:#110d14;--panel:#1c1720;--edge:#2c2532;--ink:#efe6f5;--muted:#9a8fa6;--pad:#3a3240;--padd:#1d1822;--pill:#5a5262;--pilld:#36303d;}
+*,*::before,*::after{box-sizing:inherit;-webkit-tap-highlight-color:transparent}
+button{-webkit-appearance:none;appearance:none}
+.gbtn:focus:not(:focus-visible),.pill:focus:not(:focus-visible){outline:none}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 body{
   margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
@@ -41,7 +43,6 @@ body{
 #bezel{flex:0 1 auto;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:8px}
 #gameWrap{flex:0 1 auto;aspect-ratio:512/400;width:100%;min-height:0;display:flex;align-items:center;justify-content:center}
 canvas{display:block;border-radius:6px;background:var(--screen)}
-.hint{color:var(--muted);font-size:11px;text-align:center;padding:6px 4px 0}
 body.touch .hint{display:none}
 /* bottom: controls */
 #bottom{
@@ -53,7 +54,9 @@ body.touch .hint{display:none}
 #abWrap{grid-area:ab;display:flex;align-items:center;justify-content:center}
 #sysWrap{grid-area:sys;display:flex;justify-content:center;gap:26px;padding:2px 0 0}
 #dpad{--s:clamp(120px,34vw,158px);width:var(--s);height:var(--s);position:relative;touch-action:none;cursor:pointer}
-#dpad .arm{position:absolute;background:var(--pad);border-radius:8px}
+#dpad{--rx:0deg;--ry:0deg;transform:perspective(340px) rotateX(var(--rx)) rotateY(var(--ry));transition:transform .05s}
+#dpad .arm{position:absolute;background:var(--pad);border-radius:8px;box-shadow:0 5px 0 var(--padd),inset 0 2px 0 rgba(255,255,255,.07)}
+#dpad.u{--rx:12deg}#dpad.d{--rx:-12deg}#dpad.l{--ry:-12deg}#dpad.r{--ry:12deg}
 #dpad .h{left:4%;right:4%;top:34%;height:32%}
 #dpad .v{top:4%;bottom:4%;left:34%;width:32%}
 #dpad .hub{position:absolute;left:42%;top:42%;width:16%;height:16%;border-radius:50%;background:rgba(255,255,255,.06);z-index:2}
@@ -76,8 +79,8 @@ body.touch .hint{display:none}
 #gbB{left:0;bottom:0}
 #gbA{right:0;top:0}
 .sys{display:flex;flex-direction:column;align-items:center;gap:5px}
-.pill{width:58px;height:16px;border-radius:9px;border:none;background:var(--pill);cursor:pointer;touch-action:none;padding:0}
-.pill.on{transform:translateY(2px)}
+.pill{width:58px;height:16px;border-radius:9px;border:none;background:var(--pill);cursor:pointer;touch-action:none;padding:0;box-shadow:0 3px 0 var(--pilld),inset 0 1.5px 0 rgba(255,255,255,.12)}
+.pill.on{transform:translateY(2px);box-shadow:0 1px 0 var(--pilld),inset 0 1.5px 0 rgba(255,255,255,.12)}
 .sys span{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted)}
 .gbtn:focus-visible,.pill:focus-visible{outline:3px solid #ffb21f;outline-offset:3px}
 @media (orientation:landscape) and (max-height:520px){
@@ -98,7 +101,6 @@ body.touch .hint{display:none}
     <div id="bezel">
       <div id="gameWrap"><canvas id="c" width="512" height="400" aria-label="Bagman game"></canvas></div>
     </div>
-    <div class="hint">Keys: WASD/arrows move · Space swing (hold for spin) · X water gun · M map · Esc pause · Game controllers supported</div>
   </section>
   <section id="bottom">
     <div id="dpadWrap">
@@ -144,31 +146,32 @@ const AREAS={
   cafe:{name:'CAFÉ CROISSANT',col:'#b5703a'},
   creamery:{name:'THE CREAMERY',col:'#e8d48a'},
   silo:{name:'THE GRAIN SILOS',col:'#c9a03a'},
+  bagel:{name:'THE BAGEL SHOP',col:'#d08a3c'},
   factory:{name:'BREADWORKS FACTORY',col:'#6c7a86'},
   lair:{name:'THE BURNT CRUST',col:'#8a2a14'}
 };
 const E9='..............';
 const ROOMS={
 'alley:0,1':{area:'alley',exits:'EN',locks:{N:'Q'},
- sign:['Heavy blocks. Lean into one to shove it.','Cover every pressure plate and the bars will lift.','Stuck a block in a corner? Leave the room and come back to reset it.'],
+ sign:['Another block puzzle. Shove the blocks onto the plates to lift the bars.'],
  map:[E9,'.k........c...','..._.....P....',E9,'.....s........',E9,'...P......_...','..ll.......k..',E9],
- en:[['croissant',11,4],['toast',2,3]]},
+ en:[['toast',11,4],['toast',2,3]]},
 'alley:0,0':{area:'alley',exits:'S',chest:'key',
  map:[E9,'.c..........c.',E9,'....l....l....','......C.......',E9,'..k........k..',E9,E9],
- en:[['croissant',3,2],['croissant',10,2],['toast',6,6]]},
+ en:[['toast',3,2],['toast',10,2],['toast',6,6]]},
 'alley:3,1':{area:'alley',exits:'W',chest:'heart',
  map:[E9,'.k.k......k.k.',E9,E9,'.......C......',E9,E9,'.ll........ll.',E9],
  en:[['butter',4,2],['pat',10,6],['pat',10,2]]},
 'alley:1,1':{area:'alley',exits:'NEWS',out:1,checkpoint:1,
- sign:['BACK ALLEY CROSSING.','The boss is through the room to the east, behind a locked door.','Locked doors need small keys. Try the lot to the west.'],
+ sign:['BACK ALLEY CROSSING.','The boss is through the room to the east, behind a locked door.','The key is in the lot to the west.'],
  map:[E9,'.c..........c.',E9,'....s.........',E9,E9,'.ll........ll.','.lll......lll.',E9],
- en:[['croissant',11,3]]},
+ en:[['toast',11,3]]},
 'alley:2,1':{area:'alley',exits:'WNE',locks:{N:'L',E:'W'},map:[
  E9,'..c........c..',E9,'....##..##....','....#....#....','....##..##....',E9,'.lll......k...',E9],
- en:[['toast',3,1],['croissant',11,5],['croissant',6,7]]},
+ en:[['toast',3,1],['toast',11,5],['toast',6,7]]},
 'alley:1,0':{area:'alley',exits:'S',shut:1,clearChest:1,chest:'crumbs',map:[
  E9,'.c..........c.',E9,E9,'......C.......',E9,E9,'..k........k..',E9],
- en:[['butter',3,2],['croissant',10,2],['toast',3,6],['croissant',10,6]]},
+ en:[['butter',3,2],['toast',10,2],['toast',3,6],['toast',10,6]]},
 'alley:2,0':{area:'alley',exits:'S',boss:'knife',map:[
  E9,E9,E9,E9,E9,E9,E9,'.ll........ll.',E9],en:[]},
 'kitchen:0,2':{area:'kitchen',exits:'SNE',out:1,checkpoint:1,
@@ -180,10 +183,10 @@ const ROOMS={
  en:[['butter',4,1],['egg',9,7],['egg',7,7],['pat',1,8]]},
 'kitchen:0,1':{area:'kitchen',exits:'SEN',locks:{E:'L'},map:[
  'tttttt..tttttt',E9,'.b.b.b..b.b.b.',E9,'...tt....tt...','...tt....tt...',E9,'.b.b.b..b.b.b.',E9],
- en:[['burnt',2,3],['egg',11,6],['egg',6,1]]},
+ en:[['toast',2,3],['egg',11,6],['egg',6,1]]},
 'kitchen:1,1':{area:'kitchen',exits:'WN',shut:1,map:[
  E9,'..t........t..','..t..g..g..t..',E9,'....b....b....',E9,'..t..g..g..t..','..t........t..',E9],
- en:[['egg',4,3],['toast',9,3],['egg',6,6],['burnt',12,4]]},
+ en:[['egg',4,3],['toast',9,3],['egg',6,6],['toast',12,4]]},
 'kitchen:1,0':{area:'kitchen',exits:'S',boss:'spoon',map:[
  'tttt......tttt',E9,'..b........b..',E9,E9,E9,'..b........b..',E9,E9],en:[]},
 'kitchen:2,2':{area:'kitchen',exits:'W',chest:'key',
@@ -191,24 +194,24 @@ const ROOMS={
  en:[['egg',3,3],['egg',10,5],['toast',6,7]]},
 'kitchen:0,0':{area:'kitchen',exits:'S',chest:'heart',
  map:[E9,'..t........t..','.....QQQ......','.....QCQ......','.....QQQ......','.._.......P...','..P......._...','..t........t..',E9],
- en:[['burnt',11,2],['egg',2,2],['butter',6,7]]},
+ en:[['toast',11,2],['egg',2,2],['butter',6,7]]},
 /* ---- SPARKY'S APPLIANCES (toaster dungeon) ---- */
 'shop:0,1':{area:'shop',exits:'NES',out:1,checkpoint:1,
  sign:['THE SHOWROOM.','North: a locked door. The TOASTMASTER 3000 is behind it.','East: the stockroom. There\'s a key in there.'],
  map:['kk..........kk',E9,'..b........b..',E9,'.....s........',E9,'..b........b..',E9,E9],
- en:[['toast',3,1],['toast',10,7],['burnt',11,3]]},
+ en:[['toast',3,1],['toast',10,7],['toast',11,3]]},
 'shop:1,1':{area:'shop',exits:'WES',locks:{E:'F',S:'W'},chest:'key',
  map:['kkkk....kkkkkk',E9,'..k.......c...',E9,'......C.......',E9,'..c.......k...',E9,'kkkk....kkkkkk'],
- en:[['toast',3,3],['burnt',10,4],['toast',9,7]]},
+ en:[['toast',3,3],['toast',10,4],['toast',9,7]]},
 'shop:0,0':{area:'shop',exits:'SE',locks:{E:'L'},shut:1,
  map:[E9,'..b...kk...b..',E9,'.k..........k.','.....b..b.....','.k..........k.',E9,'..b........b..',E9],
- en:[['burnt',2,2],['burnt',11,2],['toast',4,6],['toast',9,6]]},
+ en:[['toast',2,2],['toast',11,2],['toast',4,6],['toast',9,6]]},
 'shop:2,1':{area:'shop',exits:'W',chest:'tank',
  map:['kkk........kkk',E9,'..b...cc...b..',E9,'.......C......',E9,'..b........b..',E9,'kkk........kkk'],
- en:[['toast',3,3],['toast',10,6],['burnt',11,3]]},
+ en:[['toast',3,3],['toast',10,6],['toast',11,3]]},
 'shop:1,2':{area:'shop',exits:'N',chest:'heart',
  map:[E9,'.k..........k.',E9,'..k...C...k...',E9,'.k..........k.',E9,E9,E9],
- en:[['burnt',3,6],['burnt',10,6]]},
+ en:[['toast',3,6],['toast',10,6]]},
 'shop:1,0':{area:'shop',exits:'W',boss:'toaster',map:[
  E9,E9,'..b........b..',E9,E9,E9,'..b........b..',E9,E9],en:[]},
 'factory:0,0':{area:'factory',exits:'WS',out:1,checkpoint:1,
@@ -238,14 +241,14 @@ const ROOMS={
 'lair:0,0':{area:'lair',exits:'S',checkpoint:1,boss:'final',map:[
  E9,'..#........#..',E9,E9,E9,E9,E9,'..#........#..',E9],en:[]},
 'store:0,0':{area:'store',exits:'S',out:1,
- sign:['CRUMB & CO.  "We sell the good stuff."','Walk into an item to buy it with CRUMBS.','Toast and butter drop crumbs when you beat them.'],
+ sign:['CRUMB & CO.  "We sell the good stuff."','Walk into an item to buy it with CRUMBS.','Every enemy you beat can drop crumbs.'],
  wares:{'1':{id:'tank',name:'BIGGER WATER TANK',desc:'Carry 3 more water shots.',price:350,once:1},'2':{id:'nozzle',name:'TURBO NOZZLE',desc:'Your water gun fires faster.',price:350,once:1},'3':{id:'life',name:'EXTRA LIFE',desc:'One more try before GAME OVER.',price:500},'4':{id:'food',name:'HEARTY SANDWICH',desc:'Restores all your health.',price:5}},
  map:['ttt1t2t3t4tttt',E9,'..s...........',E9,E9,E9,E9,E9,E9],en:[]},
 /* ---- SUDS-O-RAMA (final) ---- */
 'laundry:0,1':{area:'laundry',exits:'NS',out:1,checkpoint:1,
  sign:['THE BACK ROOM.','It STINKS. He\'s right through that door.','The sinks still have water. Fill up before you go in.'],
  map:['wwwww....wwwww',E9,'..tt......tt..',E9,'.u....s.......',E9,'..tt......tt..',E9,E9],
- en:[['toast',3,3],['butter',10,3],['burnt',6,6],['egg',12,6],['jelly',2,7]]},
+ en:[['toast',3,3],['butter',10,3],['burnt',6,6],['egg',12,6],['jelly',2,7],['croissant',11,1],['bagel',3,5],['muffin',12,3],['pat',8,1]]},
 'laundry:0,0':{area:'laundry',exits:'S',boss:'stinky',checkpoint:1,
  map:['wwwwwwwwwwwwww',E9,'.u..........u.',E9,E9,E9,E9,'.u..........u.',E9],en:[]},
 /* ---- Burnt Crust: jelly hall + antechamber ---- */
@@ -263,7 +266,7 @@ const ROOMS={
  map:['..............','..#...ll...#..','..............','.b..........b.','..............','.b..........b.','..............','..#.s......#..','..............'],
  en:[['burnt',3,2],['jelly',10,2],['jelly',2,6],['toast',11,6],['jelly',6,1]]},
 /* ---- CRUMB CITY: 26 screens, 7 districts ---- */
-'city:2,4':{area:'city',zone:'oldtown',exits:'NWES',checkpoint:1,sign:['OLD TOWN. Population: overrun.','The breakfast gang took the streets overnight. Somebody has to put them back.','Trouble is brewing at THE CREAMERY: head SOUTH to Dairy Row. CRUMB & CO. is just WEST.'],
+'city:2,4':{area:'city',zone:'oldtown',exits:'NWES',checkpoint:1,sign:['OLD TOWN. Population: overrun.','The breakfast gang took the streets overnight. Somebody has to put them back.','Every road out of Old Town is BARRICADED. Crush a boss and a barricade comes down.','Trouble is brewing at THE CREAMERY: head SOUTH to Dairy Row. CRUMB & CO. is just WEST.'],
  map:['BBBBB....BBBBB', 'BBBBB....BBBBB', '..y..p....p.y.', '==============', '--------------', '==============', '..h..c...s..y.', 'BBBB.y..y.BBBB', 'BBBBB....BBBBB'],
  en:[['toast', 3, 2], ['toast', 11, 6], ['butter', 12, 2]]},
 'city:1,4':{area:'city',zone:'oldtown',exits:'EW',locks:{W:'G:#3'},door:{to:'store:0,0',label:'CRUMB & CO.'},
@@ -272,7 +275,7 @@ const ROOMS={
 'city:3,4':{area:'city',zone:'oldtown',exits:'WN',locks:{N:'G:#1'},
  map:['BBBBB....BBBBB', 'BBBBB....BBBBB', '..y..........y', '=========.....', '---------.....', '=========..j..', '..h..y....p...', 'BBBBB.y..BBBBB', 'BBBBBBBBBBBBBB'],
  en:[['toast', 11, 3], ['butter', 3, 6], ['toast', 12, 6]]},
-'city:2,3':{area:'city',zone:'oldtown',exits:'SN',locks:{N:'G:#4'},sign:['OLD TOWN SQUARE.','North: CRUST PARK. The breakfast gang barricaded the gate.','Every road out of Old Town is blocked. Crush a boss and a barricade comes down.'],
+'city:2,3':{area:'city',zone:'oldtown',exits:'SN',locks:{N:'G:#4'},sign:['OLD TOWN SQUARE.','North: CRUST PARK. The breakfast gang barricaded the gate.'],
  map:['BBBB......BBBB', 'BBBB.p..p.BBBB', 'BB..........BB', 'B..y..oo..y..B', 'B..j..oo..j..B', 'B....s.......B', 'BB..........BB', 'BBBB.y..y.BBBB', 'BBBB......BBBB'],
  en:[['toast', 3, 2], ['butter', 10, 6], ['toast', 10, 2]]},
 'city:3,3':{area:'city',zone:'downtown',exits:'SE',
@@ -287,9 +290,9 @@ const ROOMS={
 'city:4,2':{area:'city',zone:'downtown',exits:'W',door:{to:'shop:0,1',label:'SPARKY\'S'},
  map:['BBBBBBBBBBBBBB', 'BBBBBBBBBDBBBB', '.....p.....p..', '============..', '--nNN-------..', '==NNN=======..', '......g....c..', '.k.........k..', 'BBBBBBBBBBBBBB'],
  en:[]},
-'city:3,1':{area:'city',zone:'downtown',exits:'WSEN',locks:{S:'G:#5',N:'G:#6'},sign:['DOWNTOWN NORTH.','South: the PLAZA. East: the INDUSTRIAL DISTRICT. North: THE SCORCH.'],
- map:['BBBB......BBBB', 'BBBB......BBBB', '..s..====.....', '==============', '--------------', '==============', '.....====..h..', 'BBBB.====.BBBB', 'BBBB.====.BBBB'],
- en:[['toast', 2, 6], ['butter', 11, 2], ['toast', 12, 6]]},
+'city:3,1':{area:'city',zone:'downtown',exits:'WSEN',locks:{S:'G:#6',N:'G:#7'},door:{to:'bagel:1,2',label:'BAGEL SHOP'},sign:['DOWNTOWN NORTH.','That door over there is THE BAGEL SHOP. Something in there is VERY fresh.','South: the PLAZA. East: the INDUSTRIAL DISTRICT. North: THE SCORCH.'],
+ map:['BBBB......BBBB', 'BDBB......BBBB', '..s..====.....', '==============', '--------------', '==============', '.....====..h..', 'BBBB.====.BBBB', 'BBBB.====.BBBB'],
+ en:[]},
 'city:0,4':{area:'city',zone:'market',exits:'EN',sign:['MARKET DISTRICT.','The stalls are empty. The toast ate the vendors\' lunch.','DINER ROW is north, then east.'],
  map:['BBBBB....BBBBB', 'BBBBB....BBBBB', '..k.........k.', 'B.j...........', 'B..s..........', 'B.j...........', '..k.......k...', 'BBBBBBBBBBBBBB', 'BBBBBBBBBBBBBB'],
  en:[['butter', 6, 3], ['toast', 10, 5], ['butter', 8, 6]]},
@@ -302,10 +305,10 @@ const ROOMS={
 'city:2,2':{area:'city',zone:'park',exits:'SW',sign:['CRUST PARK.','The toast trampled the flower beds. The butter greased the slides.','West: the DUCK POND.'],
  map:['BBBBBBBBBBBBBB', 'Bp.y..p..y.p.B', '.....p....y..B', ':::::::::....B', '.y..p...:...pB', '..j.....:..j.B', '.p....s.:...yB', 'Bp...y.::::.pB', 'BBBBB....BBBBB'],
  en:[['toast', 10, 3], ['butter', 3, 5], ['toast', 11, 6]]},
-'city:1,2':{area:'city',zone:'park',exits:'EN',chest:'heart',sign:['THE DUCK POND.','No ducks. The toast scared them off.','Somebody set the flower bed on fire. Your WATER GUN can put fires out. Don\'t touch the flames!'],
+'city:1,2':{area:'city',zone:'park',exits:'EN',chest:'heart',sign:['THE DUCK POND.','No ducks. The toast scared them off.','Somebody set the flower bed on fire. Looks like something is hidden behind it.'],
  map:['BBBBB....BBBBB', 'Bp...::::..p.B', 'B.oooo.::.y...', 'B.oooo.::.s...', 'B.ooo..:::::::', 'B......ppppp..', 'B.j....pC..F..', 'B......ppppp..', 'BBBBBBBBBBBBBB'],
  en:[['butter', 11, 2], ['toast', 4, 6], ['toast', 12, 4]]},
-'city:1,1':{area:'city',zone:'park',exits:'SEW',chest:'tank',locks:{W:'G:#8'},
+'city:1,1':{area:'city',zone:'park',exits:'SEW',chest:'tank',locks:{W:'G:#9'},
  map:['BBBBBBBBBBBBBB', 'B.y.y.y.y.y.yB', '..............', '...._...QQQ...', '........QCQ...', '....P...QQQ...', '...:::::::....', 'B.y.y.:::y.y.B', 'BBBBB::::BBBBB'],
  en:[['toast', 11, 2], ['butter', 6, 2], ['toast', 12, 6]]},
 'city:2,1':{area:'city',zone:'park',exits:'WE',
@@ -317,7 +320,7 @@ const ROOMS={
 'city:4,0':{area:'city',zone:'industrial',exits:'S',chest:'heart',
  map:['BBBBBBBBBBBBBB', '..............', '..p.......p...', '..............', '......C.......', '..............', '..p..h....p...', '..............', 'BBBB......BBBB'],
  en:[['toast', 3, 3], ['toast', 10, 3], ['butter', 6, 6]]},
-'city:5,1':{area:'city',zone:'industrial',exits:'WNSE',locks:{N:'G:#7'},
+'city:5,1':{area:'city',zone:'industrial',exits:'WNSE',locks:{N:'G:#8',E:'G:#5'},
  map:['BBBBB....BBBBB', 'BBBBB....BBBBB', '..k..+...k....', '..k..+........', '.....+....k...', '.....++++++...', '..c.....k.....', 'BBBBB....BBBBB', 'BBBBB....BBBBB'],
  en:[['toast', 11, 2], ['butter', 3, 5], ['toast', 11, 6], ['butter', 7, 3]]},
 'city:5,0':{area:'city',zone:'industrial',exits:'S',door:{to:'factory:0,0',label:'BREADWORKS'},
@@ -338,7 +341,7 @@ const ROOMS={
 'city:0,0':{area:'city',zone:'waterfront',exits:'S',door:{to:'laundry:0,1',label:'SUDS-O-RAMA'},sign:['LAUNDRY LANE.','Something in that laundromat smells like a gym bag full of old soup.'],
  map:['BBBBBBBBBBBBBB', 'BBBBBBDBBBBBBB', '..c...l.....c.', '..............', 'oo...h....s.oo', 'oo..........oo', 'oo..g.......oo', 'ooooo....ooooo', 'ooooo....ooooo'],
  en:[]},
-'city:0,2':{area:'city',zone:'waterfront',exits:'S',chest:'heart',sign:['CANAL STREET.','That wall up there looks cracked. A SPIN ATTACK might do it.'],
+'city:0,2':{area:'city',zone:'waterfront',exits:'S',chest:'heart',sign:['CANAL STREET.','That wall up there looks cracked...'],
  map:['BBBBBBBBBBBBBB', 'BBBBBB.C..BBBB', 'BBBBBBBWBBBBBB', '..p.........s.', 'ooooo....ooooo', 'ooooo....ooooo', '..h...c.......', 'BBBBB....BBBBB', 'BBBBB....BBBBB'],
  en:[['toast', 3, 6], ['butter', 10, 3], ['toast', 11, 6]]},
 'city:5,3':{area:'city',zone:'cafe',exits:'WS',
@@ -350,14 +353,14 @@ const ROOMS={
 'city:4,4':{area:'city',zone:'cafe',exits:'E',chest:'crumbs',
  map:['BBBBBBBBBBBBBB', 'BBB.C.BBBBBBBB', 'BBBBWBBBBBB...', '..y.......q...', '..............', '..q....y......', '..............', 'BBBBBBBBBBBBBB', 'BBBBBBBBBBBBBB'],
  en:[['toast', 6, 4], ['butter', 10, 5], ['toast', 3, 6]]},
-'city:2,5':{area:'city',zone:'dairy',exits:'NWE',sign:['DAIRY ROW.','Something buttery is going on at THE CREAMERY, just west.'],
+'city:2,5':{area:'city',zone:'dairy',exits:'NWE',sign:['DAIRY ROW.','Something buttery is going on at THE CREAMERY, just west.','Watch out for GREASE. Step in it and you\'ll slide, spin, and see stars for a second.'],
  map:['BBBBB....BBBBB', 'BBBBB....BBBBB', '..p...s.....p.', '==============', '---nNN--------', '===NNN========', '..h......c....', 'BBBBBBBBBBBBBB', 'BBBBBBBBBBBBBB'],
  en:[['butter', 9, 2], ['butter', 10, 6], ['toast', 3, 6]]},
 'city:1,5':{area:'city',zone:'dairy',exits:'E',door:{to:'creamery:1,2',label:'THE CREAMERY'},
  map:['BBBBBBBBBBBBBB', 'BBBBBBDBBBBBBB', '..g.......g...', '..............', '..g...p...g...', '..............', '.k.....g....k.', 'BBBBBBBBBBBBBB', 'BBBBBBBBBBBBBB'],
  en:[]},
-'city:3,5':{area:'city',zone:'dairy',exits:'W',chest:'crumbs',
- map:['BBBBBBBBBBBBBB', '..............', '..._....QQQ...', '........QCQ...', '........QQQ...', '...P..........', '..............', '..p.......p...', 'BBBBBBBBBBBBBB'],
+'city:3,5':{area:'city',zone:'dairy',exits:'W',chest:'crumbs',sign:['HEAVY BLOCKS.','Lean into a block to shove it. Cover every pressure plate and the bars lift.','Stuck a block in a corner? Leave the room and come back to reset it.'],
+ map:['BBBBBBBBBBBBBB', '.s............', '..._....QQQ...', '........QCQ...', '........QQQ...', '...P..........', '..............', '..p.......p...', 'BBBBBBBBBBBBBB'],
  en:[['butter', 6, 6], ['toast', 11, 6], ['butter', 6, 1]]},
 'city:6,1':{area:'city',zone:'farm',exits:'WNS',sign:['THE SILOS.','Farm country. The wheat grows tall out here, and so does the toast.'],
  map:['BBBBB::::BBBBB', 'HH...::::...HH', '..s..::::.....', '::::::::::....', '.....::::.....', '..H..::::..H..', '.....::::.....', 'HH...::::...HH', 'BBBBB::::BBBBB'],
@@ -369,7 +372,7 @@ const ROOMS={
  map:['BBBBB::::BBBBB', '.....::::.....', '.ffff.........', '.fC.F.........', '.ffff.........', '..........H...', '..............', '...H......H...', 'BBBBBBBBBBBBBB'],
  en:[['toast', 8, 4], ['butter', 11, 6], ['toast', 6, 6]]},
 /* ---- new dungeons ---- */
-'cafe:1,2':{area:'cafe',exits:'NWES',out:1,checkpoint:1,sign:['THE DINING ROOM.','North: a locked door. FRANÇOIS is past it.','West: a key, behind a block puzzle.','East: one wall looks cracked. A SPIN ATTACK might do it.'],
+'cafe:1,2':{area:'cafe',exits:'NWES',out:1,checkpoint:1,sign:['THE DINING ROOM.','North: a locked door. FRANÇOIS is past it.','West: a key, behind a block puzzle.','East: one wall looks cracked.'],
  map:['..q........q..', '..............', '..q........q..', '..............', '.....s........', '..............', '..q........q..', '..............', '..............'],
  en:[['croissant', 3, 3], ['toast', 10, 3], ['croissant', 11, 7]]},
 'cafe:0,2':{area:'cafe',exits:'E',chest:'key',
@@ -377,28 +380,28 @@ const ROOMS={
  en:[['croissant', 10, 6], ['egg', 5, 1], ['toast', 11, 7]]},
 'cafe:2,2':{area:'cafe',exits:'WE',locks:{E:'W'},
  map:['..............', '..q..q..q..q..', '..............', '..............', '..q..q..q..q..', '..............', '..............', '..q..q..q..q..', '..............'],
- en:[['croissant', 6, 3], ['burnt', 11, 5], ['egg', 3, 6]]},
+ en:[['croissant', 6, 3], ['toast', 11, 5], ['egg', 3, 6]]},
 'cafe:3,2':{area:'cafe',exits:'W',chest:'crumbs',
  map:['..............', '.k.k......k.k.', '..............', '..............', '.......C......', '..............', '..............', '.q........q...', '..............'],
  en:[['croissant', 4, 2], ['toast', 10, 6]]},
 'cafe:1,1':{area:'cafe',exits:'SN',locks:{N:'L'},shut:1,
  map:['..............', '.q..........q.', '..............', '....q....q....', '..............', '....q....q....', '..............', '.q..........q.', '..............'],
- en:[['croissant', 3, 2], ['croissant', 10, 2], ['toast', 6, 4], ['egg', 3, 6], ['burnt', 10, 6]]},
+ en:[['croissant', 3, 2], ['croissant', 10, 2], ['toast', 6, 4], ['egg', 3, 6], ['toast', 10, 6]]},
 'cafe:1,0':{area:'cafe',exits:'S',boss:'francois',
  map:['qq..........qq', '..............', '..............', '..............', '..............', '..............', '..............', 'qq..........qq', '..............'],
  en:[]},
-'creamery:1,2':{area:'creamery',exits:'ES',out:1,checkpoint:1,sign:['THE CHURNING ROOM.','The key is east, then north.','DUCHESS BLISTER\'s locked door is just past it, to the west.'],
+'creamery:1,2':{area:'creamery',exits:'ES',out:1,checkpoint:1,sign:['THE CHURNING ROOM.','Locked doors need a SMALL KEY. Each key opens one door.','The key is east, then north. DUCHESS BLISTER\'s locked door is just past it, to the west.','A CRACKED WALL crumbles under a SPIN ATTACK: swing, keep holding A, then let go.'],
  map:['..............', '..V........V..', '..g...gg...g..', '..............', '.....s........', '..............', '..g........g..', '..............', '..............'],
  en:[['butter', 3, 3], ['butter', 10, 6], ['pat', 6, 6]]},
 'creamery:2,2':{area:'creamery',exits:'WN',
  map:['VVVVVV..VVVVVV', '..............', '.g....g....g..', '..............', '...V......V...', '..............', '.g....g....g..', '..............', '..............'],
- en:[['butter', 4, 3], ['egg', 10, 5], ['butter', 7, 7]]},
+ en:[['butter', 4, 3], ['butter', 10, 5], ['butter', 7, 7]]},
 'creamery:2,1':{area:'creamery',exits:'SW',shut:1,clearChest:1,chest:'key',
  map:['..............', '.V..........V.', '..............', '..gg....gg....', '......C.......', '..gg....gg....', '..............', '..............', '..............'],
- en:[['butter', 3, 2], ['butter', 10, 2], ['jelly', 3, 6], ['egg', 10, 6], ['pat', 6, 7]]},
+ en:[['butter', 3, 2], ['butter', 10, 2], ['pat', 3, 6], ['butter', 10, 6], ['pat', 6, 7]]},
 'creamery:1,1':{area:'creamery',exits:'ENW',locks:{N:'L',W:'W'},
  map:['..............', '..V......V....', '..............', '.g..........g.', '..............', '.g..........g.', '..............', '..V......V....', '..............'],
- en:[['butter', 6, 2], ['jelly', 6, 6], ['egg', 11, 4]]},
+ en:[['butter', 6, 2], ['pat', 6, 6], ['butter', 11, 4]]},
 'creamery:0,1':{area:'creamery',exits:'E',chest:'crumbs',
  map:['..............', '.V.V......V.V.', '..............', '..............', '.......C......', '..............', '..............', '.g.g......g.g.', '..............'],
  en:[['pat', 4, 2], ['pat', 10, 6], ['butter', 10, 2]]},
@@ -407,27 +410,42 @@ const ROOMS={
  en:[]},
 'silo:1,2':{area:'silo',exits:'NES',out:1,checkpoint:1,sign:['THE SILO YARD.','East: a key, behind a block puzzle.','North: TEX\'s hideout, behind a locked door.'],
  map:['HH..........HH', '..............', '..k........k..', '..............', '.....s........', '..............', '..H........H..', '..............', '..............'],
- en:[['toast', 3, 3], ['burnt', 10, 3], ['croissant', 11, 7]]},
+ en:[['toast', 3, 3], ['toast', 10, 3], ['croissant', 11, 7]]},
 'silo:2,2':{area:'silo',exits:'W',chest:'key',
  map:['..............', '.H..........H.', '........QQQ...', '..._....QCQ...', '........QQQ...', '..............', '...P..........', '..............', 'HH..........HH'],
- en:[['burnt', 11, 6], ['toast', 6, 1], ['bagel', 10, 7]]},
+ en:[['toast', 11, 6], ['toast', 6, 1], ['bagel', 10, 7]]},
 'silo:1,1':{area:'silo',exits:'SNE',locks:{N:'L',E:'F'},
  map:['..............', '.H...HH...H...', '..............', '..k......k....', '..............', '..k......k....', '..............', '.H...HH...H...', '..............'],
- en:[['burnt', 3, 2], ['burnt', 10, 6], ['toast', 6, 4], ['bagel', 11, 2]]},
+ en:[['toast', 3, 2], ['toast', 10, 6], ['toast', 6, 4], ['bagel', 11, 2]]},
 'silo:2,1':{area:'silo',exits:'W',chest:'crumbs',
  map:['..............', '.HH........HH.', '..............', '..............', '.......C......', '..............', '..............', '.HH........HH.', '..............'],
- en:[['toast', 4, 2], ['burnt', 10, 6]]},
+ en:[['toast', 4, 2], ['toast', 10, 6]]},
 'silo:1,0':{area:'silo',exits:'S',boss:'tex',
  map:['HH..........HH', '..............', '..............', '...k......k...', '..............', '...k......k...', '..............', 'HH..........HH', '..............'],
  en:[]},
+'bagel:1,2':{area:'bagel',exits:'NES',out:1,checkpoint:1,sign:['THE SALES FLOOR.','East: a key, behind a block puzzle.','North: BARON BAGEL\'s office, behind a locked door. One wall up there looks cracked.'],
+ map:['qq..........qq', '..............', '..k........k..', '..............', '.....s........', '..............', '..q........q..', '..............', '..............'],
+ en:[['bagel', 3, 3], ['toast', 10, 3], ['bagel', 11, 7]]},
+'bagel:2,2':{area:'bagel',exits:'W',chest:'key',
+ map:['..............', '.q..........q.', '........QQQ...', '..._....QCQ...', '........QQQ...', '..............', '...P..........', '..............', 'qq..........qq'],
+ en:[['bagel', 11, 6], ['toast', 6, 1], ['butter', 10, 7]]},
+'bagel:1,1':{area:'bagel',exits:'SNW',locks:{N:'L',W:'W'},
+ map:['..............', '.q...kk...q...', '..............', '..k......k....', '..............', '..k......k....', '..............', '.q...kk...q...', '..............'],
+ en:[['bagel', 3, 2], ['bagel', 10, 6], ['toast', 6, 4], ['butter', 11, 2]]},
+'bagel:0,1':{area:'bagel',exits:'E',chest:'crumbs',
+ map:['..............', '.qq........qq.', '..............', '..............', '.......C......', '..............', '..............', '.qq........qq.', '..............'],
+ en:[['bagel', 4, 2], ['bagel', 10, 6], ['toast', 7, 7]]},
+'bagel:1,0':{area:'bagel',exits:'S',boss:'baron',
+ map:['qq..........qq', '..............', '..............', '..............', '..............', '..............', '..............', 'qq..........qq', '..............'],
+ en:[]},
 };
 /* door targets: inside position per dungeon entry room, and the city spot in front of each door */
-const ENTRY={'alley:1,1':{x:8*T,y:RH-T-6,face:1},'kitchen:0,2':{x:8*T,y:RH-T-6,face:1},'factory:0,0':{x:T+14,y:5*T+18,face:3},'lair:0,2':{x:8*T,y:RH-T-6,face:1},'shop:0,1':{x:8*T,y:RH-T-6,face:1},'store:0,0':{x:8*T,y:RH-T-6,face:1},'laundry:0,1':{x:8*T,y:RH-T-6,face:1},'cafe:1,2':{x:8*T,y:RH-T-6,face:1},'creamery:1,2':{x:8*T,y:RH-T-6,face:1},'silo:1,2':{x:8*T,y:RH-T-6,face:1}};
-const EXITTO={alley:{to:'city:4,3',x:8*T+16,y:3*T+26},kitchen:{to:'city:1,3',x:5*T+16,y:3*T+26},shop:{to:'city:4,2',x:10*T+16,y:3*T+26},store:{to:'city:1,4',x:9*T+16,y:3*T+26},laundry:{to:'city:0,0',x:7*T+16,y:3*T+26},factory:{to:'city:5,0',x:7*T+16,y:3*T+26},lair:{to:'city:2,0',x:7*T+16,y:3*T+26},cafe:{to:'city:5,4',x:12*T+16,y:3*T+26},creamery:{to:'city:1,5',x:7*T+16,y:3*T+26},silo:{to:'city:6,0',x:7*T+16,y:3*T+26}};
+const ENTRY={'alley:1,1':{x:8*T,y:RH-T-6,face:1},'kitchen:0,2':{x:8*T,y:RH-T-6,face:1},'factory:0,0':{x:T+14,y:5*T+18,face:3},'lair:0,2':{x:8*T,y:RH-T-6,face:1},'shop:0,1':{x:8*T,y:RH-T-6,face:1},'store:0,0':{x:8*T,y:RH-T-6,face:1},'laundry:0,1':{x:8*T,y:RH-T-6,face:1},'cafe:1,2':{x:8*T,y:RH-T-6,face:1},'creamery:1,2':{x:8*T,y:RH-T-6,face:1},'silo:1,2':{x:8*T,y:RH-T-6,face:1},'bagel:1,2':{x:8*T,y:RH-T-6,face:1}};
+const EXITTO={alley:{to:'city:4,3',x:8*T+16,y:3*T+26},kitchen:{to:'city:1,3',x:5*T+16,y:3*T+26},shop:{to:'city:4,2',x:10*T+16,y:3*T+26},store:{to:'city:1,4',x:9*T+16,y:3*T+26},laundry:{to:'city:0,0',x:7*T+16,y:3*T+26},factory:{to:'city:5,0',x:7*T+16,y:3*T+26},lair:{to:'city:2,0',x:7*T+16,y:3*T+26},cafe:{to:'city:5,4',x:12*T+16,y:3*T+26},creamery:{to:'city:1,5',x:7*T+16,y:3*T+26},silo:{to:'city:6,0',x:7*T+16,y:3*T+26},bagel:{to:'city:3,1',x:2*T+16,y:3*T+26}};
 const ZONES={oldtown:{name:'OLD TOWN',col:'#c98a5a'},downtown:{name:'DOWNTOWN',col:'#6f86a8'},market:{name:'MARKET DISTRICT',col:'#c9a03a'},park:{name:'CRUST PARK',col:'#5f9a4a'},industrial:{name:'INDUSTRIAL DISTRICT',col:'#8a8f96'},scorch:{name:'THE SCORCH',col:'#8a3a22'},cafe:{name:'CAFÉ QUARTER',col:'#c96a8a'},dairy:{name:'DAIRY ROW',col:'#9fc4e8'},farm:{name:'THE SILOS',col:'#b8a050'},waterfront:{name:'WATERFRONT',col:'#3f8fb0'}};
 const roomName=d=>d.area==='city'&&d.zone?ZONES[d.zone].name:AREAS[d.area].name;
 const roomCol=d=>d.area==='city'&&d.zone?ZONES[d.zone].col:AREAS[d.area].col;
-const GATE_HINT={all:'EVERY boss in the city',boss4:'the BURNT CRUST',boss7:'CAFÉ CROISSANT',boss8:'the CREAMERY',boss9:'the GRAIN SILOS',boss1:'the BACK ALLEY',boss2:'the GREASY SPOON',boss5:'SPARKY\'S APPLIANCES',boss3:'the BREADWORKS'};
+const GATE_HINT={all:'EVERY boss in the city',boss10:'the BAGEL SHOP',boss4:'the BURNT CRUST',boss7:'CAFÉ CROISSANT',boss8:'the CREAMERY',boss9:'the GRAIN SILOS',boss1:'the BACK ALLEY',boss2:'the GREASY SPOON',boss5:'SPARKY\'S APPLIANCES',boss3:'the BREADWORKS'};
 const BOSS={
   knife:{flag:'boss1',name:'SIR SPREADSALOT',sub:'The Butter Knife'},
   stinky:{flag:'boss6',name:'STINKY J',sub:'The madman behind the toast'},
@@ -437,7 +455,8 @@ const BOSS={
   final:{flag:'boss4',name:'KING CHAR',sub:'Ruler of the Burnt Crust'},
   duchess:{flag:'boss8',name:'DUCHESS BLISTER',sub:'Queen of the Creamery'},
   francois:{flag:'boss7',name:'FRANÇOIS',sub:'The French Toast Terror'},
-  tex:{flag:'boss9',name:'TEX',sub:'The Texas Toast Outlaw'}
+  tex:{flag:'boss9',name:'TEX',sub:'The Texas Toast Outlaw'},
+  baron:{flag:'boss10',name:'BARON BAGEL',sub:'Old money. Hole in the middle.'}
 };
 const GAPS={N:[[7,0],[8,0]],S:[[7,10],[8,10]],W:[[0,4],[0,5],[0,6]],E:[[15,4],[15,5],[15,6]]};
 const CGAPS={N:[[6,0],[7,0],[8,0],[9,0]],S:[[6,10],[7,10],[8,10],[9,10]],W:[[0,3],[0,4],[0,5],[0,6],[0,7]],E:[[15,3],[15,4],[15,5],[15,6],[15,7]]};
@@ -449,26 +468,28 @@ const SOLID=new Set('#cfktmrCsLGXBphnNFPQW1234wuojqVH'.split(''));
 /* ---------- Doubled dungeons: every dungeon gets a new winding wing of rooms (as many as it already had)
    between the city door and its original entrance. Built from a fixed seed, so the layout never changes. ---------- */
 const DX={
-  alley:{ob:['k','c','k'],hz:[],pool:['toast','croissant','butter','croissant','toast']},
-  kitchen:{ob:['t','t','k'],hz:['g','b'],pool:['egg','toast','butter','burnt','egg']},
-  cafe:{ob:['q','q'],hz:[],pool:['croissant','egg','toast','burnt','croissant']},
-  shop:{ob:['k','c'],hz:['b'],pool:['toast','burnt','toast','bagel']},
-  creamery:{ob:['V'],hz:['g','g'],pool:['butter','egg','jelly','pat','butter']},
+  alley:{ob:['k','c','k'],hz:[],pool:['toast','butter','toast','butter','toast']},
+  kitchen:{ob:['t','t','k'],hz:['g','b'],pool:['egg','toast','butter','toast','egg']},
+  cafe:{ob:['q','q'],hz:[],pool:['croissant','egg','toast','toast','croissant']},
+  shop:{ob:['k','c'],hz:['b'],pool:['toast','bagel','toast','bagel']},
+  creamery:{ob:['V'],hz:['g','g'],pool:['butter','pat','butter','pat','butter']},
   factory:{ob:['m','r'],hz:['~'],pool:['bagel','muffin','burnt','butter','toast']},
-  silo:{ob:['H','k'],hz:[],pool:['toast','burnt','bagel','croissant']},
+  silo:{ob:['H','k'],hz:[],pool:['toast','bagel','croissant','toast']},
+  bagel:{ob:['q','k'],hz:['b'],pool:['bagel','toast','bagel','butter','toast']},
   lair:{ob:['#'],hz:['b','l'],pool:['burnt','jelly','toast','jelly']},
-  laundry:{ob:['w','t'],hz:[],pool:['toast','butter','burnt','egg','jelly']}
+  laundry:{ob:['w','t'],hz:[],pool:['croissant','bagel','muffin','pat','egg','jelly','burnt','butter','toast']}
 };
 const ESIGN={
-  alley:['THE BACK ALLEY.','This alley winds a long way north before it opens up.','Cracked walls crumble under a SPIN ATTACK: swing, keep holding A, then let go.'],
-  kitchen:['THE GREASY SPOON.','Burners flare up on a timer. Watch for the glow.','Step in grease and you\'ll slide, spin, and see stars for a second. Butter leaves grease wherever it goes.'],
-  cafe:['CAFÉ CROISSANT.','"Today\'s special: YOU."','Mind the croissants. They roll.'],
-  shop:['SPARKY\'S APPLIANCES. Everything must go.','Especially you.','The heating coils on the floor switch on and off. Don\'t stand on a hot one.'],
-  creamery:['THE CREAMERY.','Fresh butter, churned daily. Now it churns YOU.','Watch your step. It is VERY slippery in here.'],
-  factory:['BREADWORKS FACTORY, EST. 1928.','Now under new management: THE PRESLICER.','Conveyors push. Bagels bounce. Don\'t get sliced.'],
-  silo:['THE GRAIN SILOS.','WANTED: TEX, the Texas Toast Outlaw. Reward: one (1) sandwich.'],
-  lair:['THE BURNT CRUST.','KING CHAR\'s throne room is at the far north end. Keep heading north.'],
-  laundry:['SUDS-O-RAMA LAUNDROMAT. Open 24 hours.','Nobody has actually washed anything here in years.','Something STINKS. Follow your nose north.']
+  alley:['THE BACK ALLEY.','This alley winds a long way north before it opens up.'],
+  kitchen:['THE GREASY SPOON.','BURNERS flare up on a timer. Watch for the glow, and don\'t stand on a lit one.'],
+  cafe:['CAFÉ CROISSANT.','"Today\'s special: YOU."','Mind the CROISSANTS. They curl up and roll at you.','EGGS have tough shells. Crack one open and the YOLK makes a run for it.'],
+  shop:['SPARKY\'S APPLIANCES. Everything must go.','Especially you.'],
+  creamery:['THE CREAMERY.','Fresh butter, churned daily. Now it churns YOU.','Splat a BUTTER and it splits into two little BUTTER PATS. Finish them off too.','Butter leaves GREASE wherever it goes, so it is VERY slippery in here.'],
+  factory:['BREADWORKS FACTORY, EST. 1928.','Now under new management: THE PRESLICER.','MUFFINS lob blueberries from across the room. Watch for the red ring and step aside.','Conveyors push. Don\'t get sliced.'],
+  bagel:['THE BAGEL SHOP. Boiled, baked, and BAD.','BAGELS bounce off the walls. Time your swings.'],
+  silo:['THE GRAIN SILOS.','WANTED: TEX, the Texas Toast Outlaw. Reward: your survival.'],
+  lair:['THE BURNT CRUST.','BURNT TOAST keeps its distance and throws knives. JELLY hops after you and leaves sticky puddles.','KING CHAR\'s throne room is at the far north end. Keep heading north.'],
+  laundry:['SUDS-O-RAMA LAUNDROMAT. Open 24 hours.','Nobody has actually washed anything here in years.','Every breakfast baddie in the city is hiding in here. ALL of them.','Something STINKS. Follow your nose north.']
 };
 const QPAT=[['.....','.o.o.','.....'],['oo...','o....','.....'],['.....','..o..','.....'],['o.o..','.....','..o..'],['.ooo.','.....','.....'],['.....','.....','.....'],['o....','.....','....o'],['..o..','..o..','.....']];
 const SHIFT={};
@@ -668,11 +689,12 @@ layoutProps();
 // old saves stored room ids from before the expansion: move them to the shifted positions
 function migrateIds(str){return str.replace(/\b([a-z]+):(-?\d+),(-?\d+)/g,(m,w,x,y)=>SHIFT[w]?w+':'+(+x+SHIFT[w][0])+','+(+y+SHIFT[w][1]):m);}
 function migrateSave(s){
-  if(s.mapv>=2)return;
+  if(s.mapv>=3)return;
+  if(s.mapv===2){s.flags=s.flags||{};s.flags.oldGates=1;s.mapv=3;return;}
   const f={};for(const k in s.flags)f[migrateIds(k)]=s.flags[k];s.flags=f;
   const v={};for(const k in s.visited)v[migrateIds(k)]=1;s.visited=v;
   if(s.cp&&s.cp.room)s.cp.room=migrateIds(s.cp.room);
-  s.mapv=2;
+  s.flags.oldGates=1; s.mapv=3;
 }
 const WALLISH=new Set('#LGXBDW'.split(''));
 
@@ -692,7 +714,7 @@ const DIFFS=[
   {name:'BURNT TO A CRISP',tag:'HARD',desc:['Every hit costs an extra half heart.','Tougher, faster enemies. Fewer hearts drop.'],hurt:1,hp:1.35,heart:0.5,spd:1.12,inv:0.9}];
 function DF(){return DIFFS[(S&&S.diff!==undefined)?S.diff:1]||DIFFS[1];}
 const MAXLIVES=9;
-function newState(){return {lives:3,diff:1,mapv:2,wmax:5,wrate:0,crumbs:0,water:5,hp:6,maxHp:6,keys:0,chain:0,iron:0,flags:{},visited:{},cp:{room:'city:2,4',x:8*T,y:7*T+8},deaths:0,time:0};}
+function newState(){return {lives:3,diff:1,mapv:3,wmax:5,wrate:0,crumbs:0,water:5,hp:6,maxHp:6,keys:0,chain:0,iron:0,flags:{},visited:{},cp:{room:'city:2,4',x:8*T,y:7*T+8},deaths:0,time:0};}
 const SKEY='bagman-city-v2';
 function save(){try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem(SKEY);return s?JSON.parse(s):null;}catch(e){return null;}}
@@ -700,9 +722,9 @@ function clearSave(){try{localStorage.removeItem(SKEY);}catch(e){}}
 let hasSave=!!loadSave();
 
 /* ================= AUDIO ================= */
-let AC=null, noiseBuf=null, sfxOn=true, musicOn=true, fsOn=true;
-try{const st=JSON.parse(localStorage.getItem('bagman-settings')||'{}');if(st.sfx===false)sfxOn=false;if(st.music===false)musicOn=false;}catch(e){}
-function saveSettings(){try{localStorage.setItem('bagman-settings',JSON.stringify({sfx:sfxOn,music:musicOn}));}catch(e){}}
+let AC=null, noiseBuf=null, sfxOn=true, musicOn=true, fsOn=true, remindOn=true;
+try{const st=JSON.parse(localStorage.getItem('bagman-settings')||'{}');if(st.sfx===false)sfxOn=false;if(st.music===false)musicOn=false;if(st.remind===false)remindOn=false;}catch(e){}
+function saveSettings(){try{localStorage.setItem('bagman-settings',JSON.stringify({sfx:sfxOn,music:musicOn,remind:remindOn}));}catch(e){}}
 function ac(){
   if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}
   if(AC&&AC.state==='suspended'){try{AC.resume();}catch(e){}}
@@ -883,9 +905,15 @@ function readInput(){
 }
 
 /* ================= ROOMS ================= */
-const ORDER=['duchess','knife','francois','spoon','tex','toaster','final','slicer'];
+const ORDER=['duchess','knife','francois','spoon','baron','tex','toaster','final','slicer'];
+function bossCountOld(){return ORDER.filter(b=>b!=='baron'&&S.flags[BOSS[b].flag]).length;}
 function bossCount(){return ORDER.filter(b=>S.flags[BOSS[b].flag]).length;}
-function gateOpen(lk){const f=lk.slice(2);return f[0]==='#'?bossCount()>=+f.slice(1):!!S.flags[f];}
+function gateOpen(lk){const f=lk.slice(2);
+  if(f[0]!=='#')return !!S.flags[f];
+  const n=+f.slice(1);
+  // saves from before the Bagel Shop keep their old route: the Silos road stays open and later gates keep their old counts
+  if(S.flags.oldGates){if(n===5)return true;if(n>=6)return bossCountOld()>=n-1;}
+  return bossCount()>=n;}
 function nextGoal(){const b=ORDER.find(k=>!S.flags[BOSS[k].flag]);
   const bossId=Object.keys(ROOMS).find(k=>ROOMS[k].boss===(b||'stinky'));if(!b&&S.flags[BOSS.stinky.flag])return null;
   const w=worldOf(bossId),door=Object.keys(ROOMS).find(k=>ROOMS[k].door&&worldOf(ROOMS[k].door.to)===w);
@@ -1024,9 +1052,9 @@ const ETYPES={
   toast:{hp:2,r:13,hy:17},butter:{hp:3,r:14,hy:17},pat:{hp:1,r:9,hy:8},burnt:{hp:3,r:13,hy:17},bagel:{hp:2,r:11,hy:11},
   croissant:{hp:2,r:12,hy:10},egg:{hp:2,r:12,hy:16},yolk:{hp:1,r:9,hy:6},muffin:{hp:3,r:14,hy:16},jelly:{hp:3,r:12,hy:10},
   knife:{hp:10,r:22,hy:0,boss:1},stinky:{hp:40,r:18,hy:30,boss:1},spoon:{hp:14,r:22,hy:0,boss:1},toaster:{hp:16,r:34,hy:32,boss:1},slicer:{hp:22,r:40,hy:28,boss:1},
-  king:{hp:24,r:30,hy:44,boss:1},blister:{hp:14,r:30,hy:40,boss:1},francois:{hp:14,r:32,hy:34,boss:1},tex:{hp:20,r:26,hy:40,boss:1}
+  king:{hp:24,r:30,hy:44,boss:1},blister:{hp:14,r:30,hy:40,boss:1},francois:{hp:14,r:32,hy:34,boss:1},tex:{hp:20,r:26,hy:40,boss:1},baron:{hp:18,r:30,hy:44,boss:1}
 };
-const TIER={creamery:1,alley:2,cafe:3,kitchen:4,silo:5,shop:6,lair:7,factory:8,laundry:9,store:1};
+const TIER={creamery:1,alley:2,cafe:3,kitchen:4,bagel:5,silo:5,shop:6,lair:7,factory:8,laundry:9,store:1};
 const ZTIER={oldtown:1,dairy:1,downtown:2,cafe:3,market:4,park:5,industrial:5,farm:5,scorch:7,waterfront:9};
 function tierOf(d){return d.area==='city'?(ZTIER[d.zone]||1):(TIER[d.area]||1);}
 function spawn(type,x,y,extra){
@@ -1047,6 +1075,7 @@ function spawnBoss(b){
   if(b==='duchess')spawn('blister',W/2,150,{gt:2.5,pt:4,dt2:0});
   if(b==='francois')spawn('francois',W/2,150,{st:'walk',st_t:1.8,cyc:0,z:0});
   if(b==='tex')spawn('tex',W/2,130,{st:'walk',st_t:1.5,cyc:0,ammo:6});
+  if(b==='baron')spawn('baron',W/2,140,{st:'walk',st_t:1.6,cyc:0,rot:0});
   cur.intro=2.4; showBanner(BOSS[b].name,BOSS[b].sub,2.4); SFX.boss();
 }
 function minions(){return cur.enemies.filter(e=>!e.boss&&!e.dead).length;}
@@ -1159,6 +1188,37 @@ const BRAIN={
         e.st='soggy';e.st_t=ang?2.1:2.7;fxText('SOGGY SIDE UP!',e.x,e.y-90,20,'#ffffff','#2a7fc0');}
     }else if(e.st==='soggy'){e.z=0;if(e.st_t<=0){e.st='walk';e.st_t=1.3;}}
   },
+  baron(e,dt){
+    // walks after you, sprays sesame seeds, calls in bagels, then rolls around the room. He's only open while DIZZY.
+    e.st_t-=dt; const ang=e.hp<=e.maxHp/2;
+    if(!e.enr&&ang){e.enr=1;fxText('HOW DARE YOU!',e.x,e.y-110,24,'#ff8a5c','#ff2a1a');shake(8,0.4);SFX.boss();}
+    if(e.st==='walk'){
+      const a=angTo(e),sp=ang?62:46; walk(e,Math.cos(a)*sp,Math.sin(a)*sp,dt); clampBoss(e);
+      if(e.st_t<=0){e.cyc++;const k=e.cyc%3;
+        if(k===0){e.st='wind';e.st_t=0.75;}
+        else if(k===2&&minions()<2){e.st='call';e.st_t=0.55;}
+        else {e.st='seeds';e.st_t=0.5;}}
+    }else if(e.st==='seeds'){
+      if(e.st_t<=0){const base=angTo(e);
+        if(ang){for(let i=0;i<10;i++)shoot('crumbshot',e.x,e.y-40,base+i*Math.PI*2/10,185);}
+        else{for(let i=0;i<5;i++)shoot('crumbshot',e.x,e.y-40,base+(i-2)*0.2,225);}
+        SFX.pop();fxText('EVERYTHING SEASONING!',e.x,e.y-112,16,'#f5ead0','#8a5a2b');e.st='walk';e.st_t=ang?1.1:1.5;}
+    }else if(e.st==='call'){
+      if(e.st_t<=0){for(const s2 of [-1,1]){const m=spawn('bagel',clamp(e.x+s2*60,T+30,W-T-30),clamp(e.y+30,T+40,RH-T-20));m.inv=0.4;unstickE(m);}
+        SFX.pop();fxText('BAGEL BOYS! SEIZE HIM!',e.x,e.y-112,16,'#ffe14a','#f0731f');e.st='walk';e.st_t=1.3;}
+    }else if(e.st==='wind'){
+      e.rot+=dt*(6+(0.75-e.st_t)*20);
+      if(e.st_t<=0){const a=angTo(e),sp=ang?330:275;e.vx=Math.cos(a)*sp;e.vy=Math.sin(a)*sp;e.st='roll';e.st_t=ang?2.6:2.1;e.bn=0;SFX.swing();fxText('ROLL OUT!',e.x,e.y-112,22,'#ffe14a','#f0731f');}
+    }else if(e.st==='roll'){
+      e.rot+=dt*16*(e.vx>=0?1:-1);
+      const ox=e.x,oy=e.y,h=walk(e,e.vx,e.vy,dt); clampBoss(e);
+      const hx=h.hx||Math.abs(e.x-(ox+e.vx*dt))>1, hy=h.hy||Math.abs(e.y-(oy+e.vy*dt))>1;
+      if(hx)e.vx*=-1; if(hy)e.vy*=-1;
+      if(hx||hy){e.bn++;SFX.thunk();shake(4,0.12);burst(e.x,e.y-20,['#c98b47','#f5ead0'],6,120,200);}
+      if(Math.random()<dt*20)cur.parts.push({x:e.x+rnd(-14,14),y:e.y-6,vx:rnd(-30,30),vy:rnd(-30,-5),life:0.5,max:0.5,col:'#f5ead0',size:3,g:200});
+      if(e.st_t<=0||e.bn>=(ang?4:3)){e.st='dizzy';e.st_t=ang?1.5:1.9;e.vx=e.vy=0;SFX.thunk();shake(8,0.3);fxText('DIZZY!',e.x,e.y-112,20,'#fff3b0','#e8b923');}
+    }else if(e.st==='dizzy'){if(e.st_t<=0){e.st='walk';e.st_t=1.2;e.rot=0;}}
+  },
   tex(e,dt){
     e.st_t-=dt; const ang=e.hp<=e.maxHp/2;
     if(e.st==='walk'){
@@ -1180,7 +1240,7 @@ const BRAIN={
     if(e.clean>0){e.clean-=dt; if(e.clean<=0){fxText('THE STINK\'S BACK!',e.x,e.y-100,20,'#c8f5a0','#3f7d2a');SFX.blip();}}
     // laundry machines spit out minions in phase 2+
     if(ph>=2){e.mt-=dt;if(e.mt<=0){e.mt=ph===3?5:7;const alive=cur.enemies.filter(o=>!o.boss&&!o.dead).length;
-      if(alive<4){const cx=pick([2,4,11,13]),t=pick(['toast','butter','burnt','toast']);const m=spawn(t,cx*T+16,2*T+24);m.inv=0.5;unstickE(m);fxText('DIRTY LAUNDRY!',cx*T+16,T+30,14,'#c8f5a0','#3f7d2a');SFX.pop();burst(cx*T+16,2*T,['#ffffff','#bfe6ff'],10,120,0);}}}
+      if(alive<4){const cx=pick([2,4,11,13]),t=pick(['toast','butter','burnt','croissant','bagel','egg','jelly','toast']);const m=spawn(t,cx*T+16,2*T+24);m.inv=0.5;unstickE(m);fxText('DIRTY LAUNDRY!',cx*T+16,T+30,14,'#c8f5a0','#3f7d2a');SFX.pop();burst(cx*T+16,2*T,['#ffffff','#bfe6ff'],10,120,0);}}}
     if(e.st==='walk'){
       if(!e.tx||Math.hypot(e.tx-e.x,e.ty-e.y)<10){e.tx=rnd(80,W-80);e.ty=rnd(110,RH-80);}
       const a=Math.atan2(e.ty-e.y,e.tx-e.x),sp=(ph===3?75:55)*(e.clean>0?0.6:1);
@@ -1329,8 +1389,10 @@ const BRAIN={
 function circles(e){
   switch(e.type){
     case 'knife':{const c=Math.cos(e.ang),s=Math.sin(e.ang);return [[e.x,e.y,15],[e.x+c*28,e.y+s*28,12],[e.x+c*50,e.y+s*50,9],[e.x-c*28,e.y-s*28,9]];}
-    case 'francois':{const z=e.z||0;if(z>40)return [];return [[e.x,e.y-30-z,30]];}
+    case 'francois':{const z=e.z||0;if(z>40)return [];return [[e.x,e.y-46-z,30]];}
     case 'tex':return [[e.x,e.y-20,22],[e.x,e.y-52,22]];
+    case 'king':return [[e.x,e.y-34,24],[e.x,e.y-70,26]];
+    case 'baron':return [[e.x,e.y-34,30]];
     case 'stinky':return [[e.x,e.y-14,15],[e.x,e.y-38,16],[e.x,e.y-62,13]];
     case 'spoon':{if(e.st==='rise'||e.st==='lock')return [];const z=e.z||0,sk=e.st==='stuck'?12:0;return [[e.x,e.y-26-z+sk,21],[e.x,e.y-60-z+sk,8],[e.x,e.y-84-z+sk,8]];}
     case 'toaster':return [[e.x-24,e.y-32,30],[e.x+24,e.y-32,30]];
@@ -1346,6 +1408,7 @@ function bossVulnerable(e){
   if(e.type==='slicer')return e.st==='open';
   if(e.type==='francois')return e.st==='soggy';
   if(e.type==='tex')return e.st==='reload'||e.st==='dizzy';
+  if(e.type==='baron')return e.st==='dizzy';
   return true;
 }
 function updEnemies(dt){
@@ -1378,8 +1441,8 @@ function hitEnemy(e,dmg,fx,fy){
   burst(e.x,e.y-e.hy,col,6,120,240);
   if(e.hp<=0)killEnemy(e);
 }
-const ECOL={francois:['#e0a24a','#ffffff','#b5651d'],tex:['#c98a4a','#6b4421','#c0261a'],stinky:['#f2efe6','#7ccf4a','#c9a646'],spoon:['#d5dce4','#9aa4ae','#f6c945'],croissant:['#e0a24a','#a8641f','#f5d08a'],egg:['#ffffff','#efe7d2','#c9b98a'],yolk:['#ffb21f','#ffd76a'],muffin:['#7a4a24','#5b3f9e','#e9d9b5'],jelly:['#9b3fd1','#d79bff']};
-const EWORDS={francois:['FLIPPED!','SERVED!'],tex:['HOGTIED!','RUN OUTTA TOWN!'],stinky:['SCRUBBED!','RINSED!'],spoon:['BENT!','SPOONED!'],croissant:['FLAKED!','CRUMBLED!'],egg:['CRACKED!','SHELLED!'],yolk:['SPLAT!','SCRAMBLED!'],muffin:['KRUMBLE!','STOMPED!'],jelly:['SPLORCH!','JAMMED!']};
+const ECOL={baron:['#c98b47','#f5ead0','#e2a865'],francois:['#e0a24a','#ffffff','#b5651d'],tex:['#c98a4a','#6b4421','#c0261a'],stinky:['#f2efe6','#7ccf4a','#c9a646'],spoon:['#d5dce4','#9aa4ae','#f6c945'],croissant:['#e0a24a','#a8641f','#f5d08a'],egg:['#ffffff','#efe7d2','#c9b98a'],yolk:['#ffb21f','#ffd76a'],muffin:['#7a4a24','#5b3f9e','#e9d9b5'],jelly:['#9b3fd1','#d79bff']};
+const EWORDS={baron:['DUNKED!','SLICED & SCHMEARED!'],francois:['FLIPPED!','SERVED!'],tex:['HOGTIED!','RUN OUTTA TOWN!'],stinky:['SCRUBBED!','RINSED!'],spoon:['BENT!','SPOONED!'],croissant:['FLAKED!','CRUMBLED!'],egg:['CRACKED!','SHELLED!'],yolk:['SPLAT!','SCRAMBLED!'],muffin:['KRUMBLE!','STOMPED!'],jelly:['SPLORCH!','JAMMED!']};
 function killEnemy(e){
   e.dead=true; SFX.kill();
   const buttery=e.type==='butter'||e.type==='pat'||e.type==='blister';
@@ -1398,11 +1461,12 @@ function killEnemy(e){
 const GATE_MSG={1:'In OLD TOWN, the barricade on Oak Street is down. DOWNTOWN is open.',
   2:'DOWNTOWN, east of the Back Alley: the barricade is down. The CAFÉ QUARTER is open.',
   3:'In OLD TOWN, the barricade on Elm Street is down. The MARKET DISTRICT is open.',
-  4:'The barricade at OLD TOWN SQUARE is down. CRUST PARK is open, and beyond it the road to THE SILOS.',
-  5:'In DOWNTOWN NORTH, the south barricade is down. The PLAZA and SPARKY\'S are open.',
-  6:'In DOWNTOWN NORTH, the north barricade is down. THE SCORCH is open.',
-  7:'At the WAREHOUSES, the north barricade is down. The BREADWORKS is open.',
-  8:'In CRUST PARK\'s rose garden, a barricade groans open... and the whole city smells like old socks. The WATERFRONT is open.'};
+  4:'The barricade at OLD TOWN SQUARE is down. CRUST PARK is open, and past it, in DOWNTOWN NORTH, THE BAGEL SHOP.',
+  5:'In the INDUSTRIAL DISTRICT, the east barricade is down. The road to THE SILOS is open.',
+  6:'In DOWNTOWN NORTH, the south barricade is down. The PLAZA and SPARKY\'S are open.',
+  7:'In DOWNTOWN NORTH, the north barricade is down. THE SCORCH is open.',
+  8:'At the WAREHOUSES, the north barricade is down. The BREADWORKS is open.',
+  9:'In CRUST PARK\'s rose garden, a barricade groans open... and the whole city smells like old socks. The WATERFRONT is open.'};
 const REWARD={
   /* food bosses -> water gun upgrades */
   duchess:{give:()=>addTank(),lines:()=>['You empty out the Duchess\'s butter churn: BIG TANK!','Your water gun now holds '+WM()+' shots.'],gate:'In OLD TOWN, the barricade on Oak Street is down. DOWNTOWN is open.'},
@@ -1413,6 +1477,7 @@ const REWARD={
   knife:{give:()=>{S.chain=1;},lines:()=>['You weld Sir Spreadsalot\'s steel into new chain links: LONG CHAIN!','Your ball reaches much farther.'],gate:'DOWNTOWN, east of the Back Alley: the barricade is down. The CAFÉ QUARTER is open.'},
   spoon:{give:()=>{S.quick=1;},lines:()=>['You bend Gus\'s polished handle into a swivel for your chain: QUICK SPIN!','Your spin attack charges twice as fast.'],gate:'The barricade at OLD TOWN SQUARE is down. CRUST PARK is open, and beyond it the road to THE SILOS.'},
   toaster:{give:()=>{S.chain2=1;},lines:()=>['You coil the Toastmaster\'s heating wire into extra links: COIL CHAIN!','Your ball reaches even farther.'],gate:'In DOWNTOWN NORTH, the north barricade is down. THE SCORCH is open.'},
+  baron:{give:()=>{S.crumbs=Math.min(999,(S.crumbs||0)+150);},lines:()=>['You crack open Baron Bagel\'s cash register: +150 CRUMBS!','Spend them at CRUMB & CO. in OLD TOWN.'],gate:''},
   slicer:{give:()=>{S.iron=1;},lines:()=>['You melt down the Preslicer\'s steel blades: IRON BALL!','Your swings hit twice as hard.'],gate:''}
 };
 
@@ -1429,14 +1494,14 @@ function bossDown(e){
   cur.hazards=[];
   showBanner(e.type==='blister'?'SPLATTED & DEFEATED!':e.type==='stinky'?'SCRUBBED & DEFEATED!':'CRUSHED & DEFEATED!',BOSS[b].name,2.6);
   if(b==='stinky'){after(3,()=>{clearSave();hasSave=false;showAd(()=>{game='win';winT=0;SFX.win();});});return;}
-  const allDone=bossCount()>=8; if(allDone)S.flags.all=1;
+  const allDone=S.flags.oldGates?bossCountOld()>=8:bossCount()>=ORDER.length; if(allDone)S.flags.all=1;
   after(2.7,()=>{
     S.hp=S.maxHp; cur.shut=false; rebuild(); SFX.door(); SFX.chest();
     const lines=['Your health is fully restored.'];
     const rw=REWARD[b]; if(rw){rw.give();lines.push(...rw.lines());}
-    {const n=bossCount(),gm=GATE_MSG[n];if(gm)lines.push(gm);const g=nextGoal();if(g&&b!=='stinky')lines.push('NEXT: '+g.dungeon+(g.district?' in '+g.district:'')+'.');}
+    {const o=S.flags.oldGates,n=o?(b==='baron'?0:bossCountOld()>=5?bossCountOld()+1:bossCountOld()):bossCount(),gm=GATE_MSG[n];if(gm)lines.push(gm);const g=nextGoal();if(g&&b!=='stinky')lines.push('NEXT: '+g.dungeon+(g.district?' in '+g.district:'')+'.');}
     lines.push('You head back out to the street.');
-    save(); say(lines,()=>showAd(()=>{const o=EXITTO[cur.area];warp(o.to,o.x,o.y,0);}));
+    save(); say(lines,()=>showAd(()=>{const o=EXITTO[cur.area];warp(o.to,o.x,o.y,0);Reminders.askOnce();}));
   });
 }
 function after(t,fn){later.push({t,fn});}
@@ -1446,7 +1511,7 @@ function shoot(type,x,y,a,spd){
   cur.proj.push({type,x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:type==='blade'?11:type==='glob'||type==='syrup'?7:type==='crumbshot'?4:6,life:type==='blade'?7:4,ang:a,deflect:type!=='blade',dmg:type==='blade'?2:1});
 }
 function lob(sx,sy,tx,ty){cur.proj.push({type:'lob',sx,sy,tx,ty,x:sx,y:sy,z:0,t:0,dur:0.95,h:110,r:8,life:3,ang:0});}
-const WET=new Set(['toast','burnt','croissant','bagel','king','francois','tex']), ELEC=new Set(['toaster','slicer']);
+const WET=new Set(['toast','burnt','croissant','bagel','king','francois','tex','baron']), ELEC=new Set(['toaster','slicer']);
 function waterHit(e,sh){
   const a=Math.atan2(sh.vy,sh.vx);
   if(e.type==='stinky'){
@@ -1825,16 +1890,50 @@ function newGame(diff){
     'A madman named STINKY J brewed up something awful inside the Breadworks Factory, then unleashed it on the town.',
     'Now the toast has teeth. The butter has blisters. And they have taken over CRUMB CITY.',
     'Somebody has to put breakfast back in its place. That somebody wears a paper bag.',
-    touch?'Press A to swing your ball and chain. Keep holding after the swing, then let go for a SPIN attack.':'Press Space or J to swing your ball and chain. Keep holding after the swing, then let go for a SPIN attack.',
-    touch?'Press B to fire your WATER GUN. It holds 5 shots for now. Toast, croissants, bagels and anything electrical HATE getting wet.':'Press X or K to fire your WATER GUN. It holds 5 shots for now. Toast, croissants, bagels and anything electrical HATE getting wet.',
+    'Press A to swing your ball and chain. Keep holding after the swing, then let go for a SPIN attack.',
+    'Press B to fire your WATER GUN. It holds 5 shots for now. Toast, croissants, bagels and anything electrical HATE getting wet.',
     'Refill at fire hydrants, or grab water drops from defeated enemies.',
-    touch?'SELECT opens the map. START pauses the game, with sound options and saving. Good luck, Bagman.':'M opens the map. Esc pauses the game, with sound options and saving. Good luck, Bagman.'
+    'SELECT opens the map. START pauses the game, with sound options and saving. Good luck, Bagman.'
   ]);
 }
 function continueGame(){
   const s=loadSave(); if(!s){newGame();return;}
   migrateSave(s); S=s; if(S.lives===undefined)S.lives=3; S.lives=clamp(S.lives,1,MAXLIVES); cur=null; later=[]; banner=null; S.hp=S.maxHp; if(S.water===undefined)S.water=WM(); if(S.crumbs===undefined)S.crumbs=0; S.maxHp=Math.min(MAXHP,S.maxHp); S.hp=Math.min(S.hp,S.maxHp); if(S.wmax)S.wmax=Math.min(20,S.wmax); S.wrate=Math.min(3,S.wrate||0); if(!ROOMS[S.cp.room])S.cp={room:'city:2,4',x:8*T,y:7*T+8}; enterRoom(S.cp.room,S.cp.x,S.cp.y); game='play'; P.inv=1;
 }
+/* ================= COME-BACK REMINDERS (Android app only) =================
+   When the player leaves the game, three reminders are lined up at 10am local time,
+   2, 4 and 6 days later (every other day, for one week). Each uses the next message in turn.
+   Opening the game cancels them all. Uses @capacitor/local-notifications; does nothing in a browser.
+   Permission is asked once, after the first boss is beaten. Players can switch it off in the pause menu. */
+const REMIND={days:[2,4,6],hour:10,ids:[701,702,703],title:'Bagman',
+  msgs:['The toast is getting cocky. Crumb City needs you, Bagman.','Stinky J thinks you gave up. Prove him wrong.','Your ball and chain misses you.']};
+const Reminders=(()=>{
+  const C=window.Capacitor, native=!!(C&&C.isNativePlatform&&C.isNativePlatform());
+  let N=null; try{if(native)N=(C.Plugins&&C.Plugins.LocalNotifications)||(C.registerPlugin&&C.registerPlugin('LocalNotifications'));}catch(e){N=null;}
+  const state=async()=>{try{return (await N.checkPermissions()).display;}catch(e){return 'denied';}};
+  async function cancel(){if(!N)return;try{await N.cancel({notifications:REMIND.ids.map(id=>({id}))});}catch(e){}}
+  async function ask(){if(!N||!remindOn)return;const st=await state();if(st==='prompt'||st==='prompt-with-rationale'){try{await N.requestPermissions();}catch(e){}}}
+  async function schedule(){
+    if(!N||!remindOn)return; await cancel();
+    if(!(S||loadSave()))return;                       // nothing to come back to yet
+    if(await state()!=='granted')return;              // never prompt from here
+    let k=0;try{k=+(localStorage.getItem('bagman-remind-next')||0)%REMIND.msgs.length;}catch(e){}
+    const now=new Date();
+    const notifications=REMIND.days.map((d,i)=>({id:REMIND.ids[i],title:REMIND.title,body:REMIND.msgs[(k+i)%REMIND.msgs.length],
+      schedule:{at:new Date(now.getFullYear(),now.getMonth(),now.getDate()+d,REMIND.hour,0,0,0)},
+      smallIcon:'ic_stat_bagman',largeIcon:'ic_notif_bagman',iconColor:'#F0731F',isExactNotification:false}));
+    try{await N.schedule({notifications});localStorage.setItem('bagman-remind-next',String((k+1)%REMIND.msgs.length));}catch(e){}
+  }
+  if(N){
+    cancel();   // the game was just opened
+    document.addEventListener('visibilitychange',()=>{document.hidden?schedule():cancel();});
+    window.addEventListener('pagehide',()=>schedule());
+  }
+  // asked once, after a boss win (the first one for new players)
+  function askOnce(){if(!N)return;try{if(localStorage.getItem('bagman-remind-asked'))return;localStorage.setItem('bagman-remind-asked','1');}catch(e){}setTimeout(ask,1500);}
+  return {native:!!N,schedule,cancel,ask,askOnce};
+})();
+
 /* ================= ADS (AdMob) =================
    An interstitial ad plays after every boss battle and after every death.
    In the Android app (built with Capacitor + @capacitor-community/admob) a real AdMob ad is shown.
@@ -1909,6 +2008,7 @@ const MENU=[
   {id:'save',label:()=>'SAVE GAME'},
   {id:'quit',label:()=>'SAVE & QUIT TO TITLE'}
 ];
+if(Reminders.native)MENU.splice(3,0,{id:'remind',label:()=>'REMINDERS:  '+(remindOn?'ON':'OFF')});
 function isStandalone(){try{return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||(matchMedia('(display-mode: fullscreen)').matches&&!document.fullscreenElement&&!document.webkitFullscreenElement);}catch(e){return false;}}
 function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
 function isFull(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
@@ -1933,6 +2033,7 @@ function menuActivate(){
   if(id==='resume'){game='play';SFX.blip();}
   else if(id==='sfx'){sfxOn=!sfxOn;saveSettings();SFX.blip();}
   else if(id==='music'){musicOn=!musicOn;saveSettings();SFX.blip();}
+  else if(id==='remind'){remindOn=!remindOn;saveSettings();SFX.blip();if(remindOn)Reminders.ask();else Reminders.cancel();}
   else if(id==='save'){const ok=doSave();SFX.chest();menuMsg={t:2.2,text:ok?'GAME SAVED! You\'ll start from right here.':'Saved, but you\'ll restart at the last checkpoint (boss fight).'};}
   else if(id==='quit'){doSave();hasSave=true;dlg=null;game='title';SFX.blip();}
 }
@@ -1941,7 +2042,7 @@ function menuUpdate(dt){
   if(inp.uP){menuSel=(menuSel+MENU.length-1)%MENU.length;SFX.blip();}
   if(inp.dP){menuSel=(menuSel+1)%MENU.length;SFX.blip();}
   if(inp.aP)menuActivate();
-  else if(inp.pP||inp.bP){game='play';SFX.blip();}
+  else if(inp.pP){game='play';SFX.blip();}
   else if(inp.mP){mapFromMenu=true;game='pause';}
 }
 const MENU_Y0=150, MENU_DY=34;
@@ -1957,9 +2058,10 @@ function drawMenu(){
   });
   const touch=document.body.classList.contains('touch')||GP.used;
   if(menuMsg)uiText(menuMsg.text,W/2,MENU_Y0+MENU.length*MENU_DY+14,12,'#8fe08a','center',true);
-  else uiText(touch?'D-pad choose  ·  A select  ·  START or B close':'Up/Down choose  ·  Space select  ·  Esc close',W/2,MENU_Y0+MENU.length*MENU_DY+14,11,'#a8916f','center');
+  else uiText('D-pad choose  ·  A select',W/2,MENU_Y0+MENU.length*MENU_DY+14,11,'#a8916f','center');
 }
 const CAMEO={
+  baron:['Ah. The paper bag. You\'ve been making a terrible mess of my breakfast.','Let me introduce you to old money.','BARON! Show him how the upper crust rolls!'],
   knife:['YOU again? Fine. Sir Spreadsalot! Butter him up! I\'ve got laundry to... NOT do.'],
   spoon:['Do you know how hard it is to train a spoon?!','Gus! Stir him into the grease!'],
   toaster:['Bagman, Bagman... You\'re about to get TOASTED.','Toastmaster, crank it to eleven! I\'m out of here!'],
@@ -2183,6 +2285,10 @@ function drawFloor(area,c,r,x,y,g){
   }else if(area==='creamery'){
     ctx.fillStyle='#f2f4f2';ctx.fillRect(x,y,T,T);ctx.strokeStyle='#9fc4e8';ctx.lineWidth=1.5;ctx.strokeRect(x+0.75,y+0.75,T-1.5,T-1.5);
     ctx.fillStyle='rgba(159,196,232,.18)';ctx.fillRect(x+3,y+3,10,2);
+  }else if(area==='bagel'){
+    ctx.fillStyle=(c+r)%2?'#e9d3a8':'#d9b98a';ctx.fillRect(x,y,T,T);
+    ctx.strokeStyle='rgba(120,80,40,.25)';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,T-1,T-1);
+    ctx.fillStyle='rgba(255,255,255,.35)';for(let i=0;i<4;i++)ctx.fillRect(x+hsh(c,r,i)*28,y+hsh(r,c,i)*28,2,2);   // flour dust
   }else if(area==='silo'){
     ctx.fillStyle='#c9a86a';ctx.fillRect(x,y,T,T);ctx.strokeStyle='rgba(230,200,110,.8)';ctx.lineWidth=1.2;
     for(let i=0;i<6;i++){const sx=x+hsh(c,r,i)*28,sy=y+hsh(r,c,i)*28;line(sx,sy,sx+5,sy+(hsh(i,c,r)-0.5)*4);}
@@ -2306,6 +2412,11 @@ function drawWall(area,c,r,x,y,g){
     ctx.fillStyle='#a9c4d8';ctx.fillRect(x,y,T,T);ctx.strokeStyle='rgba(60,90,120,.35)';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,T-1,T-1);
     ctx.fillStyle='#7f95a8';ctx.fillRect(x,y+10,T,5);ctx.fillStyle='rgba(255,255,255,.4)';ctx.fillRect(x,y+10,T,1.5);
     if(below){ctx.fillStyle='#f2f4f2';ctx.fillRect(x,y+18,T,T-18);ctx.fillStyle='#4a7fb0';ctx.fillRect(x,y+22,T,3);}
+  }else if(area==='bagel'){
+    ctx.fillStyle='#9a4a2a';ctx.fillRect(x,y,T,T);ctx.strokeStyle='rgba(50,20,10,.45)';ctx.lineWidth=1;
+    for(let i=0;i<4;i++){line(x,y+i*8+0.5,x+T,y+i*8+0.5);const o=(i%2)*8;line(x+o+0.5,y+i*8,x+o+0.5,y+i*8+8);line(x+o+16.5,y+i*8,x+o+16.5,y+i*8+8);}
+    if(below){ctx.fillStyle='#6b3a1f';ctx.fillRect(x+2,y+16,T-4,4);
+      if(hsh(c,r,5)<0.6){for(const bx of [9,23]){ctx.fillStyle='#c98b47';ink(1.2);ctx.beginPath();ctx.arc(x+bx,y+11,5,0,7);fs();ctx.fillStyle='#3a2412';ctx.beginPath();ctx.arc(x+bx,y+11,1.6,0,7);ctx.fill();}}}
   }else if(area==='silo'){
     ctx.fillStyle='#8a2a1f';ctx.fillRect(x,y,T,T);ctx.strokeStyle='rgba(40,10,5,.5)';ctx.lineWidth=1.5;for(let i=0;i<4;i++)line(x+i*8+0.5,y,x+i*8+0.5,y+T);
     if(below&&hsh(c,r,6)<0.3){ctx.strokeStyle='#f1e2c6';ctx.lineWidth=2.5;ctx.strokeRect(x+4,y+6,24,24);line(x+4,y+6,x+28,y+30);line(x+28,y+6,x+4,y+30);}
@@ -2838,11 +2949,94 @@ function drawWaterShot(w){
   ink(1.5);ctx.fillStyle='#4fa8e8';ell(0,0,7,4.2);fs();ctx.fillStyle='rgba(255,255,255,.8)';ell(1,-1.4,2.6,1.1);ctx.fill();
   ctx.restore();
 }
+function drawSword(x,y,ang,len){  // King Char's royal sword: hilt in the fist at (x,y), blade pointing along -y
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.lineJoin='round';
+  // blade
+  const g=ctx.createLinearGradient(-5,0,5,0);g.addColorStop(0,'#f4f7fa');g.addColorStop(0.5,'#c7cfd8');g.addColorStop(1,'#7d8793');
+  ctx.fillStyle=FLASH?'#ffffff':g;ink(2);ctx.beginPath();ctx.moveTo(-5,-9);ctx.lineTo(-5,-len+9);ctx.lineTo(0,-len);ctx.lineTo(5,-len+9);ctx.lineTo(5,-9);ctx.closePath();fs();
+  ctx.strokeStyle='rgba(90,100,112,.9)';ctx.lineWidth=1.5;line(0,-11,0,-len+11);              // fuller groove
+  ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1.2;line(-3,-12,-3,-len+12);          // shine
+  // crossguard, grip, pommel
+  ctx.fillStyle=C('#f2c12e');ink(2);rr(-12,-11,24,5,2);fs();ctx.fillStyle=C('#c0261a');ctx.beginPath();ctx.arc(0,-8.5,1.8,0,7);ctx.fill();
+  ctx.fillStyle=C('#5a1f12');ink(1.6);rr(-3,-6,6,13,1.5);fs();ctx.strokeStyle=C('#2a0d08');ctx.lineWidth=1;for(let i=-4;i<6;i+=3)line(-3,i,3,i+2);
+  ctx.fillStyle=C('#f2c12e');ink(1.8);ctx.beginPath();ctx.arc(0,9.5,3.6,0,7);fs();
+  ctx.lineJoin='miter';ctx.restore();
+}
+function drawKing(e){
+  const x=e.x,y=e.y,en=!!e.enr,wind=e.st==='wind',thr=e.st==='throw',dash=e.st==='dash',raise=thr||wind;
+  const wk=(e.st==='walk'||dash)?Math.sin(e.anim*(dash?18:9)):0,sx=wind?rnd(-1.5,1.5):0;
+  const OUTC='#120804',SK=C('#2a1408'),SKL=C('#4a2812');
+  shadowAt(x,y,34,9);
+  ctx.save();ctx.translate(x+sx,y);
+  // royal cape behind him
+  ctx.fillStyle=C('#8a1424');ink(2.5);ctx.beginPath();ctx.moveTo(-26,-72);ctx.quadraticCurveTo(-46,-30,-40+wk*2,-4);ctx.lineTo(40+wk*2,-4);ctx.quadraticCurveTo(46,-30,26,-72);ctx.closePath();fs();
+  ctx.fillStyle=C('#f4f1ea');ctx.fillRect(-40+wk*2,-9,80,5);ctx.fillStyle=C('#1a1a1a');for(let i=-34;i<=34;i+=12)ctx.fillRect(i+wk*2,-8,3,3);
+  // legs: thick thighs, heavy gold-trimmed boots
+  const leg=(lx,o)=>{ctx.fillStyle=SK;ink(2.5);ctx.beginPath();ctx.moveTo(lx-9,-26);ctx.quadraticCurveTo(lx-14+o,-15,lx-8+o,-6);ctx.lineTo(lx+8+o,-6);ctx.quadraticCurveTo(lx+13+o,-16,lx+9,-26);ctx.closePath();fs();
+    ctx.fillStyle=C('#120804');rr(lx-11+o,-8,22,9,3);fs();ctx.fillStyle=C('#c9a646');ctx.fillRect(lx-11+o,-8,22,2.5);};
+  leg(-13,wk*4);leg(13,-wk*4);
+  ctx.translate(0,-9);
+  // a thick cartoon arm: shoulder -> elbow -> fist, with a bicep bulge
+  const limb=(pts,w)=>{ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.strokeStyle=C(OUTC);ctx.lineWidth=w+5;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(const q of pts.slice(1))ctx.lineTo(q[0],q[1]);ctx.stroke();
+    ctx.strokeStyle=SK;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(const q of pts.slice(1))ctx.lineTo(q[0],q[1]);ctx.stroke();};
+  const arm=(sd,up,swing)=>{
+    const sh=[sd*27,-62], el=up?[sd*48,-80]:[sd*46,-44+swing], fi=up?[sd*42,-104]:[sd*40,-24+swing*1.5];
+    limb([sh,el],15); limb([el,fi],12);
+    // bicep bulge on the upper arm
+    const mx=(sh[0]+el[0])/2,my=(sh[1]+el[1])/2,a=Math.atan2(el[1]-sh[1],el[0]-sh[0]);
+    ctx.save();ctx.translate(mx,my);ctx.rotate(a);ctx.fillStyle=SK;ink(2.5);ell(0,-sd*3,11,8.5);fs();
+    ctx.strokeStyle=SKL;ctx.lineWidth=2;ctx.beginPath();ctx.arc(-1,-sd*4,5,Math.PI*1.1,Math.PI*1.75);ctx.stroke();ctx.restore();
+    // gold arm band
+    ctx.save();ctx.translate(el[0]+(fi[0]-el[0])*0.25,el[1]+(fi[1]-el[1])*0.25);ctx.rotate(Math.atan2(fi[1]-el[1],fi[0]-el[0]));ctx.fillStyle=C('#c9a646');ink(1.5);rr(-2.5,-7.5,5,15,1.5);fs();ctx.restore();
+    // fist with knuckles
+    ctx.fillStyle=SK;ink(2.5);ctx.beginPath();ctx.arc(fi[0],fi[1],8.5,0,7);fs();
+    ctx.strokeStyle=SKL;ctx.lineWidth=1.5;for(const k of [-3.5,0,3.5])line(fi[0]+k,fi[1]-5,fi[0]+k,fi[1]-1.5);
+    return fi;};
+  // arms go BEHIND the crust: drawn first, the slice covers the shoulders
+  arm(-1,false,wk*3);
+  const f=arm(1,raise,-wk*3);
+  const fist=()=>{ctx.fillStyle=SK;ink(2.5);ctx.beginPath();ctx.arc(f[0],f[1],8.5,0,7);fs();ctx.strokeStyle=SKL;ctx.lineWidth=1.5;for(const k of [-3.5,0,3.5])line(f[0]+k,f[1]-5,f[0]+k,f[1]-1.5);};
+  if(raise){drawSword(f[0],f[1],-0.25,46);fist();}
+  // the slice: tall, thick, charred
+  const body=()=>{ctx.beginPath();ctx.moveTo(-30,-18);ctx.lineTo(-30,-74);ctx.bezierCurveTo(-42,-100,-10,-106,0,-90);ctx.bezierCurveTo(10,-106,42,-100,30,-74);ctx.lineTo(30,-18);ctx.quadraticCurveTo(30,-12,24,-12);ctx.lineTo(-24,-12);ctx.quadraticCurveTo(-30,-12,-30,-18);ctx.closePath();};
+  ctx.fillStyle=C('#3a1d0b');ink(3);body();fs();
+  ctx.save();body();ctx.clip();ctx.fillStyle=C('#5a2e12');ctx.save();ctx.translate(0,-48);ctx.scale(0.82,0.86);ctx.translate(0,48);body();ctx.fill();ctx.restore();
+  ctx.fillStyle=C('#1a0c04');for(let i=0;i<7;i++){ctx.beginPath();ctx.arc(-18+hsh(i,4)*36,-36+hsh(i,5)*18,1.5+hsh(i,6)*2.2,0,7);ctx.fill();}
+  if(en){ctx.fillStyle='rgba(255,70,20,'+(0.18+0.12*Math.sin(time*14))+')';ctx.fillRect(-40,-110,80,100);}
+  ctx.restore();
+  if(!raise){drawSword(f[0],f[1],-0.5,46);fist();}   // at rest the blade crosses in front, leaning in toward his body
+  // face: glowing eyes, heavy brows, jagged grin
+  ctx.save();ctx.shadowColor='#ff2a00';ctx.shadowBlur=FLASH?0:12;ctx.fillStyle=C(en?'#ffd23f':'#ff3a1a');
+  ell(-11,-66,6,4.6);ctx.fill();ell(11,-66,6,4.6);ctx.fill();ctx.restore();
+  ctx.strokeStyle=OUTC;ctx.lineWidth=4.5;ctx.lineCap='round';line(-22,-78,-5,-70);line(22,-78,5,-70);ctx.lineCap='butt';
+  ctx.fillStyle=C('#f5ecd8');ink(2);rr(-15,-52,30,11,3);fs();
+  ctx.beginPath();ctx.moveTo(-15,-46.5);for(let i=0;i<8;i++)ctx.lineTo(-15+(i+0.5)*3.75,i%2?-51:-42);ctx.lineTo(15,-46.5);ctx.stroke();
+  // crown
+  ink(2);ctx.fillStyle=C('#f2c12e');ctx.beginPath();ctx.moveTo(-18,-94);ctx.lineTo(-20,-114);ctx.lineTo(-9,-104);ctx.lineTo(0,-120);ctx.lineTo(9,-104);ctx.lineTo(20,-114);ctx.lineTo(18,-94);ctx.closePath();fs();
+  ctx.fillStyle=C('#c0261a');ctx.beginPath();ctx.arc(0,-103,3,0,7);ctx.fill();ctx.fillStyle=C('#3a7fd0');ctx.beginPath();ctx.arc(-11,-100,2,0,7);ctx.arc(11,-100,2,0,7);ctx.fill();
+  ctx.lineCap='butt';ctx.lineJoin='miter';
+  ctx.restore();
+}
 function drawFrancois(e){
   const x=e.x,y=e.y,z=e.z||0,sog=e.st==='soggy',air=e.st==='jump';
   const sh=clamp(1-z/220,0.4,1);ctx.fillStyle='rgba(0,0,0,'+(0.32*sh)+')';ell(x,y,34*sh,10*sh);ctx.fill();
   if(e.st==='crouch'||air){ctx.strokeStyle='rgba(255,60,40,'+(0.5+0.4*Math.sin(time*20))+')';ctx.lineWidth=2.5;ell(air?e.tx:x,air?e.ty:y,50,22);ctx.stroke();}
-  ctx.save();ctx.translate(x+(e.st==='crouch'?rnd(-1.5,1.5):0),y-34-z);if(e.rot)ctx.scale(Math.cos(e.rot)>=0?1:-1,1);if(e.st==='crouch')ctx.scale(1.08,0.9);
+  ctx.save();ctx.translate(x+(e.st==='crouch'?rnd(-1.5,1.5):0),y-50-z);if(e.rot)ctx.scale(Math.cos(e.rot)>=0?1:-1,1);if(e.st==='crouch')ctx.scale(1.08,0.9);
+  {// legs and shoes
+   const wk=(e.st==='walk'&&!z)?Math.sin(e.anim*10)*3:0,tuck=air||z>4?-6:0;
+   ctx.strokeStyle=C('#1e0f06');ctx.lineWidth=5;ctx.lineCap='round';line(-12,30,-14+wk,48+tuck);line(12,30,14-wk,48+tuck);
+   ctx.fillStyle=C('#2a1408');ink(2);ell(-16+wk,49+tuck,7,3.6);fs();ell(16-wk,49+tuck,7,3.6);fs();
+   // arms: one on the hip, one waving a spatula (both up while jumping)
+   const sw=Math.sin(e.anim*6)*4,up=air||e.st==='crouch';
+   ctx.strokeStyle=C('#1e0f06');ctx.lineWidth=4.5;
+   ctx.beginPath();ctx.moveTo(-29,2);ctx.quadraticCurveTo(-44,up?-8:6,up?-42:-38,up?-24:20);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(29,2);ctx.quadraticCurveTo(44,up?-8:-2+sw,up?44:42,up?-24:-12+sw);ctx.stroke();
+   ctx.lineCap='butt';
+   const hy=up?-24:-12+sw,hx=up?44:42;
+   ctx.save();ctx.translate(hx,hy);ctx.rotate(-0.35);ctx.fillStyle=C('#8a8f96');ink(1.5);ctx.fillRect(-1.5,-20,3,16);ctx.strokeRect(-1.5,-20,3,16);
+   ctx.fillStyle=C('#c7cfd8');rr(-6,-32,12,13,2);fs();ctx.fillStyle=C('#5f666e');for(const sx2 of [-3,0,3])ctx.fillRect(sx2-0.6,-30,1.2,8);ctx.restore();
+   ctx.fillStyle=C('#ffffff');ink(1.8);ctx.beginPath();ctx.arc(up?-42:-38,up?-24:20,5,0,7);fs();ctx.beginPath();ctx.arc(hx,hy,5,0,7);fs();}
   const body=()=>{ctx.beginPath();ctx.moveTo(-28,-30);ctx.quadraticCurveTo(-34,-38,-22,-40);ctx.quadraticCurveTo(-12,-48,0,-42);ctx.quadraticCurveTo(12,-48,22,-40);ctx.quadraticCurveTo(34,-38,28,-30);ctx.lineTo(30,26);ctx.quadraticCurveTo(30,32,24,32);ctx.lineTo(-24,32);ctx.quadraticCurveTo(-30,32,-30,26);ctx.closePath();};
   ctx.fillStyle=C(sog?'#c98a3a':'#a8641f');ink(2.5);body();fs();
   ctx.save();body();ctx.clip();ctx.fillStyle=C(sog?'#f0d38a':'#e0a24a');ctx.fillRect(-25,-36,50,64);
@@ -2961,6 +3155,60 @@ function drawSpoon(e){
   if(e.st==='stuck'){ctx.fillStyle='rgba(120,90,40,.9)';for(const [a,b] of [[-20,2],[18,1],[-10,6],[12,6]]){ctx.beginPath();ctx.arc(x+a,y+b,3,0,7);ctx.fill();}
     ctx.fillStyle='rgba(214,160,40,.6)';ell(x,y+2,26,7);ctx.fill();}
 }
+function drawBaron(e){
+  const x=e.x,y=e.y,rl=e.st==='roll'||e.st==='wind',dz=e.st==='dizzy',sx=e.st==='wind'?rnd(-1.5,1.5):0;
+  shadowAt(x,y,30,8);
+  ctx.save();ctx.translate(x+sx,y);
+  const glove=(gx,gy)=>{ctx.fillStyle=C('#ffffff');ink(1.8);ctx.beginPath();ctx.arc(gx,gy,5,0,7);fs();};
+  const arm=(ax,ay,hx,hy)=>{ctx.strokeStyle=C('#1a0f08');ctx.lineWidth=4.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo((ax+hx)/2+(hx>0?4:-4),(ay+hy)/2-6,hx,hy);ctx.stroke();};
+  const droop=dz?8:0;
+  if(!rl){
+    ctx.fillStyle=C('#2a1a10');ink(2);rr(-20,-8,13,9,3);fs();rr(7,-8,13,9,3);fs();   // little shoes
+    // walking stick: black cane with a gold cap and a diamond on top
+    const cx=46,top=-40+droop;
+    ctx.strokeStyle=C('#120c08');ctx.lineWidth=5;ctx.lineCap='round';line(cx,-1,cx-1,top);
+    ctx.strokeStyle=C('#2a2430');ctx.lineWidth=2.5;line(cx,-1,cx-1,top);
+    ctx.fillStyle=C('#e8b923');ink(1.5);rr(cx-5,top-3,8,5,2);fs();ctx.fillRect(cx-2,-4,3,3);
+    ctx.save();ctx.translate(cx-1,top-11);
+    ctx.fillStyle=C('#7fe0ff');ink(2);ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,-2);ctx.lineTo(0,8);ctx.lineTo(-7,-2);ctx.closePath();fs();
+    ctx.fillStyle=C('#d8f6ff');ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,-2);ctx.lineTo(0,-2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=C('rgba(40,120,160,.8)');ctx.lineWidth=1;line(-7,-2,7,-2);
+    if(Math.floor((e.anim||time)*3)%3===0){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(-3,-5);ctx.lineTo(-2,-7);ctx.lineTo(-1,-5);ctx.lineTo(-2,-3);ctx.closePath();ctx.fill();}
+    ctx.restore();
+  }
+  // the big bagel, standing on its edge
+  ctx.save();ctx.translate(0,-36);if(rl)ctx.rotate(e.rot);
+  ink(3);ctx.fillStyle=C('#c98b47');ctx.beginPath();ctx.arc(0,0,32,0,7);fs();
+  ctx.fillStyle=C('#e2a865');ell(-6,-9,20,12,-0.4);ctx.fill();
+  ctx.fillStyle=C('#f5ead0');for(let i=0;i<16;i++){const a=i*0.83+(i%3)*0.21,rad=19+(i%4)*3.2;if(!rl&&Math.sin(a)<-0.25)continue;ell(Math.cos(a)*rad,Math.sin(a)*rad+(rl?0:4),2.2,1.1,a);ctx.fill();}
+  ctx.fillStyle='#22160f';ink(2);ctx.beginPath();ctx.arc(0,rl?0:9,8,0,7);fs();   // the hole, in the lower half so the face has room
+  ctx.restore();
+  if(!rl){
+    // arms: left hand on his hip side, right hand on the cane
+    arm(-29,-40,-42,-26+droop);glove(-42,-26+droop);
+    arm(29,-40,44,-38+droop);glove(44,-38+droop);
+    // face on the upper half
+    if(dz){ctx.strokeStyle=C('#1a0f08');ctx.lineWidth=2;for(const ex of [-9,9]){ctx.beginPath();ctx.arc(ex,-54,3.5,0,5.5);ctx.stroke();}}
+    else angryEyes(0,-54,0.95,9);
+    // monocle: thick gold rim, shiny glass, chain down to the waist
+    ctx.fillStyle='rgba(200,235,255,.45)';ctx.beginPath();ctx.arc(9,-54,7.5,0,7);ctx.fill();
+    ctx.strokeStyle=C('#120c08');ctx.lineWidth=5;ctx.beginPath();ctx.arc(9,-54,7.5,0,7);ctx.stroke();
+    ctx.strokeStyle=C('#ffd23f');ctx.lineWidth=3;ctx.beginPath();ctx.arc(9,-54,7.5,0,7);ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(9,-54,4.5,3.6,4.6);ctx.stroke();
+    ctx.strokeStyle=C('#ffd23f');ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(16,-51);ctx.quadraticCurveTo(26,-40,22,-26);ctx.stroke();
+    // curly baron mustache, above the hole
+    ctx.fillStyle=C('#3a2412');ink(1.5);ctx.beginPath();ctx.moveTo(0,-47);ctx.quadraticCurveTo(-9,-51,-15,-46);ctx.quadraticCurveTo(-20,-42,-16,-39);ctx.quadraticCurveTo(-13,-43,-8,-42.5);ctx.quadraticCurveTo(-3,-42.5,0,-44);
+    ctx.quadraticCurveTo(3,-42.5,8,-42.5);ctx.quadraticCurveTo(13,-43,16,-39);ctx.quadraticCurveTo(20,-42,15,-46);ctx.quadraticCurveTo(9,-51,0,-47);ctx.closePath();fs();
+    // top hat, sitting on top of the bagel
+    ctx.save();ctx.translate(0,-68);ctx.rotate(dz?0.4:-0.08);
+    ctx.fillStyle=C('#1d1a22');ink(2.5);ell(0,0,24,5.5);fs();rr(-14,-28,28,28,4);fs();
+    ctx.fillStyle=C('#8a1a2a');ctx.fillRect(-14,-8,28,5);ctx.restore();
+  }else{
+    // spinning: motion streaks behind
+    ctx.strokeStyle='rgba(245,234,208,.55)';ctx.lineWidth=2;const d=e.vx>=0?-1:1;for(const yy of [-56,-36,-16])line(d*36,yy,d*54,yy);
+  }
+  ctx.restore();
+}
 function drawBagel(e){
   const x=e.x,y=e.y;shadowAt(x,y,11,4);
   ctx.save();ctx.translate(x,y-12+Math.abs(Math.sin(e.anim*9))*-2);
@@ -2984,11 +3232,12 @@ function drawKnifeBoss(e){
   ctx.fillStyle=C('#9aa3ad');ctx.fillRect(-12,-9,6,18);ctx.strokeRect(-12,-9,6,18);
   const g=ctx.createLinearGradient(0,-9,0,9);g.addColorStop(0,'#f4f7fa');g.addColorStop(0.5,'#c7cfd8');g.addColorStop(1,'#7d8793');
   ctx.fillStyle=FLASH?'#ffffff':g;ctx.beginPath();ctx.moveTo(-6,-9);ctx.lineTo(50,-8);ctx.quadraticCurveTo(68,-4,62,5);ctx.lineTo(-6,9);ctx.closePath();fs();
-  ctx.fillStyle=C('rgba(246,201,69,.9)');ctx.beginPath();ctx.moveTo(18,9);ctx.quadraticCurveTo(30,2,48,4);ctx.quadraticCurveTo(54,8,50,7.6);ctx.lineTo(18,8.6);ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.5;line(4,-5,44,-5);
+  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.5;line(4,6,44,5);
+  // butter smear along the spine side, face on the edge side (mirrored across the blade)
+  ctx.fillStyle=C('rgba(246,201,69,.9)');ctx.beginPath();ctx.moveTo(18,-8.6);ctx.quadraticCurveTo(30,-2,46,-4);ctx.quadraticCurveTo(52,-7.5,48,-7.9);ctx.lineTo(18,-8.6);ctx.fill();
   ctx.save();ctx.shadowColor='#ff2a00';ctx.shadowBlur=FLASH?0:8;ctx.fillStyle=C(stuck?'#ffb347':'#ff2a1a');
-  ell(10,-1,3.4,2.6);ctx.fill();ell(22,-1,3.4,2.6);ctx.fill();ctx.restore();
-  ctx.strokeStyle=OUT;ctx.lineWidth=2.4;line(5,-6.5,13,-3.5);line(27,-6.5,19,-3.5);
+  ell(10,1,3.4,2.6);ctx.fill();ell(22,1,3.4,2.6);ctx.fill();ctx.restore();
+  ctx.strokeStyle=OUT;ctx.lineWidth=2.4;line(5,6.5,13,3.5);line(27,6.5,19,3.5);
   if(stuck){ctx.strokeStyle=OUT;ctx.lineWidth=1.5;for(let i=0;i<3;i++)line(66,-8+i*8,74,-12+i*10);}
   ctx.restore();
 }
@@ -3060,10 +3309,11 @@ function drawEnemy(e){
     case 'spoon':drawSpoon(e);break;
     case 'francois':drawFrancois(e);break;
     case 'tex':drawTex(e);break;
+    case 'baron':drawBaron(e);break;
     case 'stinky':drawStinky(e.x,e.y,{clean:e.clean>0,dizzy:e.st==='dizzy',spin:e.spin||0,shake:e.st==='charge',flash:e.flash>0,anim:e.anim,walk:e.st==='walk'||e.st==='dash'});break;
     case 'toaster':drawToaster(e);break;
     case 'slicer':drawSlicer(e);break;
-    case 'king':drawToast(e.x,e.y,2.3,e,'king',true);break;
+    case 'king':drawKing(e);break;
     case 'blister':drawButter(e.x,e.y,2.3,e,true,true);break;
   }
   FLASH=false;
@@ -3103,8 +3353,9 @@ function drawHUD(){
   // left: hearts, keys underneath
   const n=S.maxHp/2, hs=n>8?16:19, hz=n>8?7:8;
   for(let i=0;i<n;i++)drawHeart(16+i*hs,18,hz,clamp(S.hp-i*2,0,2));
-  drawKeyIcon(18,38);uiText('×'+S.keys,36,38,12,'#f1e2c6','left',true);
-  drawLifeHead(76,36,0.5);uiText('×'+(S.lives===undefined?3:S.lives),86,38,12,S.lives===1?'#ff8a5c':'#f1e2c6','left',true);
+  const hc=n>8?17:16;   // the lives head sits right under the first heart, so both rows start at the same left edge
+  drawLifeHead(hc,36,0.5);uiText('×'+(S.lives===undefined?3:S.lives),hc+9,38,12,S.lives===1?'#ff8a5c':'#f1e2c6','left',true);
+  drawKeyIcon(hc+46,38);uiText('×'+S.keys,hc+64,38,12,'#f1e2c6','left',true);
   // center: where you are
   comicText(roomName(cur.d),W/2,20,18,'#ffe14a','#f0731f',0,'center');
   // right: water gun gauge, crumbs underneath
@@ -3164,44 +3415,63 @@ function drawDialog(){
   uiText((dlg.i+1)+'/'+dlg.lines.length,x+w-30,y+h-14,10,'#8a7558','right');
 }
 function drawMap(){
-  ctx.fillStyle='rgba(12,7,4,.92)';ctx.fillRect(0,0,W,H);
-  const wld=worldOf(cur.id);
-  comicText(AREAS[wld].name,W/2,32,32);
+  // the top bar (lives, keys, hearts, crumbs, water) stays visible above the map
+  ctx.fillStyle='rgba(12,7,4,.97)';ctx.fillRect(0,HUD,W,RH);
+  const wld=worldOf(cur.id),city=wld==='city';
+  comicText(city?'CRUMB CITY MAP':AREAS[wld].name+' MAP',W/2,HUD+22,24);
   const ids=Object.keys(ROOMS).filter(id=>worldOf(id)===wld);
   let mx=0,my=0;for(const id of ids){const [x,y]=xyOf(id);mx=Math.max(mx,x);my=Math.max(my,y);}
-  const cw=Math.min(wld==='city'?96:62,440/(mx+1)),ch=Math.min(wld==='city'?64:42,220/(my+1)),gx=W/2-(mx+1)*cw/2,gy=60+Math.max(0,(220-(my+1)*ch)/2);
+  const top=HUD+38,room=184;   // map area
+  const cw=Math.min(city?72:62,470/(mx+1)),ch=Math.min(city?40:36,room/(my+1)),gx=W/2-(mx+1)*cw/2,gy=top+Math.max(0,(room-(my+1)*ch)/2);
+  // connections
   for(const id of ids){
     if(!S.visited[id])continue;
     const [x,y]=xyOf(id),rx=gx+x*cw,ry=gy+y*ch,d=ROOMS[id];
     ctx.fillStyle=roomCol(d);
-    for(const s of d.exits){if(s==='E')ctx.fillRect(rx+cw-6,ry+ch/2-3,12,6);if(s==='S')ctx.fillRect(rx+cw/2-3,ry+ch-6,6,12);if(s==='W')ctx.fillRect(rx-6,ry+ch/2-3,12,6);if(s==='N')ctx.fillRect(rx+cw/2-3,ry-6,6,12);}
+    for(const s of d.exits){if(s==='E')ctx.fillRect(rx+cw-5,ry+ch/2-2.5,10,5);if(s==='S')ctx.fillRect(rx+cw/2-2.5,ry+ch-5,5,10);if(s==='W')ctx.fillRect(rx-5,ry+ch/2-2.5,10,5);if(s==='N')ctx.fillRect(rx+cw/2-2.5,ry-5,5,10);}
   }
+  // rooms
   for(const id of ids){
     if(!S.visited[id])continue;
-    const [x,y]=xyOf(id),rx=gx+x*cw,ry=gy+y*ch,d=ROOMS[id];
-    ctx.fillStyle=roomCol(d);ink(2);ctx.fillRect(rx+4,ry+4,cw-8,ch-8);ctx.strokeRect(rx+4,ry+4,cw-8,ch-8);
-    if(d.locks)for(const s in d.locks){const lk=d.locks[s];if(lk.indexOf('G:')===0&&!gateOpen(lk)){ctx.fillStyle='#c0261a';const px=s==='E'?rx+cw-4:s==='W'?rx+4:rx+cw/2,py=s==='N'?ry+4:s==='S'?ry+ch-4:ry+ch/2;ink(1.5);ctx.beginPath();ctx.arc(px,py,5,0,7);fs();}}
+    const [x,y]=xyOf(id),rx=gx+x*cw,ry=gy+y*ch,d=ROOMS[id],here=id===cur.id;
+    ctx.fillStyle=roomCol(d);ink(2);ctx.fillRect(rx+3,ry+3,cw-6,ch-6);ctx.strokeRect(rx+3,ry+3,cw-6,ch-6);
+    if(here){ctx.strokeStyle=Math.floor(time*3)%2?'#ffe14a':'#ffffff';ctx.lineWidth=3;ctx.strokeRect(rx+1.5,ry+1.5,cw-3,ch-3);}
+    if(d.locks)for(const s in d.locks){const lk=d.locks[s];if(lk.indexOf('G:')===0&&!gateOpen(lk)){ctx.fillStyle='#e0261a';const px=s==='E'?rx+cw-3:s==='W'?rx+3:rx+cw/2,py=s==='N'?ry+3:s==='S'?ry+ch-3:ry+ch/2;ink(1.5);ctx.beginPath();ctx.arc(px,py,5,0,7);fs();}}
     if(d.door){const wd=worldOf(d.door.to),bid=Object.keys(ROOMS).find(k=>worldOf(k)===wd&&ROOMS[k].boss),done=!!(bid&&S.flags[BOSS[ROOMS[bid].boss].flag]);
-      comicText(d.door.label.replace('THE ','').replace('GREASY ',''),rx+cw/2,ry+ch/2-6,11,done?'#cfe8b8':'#ffffff',done?'#5f8a5a':'#ff8a5c');
-      uiText(wd==='store'?'shop':done?'cleared':'dungeon',rx+cw/2,ry+ch/2+10,9,'#f1e2c6','center',true);}
-    else if(d.boss&&!S.flags[BOSS[d.boss].flag])comicText('BOSS',rx+cw/2,ry+ch/2,13,'#ffffff','#ff8a5c');
+      const lbl=d.door.label.replace('THE ','').replace('GREASY ','').replace('APPLIANCES','');
+      comicText(lbl,rx+cw/2,ry+ch/2,Math.min(11,(cw-6)/lbl.length*1.9),wd==='store'?'#ffe14a':done?'#b8f0a0':'#ffffff',wd==='store'?'#8a5a2b':done?'#2f6a2a':'#c0261a');}
+    else if(d.boss&&!S.flags[BOSS[d.boss].flag])comicText('BOSS',rx+cw/2,ry+ch/2,12,'#ffffff','#c0261a');
     else if(d.chest&&!S.flags['chest:'+id]&&(!d.clearChest||S.flags['clear:'+id])){ctx.fillStyle='#e8b923';ink(1.5);ctx.fillRect(rx+cw/2-5,ry+ch/2-4,10,8);ctx.strokeRect(rx+cw/2-5,ry+ch/2-4,10,8);}
-    if(id===cur.id&&Math.floor(time*3)%2){const bx=rx+cw-14,by=ry+12;ctx.fillStyle='#c9995f';ink(2);rr(bx-7,by-7,14,14,3);fs();ctx.fillStyle='#1a0f08';ctx.fillRect(bx-4,by-2,2,2);ctx.fillRect(bx+2,by-2,2,2);}
+    if(here&&!d.door&&!(d.boss&&!S.flags[BOSS[d.boss].flag]))drawLifeHead(rx+cw/2,ry+ch/2+4,0.5);
   }
-  let yy=gy+(my+1)*ch+26;
-  const nb=Object.values(BOSS).filter(b=>S.flags[b.flag]).length;
-  {const g=nextGoal();if(g)uiText('NEXT: '+g.dungeon+(g.district?'  ·  '+g.district:''),W/2,yy-18,12,'#ffe14a','center',true);}
-  uiText(wld==='city'?'Bosses crushed: '+nb+' / '+Object.keys(BOSS).length:'Find the key, beat the boss. Walk out the way you came in to leave.',W/2,yy,12,'#d8c7a8','center',true);
-
-  yy=Math.min(yy+24,H-58);
-  uiText('Lives: '+S.lives+'    Keys: '+S.keys+'    Hearts: '+S.maxHp/2+'    Crumbs: '+(S.crumbs||0)+'    '+DF().tag,40,yy,13,'#f1e2c6','left',true);
-  yy+=20;
-  const items=['Ball & chain'];if(S.chain)items.push('Long chain');if(S.chain2)items.push('Coil chain');if(S.quick)items.push('Quick spin');items.push('Water '+S.water+'/'+WM()+' (pump '+(S.wrate||0)+'/3)');if(S.iron)items.push('Iron ball');
-  uiText(items.join(' · '),40,yy,12,'#e8b923','left',true);
-  yy+=22;
-  const t=Math.floor(S.time),mm=Math.floor(t/60),ss=('0'+t%60).slice(-2);
-  uiText('Time '+mm+':'+ss+'     Knockouts '+S.deaths,40,yy,12,'#a8916f');
-  uiText(mapFromMenu?'Press any button to go back':'Press any button to resume',W-40,yy,12,'#a8916f','right');
+  // legend: what the marks mean
+  let ly=top+room+16;
+  const items=[['you','You are here'],['chest','Chest']];
+  if(city)items.push(['gate','Barricade'],['done','Boss beaten']);
+  let tw=0;ctx.font='bold 11px '+UIF;for(const it of items)tw+=ctx.measureText(it[1]).width+34;
+  let lx=W/2-tw/2;
+  for(const [k,label] of items){
+    if(k==='you'){ctx.strokeStyle='#ffe14a';ctx.lineWidth=2.5;ctx.strokeRect(lx,ly-6,14,11);}
+    else if(k==='chest'){ctx.fillStyle='#e8b923';ink(1.5);ctx.fillRect(lx+2,ly-4,10,8);ctx.strokeRect(lx+2,ly-4,10,8);}
+    else if(k==='gate'){ctx.fillStyle='#e0261a';ink(1.5);ctx.beginPath();ctx.arc(lx+7,ly,5,0,7);fs();}
+    else{comicText('NAME',lx+10,ly+1,10,'#b8f0a0','#2f6a2a');}
+    uiText(label,lx+(k==='done'?26:20),ly+4,11,'#d8c7a8','left',true);lx+=ctx.measureText(label).width+(k==='done'?40:34);
+  }
+  // info panel: GOAL / BOSSES / GEAR, each clearly labeled
+  const rows=[];
+  if(wld==='store')rows.push(['GOAL','Spend crumbs on upgrades, then head back out.']);
+  else if(city){const g=nextGoal();rows.push(['GOAL',g?'Beat '+g.boss+' at '+g.dungeon+(g.district?' ('+g.district+')':''):'Crumb City is saved!']);}
+  else{const bid=ids.find(k=>ROOMS[k].boss),b=bid&&ROOMS[bid].boss;
+    rows.push(['GOAL',b&&S.flags[BOSS[b].flag]?'Boss beaten! Leave the way you came in.':'Find the key, then beat '+(b?BOSS[b].name:'the boss')+'.']);}
+  rows.push(['BOSSES',Object.values(BOSS).filter(b=>S.flags[b.flag]).length+' of '+Object.keys(BOSS).length+' beaten']);
+  const gear=[];if(S.chain2)gear.push('Coil chain');else if(S.chain)gear.push('Long chain');if(S.quick)gear.push('Quick spin');if(S.iron)gear.push('Iron ball');
+  gear.push(WM()+'-shot water tank');if(S.wrate)gear.push('Pump level '+S.wrate+'/3');
+  rows.push(['GEAR',gear.join('  ·  ')]);
+  const py=ly+12,ph=rows.length*19+10;
+  ctx.fillStyle='rgba(255,255,255,.06)';rr(24,py,W-48,ph,8);ctx.fill();
+  rows.forEach(([k,v],n)=>{const yy=py+19+n*19;uiText(k,40,yy,11,'#e8b923','left',true);uiText(v,110,yy,12,'#f1e2c6','left',true);});
+  uiText('Difficulty: '+DF().name,40,H-7,10,'#8a7f72','left');
+  uiText(mapFromMenu?'Press any button to go back':'Press any button to resume',W-40,H-7,10,'#a8916f','right');
 }
 let titleBG=null;
 const titleButter={};
@@ -3236,7 +3506,7 @@ function drawTitle(){
         if(on){ctx.fillStyle=blink?'#ffe14a':'#f0731f';ctx.beginPath();ctx.moveTo(W/2-118,y-6);ctx.lineTo(W/2-110,y);ctx.lineTo(W/2-118,y+6);ctx.closePath();ctx.fill();}
         uiText(d.name+'  ('+d.tag+')',W/2+4,y+5,14,on?(blink?'#ffe14a':'#fff6df'):'#9c8f7c','center',true);});
       const dd=DIFFS[diffSel];uiText(dd.desc[0],W/2,252,11,'#d8c7a8','center',true);if(dd.desc[1])uiText(dd.desc[1],W/2,266,11,'#d8c7a8','center',true);
-      uiText(touch?'A: start    B: back':'Space: start    X / Esc: back',W/2,284,10,'#9c8f7c','center',true);
+      uiText('A: start    B: back',W/2,284,10,'#9c8f7c','center',true);
       return;}
     const opts=hasSave?['CONTINUE','NEW GAME']:['NEW GAME'];
     ctx.fillStyle='rgba(0,0,0,.55)';rr(W/2-110,138,220,opts.length*24+12,6);ctx.fill();
@@ -3253,11 +3523,11 @@ function drawDead(){
     ctx.fillStyle='rgba(0,0,0,'+Math.min(0.5,deadT*0.4)+')';ctx.fillRect(0,0,W,H);
     ctx.save();ctx.translate(W/2,H/2-40);ctx.scale(0.6+0.4*s,0.6+0.4*s);comicText('GAME OVER',0,0,72,'#ffe14a','#f0731f',-0.05);ctx.restore();
     if(deadT>0.9){uiText('Out of lives. Stinky J wins... for now.',W/2,H/2+22,15,'#f1e2c6','center',true);uiText('Your adventure starts over from the beginning.',W/2,H/2+42,13,'#d8c7a8','center',true);}
-    if(deadT>1.6)uiText('Press A / Space to return to the title',W/2,H/2+70,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);
+    if(deadT>1.6)uiText('Press A to return to the title',W/2,H/2+70,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);
     return;}
   ctx.save();ctx.translate(W/2,H/2-30);ctx.scale(0.6+0.4*s,0.6+0.4*s);comicText('FLATTENED!',0,0,72,'#ffe14a','#f0731f',-0.05);ctx.restore();
   if(deadT>0.6){drawLifeHead(W/2-22,H/2+12,0.7);uiText('×'+S.lives+(S.lives===1?'  LAST LIFE!':'  LEFT'),W/2-10,H/2+8,16,S.lives===1?'#ff8a5c':'#ffe14a','left',true);}
-  if(deadT>0.9){uiText('The breakfast won this round.',W/2,H/2+36,15,'#f1e2c6','center',true);uiText('Press A / Space to get back up',W/2,H/2+60,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);}
+  if(deadT>0.9){uiText('The breakfast won this round.',W/2,H/2+36,15,'#f1e2c6','center',true);uiText('Press A to get back up',W/2,H/2+60,14,Math.floor(time*2.5)%2?'#ffe14a':'#f1e2c6','center',true);}
 }
 function drawWin(){
   ctx.fillStyle='#1a0e08';ctx.fillRect(0,0,W,H);
@@ -3271,7 +3541,7 @@ function drawWin(){
   uiText('Crumb City smells like fresh bread again.',W/2,312,14,'#f1e2c6','center',true);
   const t=Math.floor(S.time),mm=Math.floor(t/60),ss=('0'+t%60).slice(-2);
   uiText('Time '+mm+':'+ss+'   Knockouts '+S.deaths+'   Hearts '+S.maxHp/2+'   '+DF().name,W/2,342,13,'#e8b923','center',true);
-  if(winT>2)uiText('Press A / Space to return to the title',W/2,372,13,Math.floor(time*2.5)%2?'#ffe14a':'#a8916f','center',true);
+  if(winT>2)uiText('Press A to return to the title',W/2,372,13,Math.floor(time*2.5)%2?'#ffe14a':'#a8916f','center',true);
 }
 
 /* ================= RENDER ================= */
